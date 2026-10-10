@@ -194,6 +194,7 @@ body.v-notitles .seq .sec-title, body.v-notitles .seq .bar { display: none; }
 body.v-floatpanel .mel-layout { grid-template-columns: minmax(0, 1fr); }
 body.v-floatpanel .editpanel { display: none; }
 body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); top: auto; width: min(300px, calc(100vw - 32px)); max-height: 70vh; z-index: 40; background: var(--panel); box-shadow: 0 12px 36px rgba(0,0,0,.22); }
+.song-tools { margin: 0 0 14px; }
 .singbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -4px 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); }
 .singbar .fine { margin: 0; }
 .live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); animation: pulse 1.2s infinite; }
@@ -267,6 +268,7 @@ body.touch-dragging { -webkit-user-select: none; user-select: none; }
 .ep-sugs { display: flex; flex-wrap: wrap; gap: 4px; }
 .editpanel .current { background: var(--ink) !important; color: var(--bg) !important; border-color: var(--ink) !important; }
 .fing .khalf { fill: var(--ink); }
+.fing .dhole { fill: none; stroke: var(--muted); stroke-width: 1; }
 .fing .rbody { fill: none; stroke: var(--line); stroke-width: 1.5; }
 .fing .obody { fill: none; stroke: var(--line); stroke-width: 1.5; }
 .instpick select[hidden] { display: none; }
@@ -567,6 +569,14 @@ details.hint li { margin: 3px 0; }
           <h2 id="songViewTitle"></h2>
           <span class="head-right"><span class="badge"></span><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍 View ▾</button></span></span>
         </div>
+        <div class="toolbar song-tools">
+          <button id="playSong" type="button" class="btn primary">▶ Play</button>
+          <button id="singSong" type="button" class="btn">🎤 Sing more</button>
+          <button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
+          <button id="editSong" type="button" class="btn">✏️ Edit</button>
+          <button id="unmergeSong" type="button" class="btn" hidden>✂️ Unmerge</button>
+          <button id="deleteSong" type="button" class="btn danger">Delete</button>
+        </div>
         <div id="singBar" class="singbar" hidden>
           <span class="live-dot" aria-hidden="true"></span>
           <span id="songLive" class="song-live">Listening…</span>
@@ -613,14 +623,6 @@ details.hint li { margin: 3px 0; }
             <button type="button" data-act="del" class="ep-del" title="Remove (Delete)">🗑 Remove note</button>
           </div>
         </aside>
-        </div>
-        <div class="toolbar">
-          <button id="playSong" type="button" class="btn primary">▶ Play</button>
-          <button id="singSong" type="button" class="btn">🎤 Sing more</button>
-          <button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
-          <button id="editSong" type="button" class="btn">✏️ Edit</button>
-          <button id="unmergeSong" type="button" class="btn" hidden>✂️ Unmerge</button>
-          <button id="deleteSong" type="button" class="btn danger">Delete</button>
         </div>
       </div>
     </div>
@@ -907,13 +909,14 @@ details.hint li { margin: 3px 0; }
     [32, 48, 64].forEach((y, k) => { o += holeSVG(23, y, 6, f[k + 1]); });
     o += '<line class="div" x1="14" x2="32" y1="76" y2="76"/>';
     [88, 104].forEach((y, k) => { o += holeSVG(23, y, 6, f[k + 4]); });
-    // double holes 6 and 7: "h" covers one of the pair
+    // double holes 6 and 7, drawn as one hole in two halves: "h" = only the left half covered
     [[120, f[6]], [138, f[7]]].forEach(([y, st]) => {
-      o += holeSVG(19, y, 4, st === "1" || st === "h" ? "1" : "0") + holeSVG(28, y, 3, st === "1" ? "1" : "0");
+      o += '<rect class="dhole" x="15.6" y="' + (y - 4.4) + '" width="14.8" height="8.8" rx="4.4"/>'
+        + '<circle class="k' + (st === "1" || st === "h" ? " on" : "") + '" cx="19.6" cy="' + y + '" r="3.1"/>'
+        + '<circle class="k' + (st === "1" ? " on" : "") + '" cx="26.4" cy="' + y + '" r="3.1"/>';
     });
     o += '</svg>';
-    const tip = f[0] === "h" ? "Pinch the thumb hole" : (f.indexOf("h") > 0 ? "Half-cover the double hole" : "");
-    return '<div class="fing">' + o + (tip ? '<span class="x">' + tip + '</span>' : '') + '</div>';
+    return '<div class="fing">' + o + '</div>';
   }
   // ---------- Ocarina (12-hole alto C, Taiwanese subholes): 8 top holes, 2 subholes, 2 thumbs ----------
   const OCA_ALL = ["Lt", "Li", "Lm", "Lr", "Lp", "Rt", "Ri", "Rm", "Rr", "Rp"];
@@ -944,7 +947,7 @@ details.hint li { margin: 3px 0; }
     o += holeSVG(48, 76, 5, st("Lt")) + '<text class="pl" x="36" y="79">L</text>';
     o += holeSVG(80, 76, 5, st("Rt")) + '<text class="pl" x="92" y="79">R</text>';
     o += '</svg>';
-    const tip = (f.h || []).length ? "Half-cover the striped hole" : (f.c.includes("Ls") || f.c.includes("Rs") ? "Cover the small subhole too" : "");
+    const tip = f.c.includes("Ls") || f.c.includes("Rs") ? "Cover the small subhole too" : "";
     return '<div class="fing">' + o + (tip ? '<span class="x">' + tip + '</span>' : '') + '</div>';
   }
   // ---------- Bowed strings: violin (G D A E) and cello (C G D A), first position ----------
@@ -2402,7 +2405,7 @@ details.hint li { margin: 3px 0; }
     if (scroll) card.scrollIntoView({ block: "start" });
     const tb = card.querySelector(":scope > .toolbar"), legend = seq.parentElement.querySelector(".legend");
     const above = seq.getBoundingClientRect().top - card.getBoundingClientRect().top;
-    const avail = window.innerHeight - above - (tb ? tb.offsetHeight + 16 : 0) - (legend ? legend.offsetHeight + 10 : 0) - 34;
+    const avail = window.innerHeight - above - (tb && tb.getBoundingClientRect().top > seq.getBoundingClientRect().top ? tb.offsetHeight + 16 : 0) - (legend ? legend.offsetHeight + 10 : 0) - 34;
     let lo = 0.2, hi = 1.6;
     for (let k = 0; k < 9; k++) {
       const mid = (lo + hi) / 2;
