@@ -232,6 +232,10 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 .selectbar .btn:disabled { opacity: .45; cursor: default; }
 #selCount { font-weight: 700; margin-right: auto; }
 .song-card[draggable="true"] { cursor: grab; }
+.song-card[data-id] { -webkit-touch-callout: none; }
+.drag-ghost { position: fixed; left: 0; top: 0; z-index: 100; pointer-events: none; margin: 0; opacity: .95; box-shadow: 0 14px 34px rgba(0,0,0,.28); border-color: var(--brass); transform-origin: 30% 30%; }
+.ghost-count { position: absolute; top: -8px; right: -8px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: var(--brass); color: #fff; font-weight: 800; font-size: .8rem; display: grid; place-items: center; }
+body.touch-dragging { -webkit-user-select: none; user-select: none; }
 .song-card.drag-src { opacity: .45; }
 .drop-ready { outline: 2px dashed var(--brass); outline-offset: 3px; }
 .drop-hover { outline: 3px solid var(--brass) !important; outline-offset: 3px; transform: scale(1.03); transition: transform .1s; }
@@ -2053,7 +2057,81 @@ details.hint li { margin: 3px 0; }
     if (!dragIds) return;
     const t = targetFor(e.target); if (!t) return;
     e.preventDefault();
+    dropOn(t);
+  });
+
+  // Phones and tablets: press and hold a song, then drag it with your finger
+  let holdTimer = null, touchDrag = null; // touchDrag = { ghost, x, y, dx, dy, scroller }
+  function cancelHold() { clearTimeout(holdTimer); holdTimer = null; }
+  function endTouchDrag() {
+    if (!touchDrag) return;
+    touchDrag.ghost.remove(); clearInterval(touchDrag.scroller);
+    touchDrag = null; document.body.classList.remove("touch-dragging");
+    document.dispatchEvent(new Event("dragend"));
+  }
+  $("songList").addEventListener("touchstart", e => {
+    const c = e.target.closest(".song-card[data-id]"); if (!c || e.touches.length > 1) return;
+    const t0 = e.touches[0], sx = t0.clientX, sy = t0.clientY;
+    cancelHold();
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
+      const id = c.dataset.id, r = c.getBoundingClientRect();
+      dragIds = picking && picked.includes(id) ? picked.slice() : [id];
+      const ghost = c.cloneNode(true);
+      ghost.classList.add("drag-ghost"); ghost.removeAttribute("data-id");
+      if (dragIds.length > 1) ghost.insertAdjacentHTML("beforeend", '<span class="ghost-count">' + dragIds.length + '</span>');
+      ghost.style.width = r.width + "px";
+      document.body.appendChild(ghost);
+      touchDrag = { ghost, x: sx, y: sy, dx: sx - r.left, dy: sy - r.top, scroller: null };
+      document.body.classList.add("touch-dragging");
+      document.querySelectorAll("#songList .song-card").forEach(x => x.classList.toggle("drag-src", dragIds.includes(x.dataset.id)));
+      dropTargets().forEach(t => t.classList.add("drop-ready"));
+      moveGhost();
+      // scroll the page when the finger is near the top or bottom edge
+      touchDrag.scroller = setInterval(() => {
+        if (!touchDrag) return;
+        const edge = 70, y = touchDrag.y;
+        if (y < edge) window.scrollBy(0, -12); else if (y > window.innerHeight - edge) window.scrollBy(0, 12); else return;
+        hoverAt();
+      }, 30);
+      if (navigator.vibrate) try { navigator.vibrate(15); } catch (err) {}
+      toast("Drop on a song to merge, or on a folder to move it");
+    }, 350);
+    c.dataset.sx = sx; c.dataset.sy = sy;
+  }, { passive: true });
+  function moveGhost() { const d = touchDrag; d.ghost.style.transform = "translate(" + (d.x - d.dx) + "px," + (d.y - d.dy) + "px) scale(.92) rotate(-2deg)"; }
+  function hoverAt() {
+    const t = targetFor(document.elementFromPoint(touchDrag.x, touchDrag.y));
+    document.querySelectorAll(".drop-hover, .merge-hover").forEach(x => { if (x !== t) x.classList.remove("drop-hover", "merge-hover"); });
+    if (t) t.classList.add(t.dataset.id ? "merge-hover" : "drop-hover");
+    return t;
+  }
+  document.addEventListener("touchmove", e => {
+    const p = e.touches[0];
+    if (holdTimer) { // moved before the hold finished: it's a scroll, not a drag
+      const c = e.target.closest && e.target.closest(".song-card[data-id]");
+      if (!c || Math.hypot(p.clientX - c.dataset.sx, p.clientY - c.dataset.sy) > 10) cancelHold();
+      return;
+    }
+    if (!touchDrag) return;
+    e.preventDefault();
+    touchDrag.x = p.clientX; touchDrag.y = p.clientY;
+    moveGhost(); hoverAt();
+  }, { passive: false });
+  document.addEventListener("touchend", e => {
+    cancelHold();
+    if (!touchDrag) return;
+    e.preventDefault(); // no click on the card underneath
+    const t = hoverAt();
+    if (t) dropOn(t); else endTouchDrag();
+    endTouchDrag();
+  }, { passive: false });
+  document.addEventListener("touchcancel", () => { cancelHold(); endTouchDrag(); });
+  $("songList").addEventListener("contextmenu", e => { if (e.target.closest(".song-card[data-id]") && (holdTimer || touchDrag)) e.preventDefault(); });
+
+  function dropOn(t) {
     const ids = dragIds; dragIds = null;
+    if (!ids) return;
     if (t.dataset.id) { document.dispatchEvent(new Event("dragend")); askMerge(ids, t.dataset.id); return; }
     let fid;
     if (t.id === "crumbRoot") fid = null;
@@ -2067,7 +2145,7 @@ details.hint li { margin: 3px 0; }
     document.dispatchEvent(new Event("dragend"));
     showSongHome();
     toast("Moved " + (ids.length === 1 ? "“" + (songs.find(x => x.id === ids[0]) || {}).name + "”" : ids.length + " songs") + " to " + (fid ? folderName(fid) : "Your songs"));
-  });
+  }
   $("folderList").addEventListener("click", onCardClick);
   $("cancelSong").addEventListener("click", () => editingId ? openSong(editingId) : showSongHome());
   $("backSongs").addEventListener("click", () => {
