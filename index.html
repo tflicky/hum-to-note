@@ -63,7 +63,7 @@ select:focus-visible, input:focus-visible, textarea:focus-visible, button:focus-
 .badge { font-size: .85rem; color: var(--muted); background: var(--bg); border-radius: 999px; padding: 3px 12px; }
 
 /* Stage */
-.stage { text-align: center; padding: 22px 18px; }
+.stage { position: relative; text-align: center; padding: 22px 18px 24px; }
 .stage-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 36px; min-height: 160px; }
 .note-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 220px; }
 .note { font-size: clamp(5.5rem, 22vw, 8.5rem); font-weight: 800; line-height: 1; letter-spacing: -0.04em; transition: color .15s; }
@@ -73,15 +73,19 @@ select:focus-visible, input:focus-visible, textarea:focus-visible, button:focus-
 .meter::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--muted); opacity: .4; }
 .needle { position: absolute; top: 0; bottom: 0; width: 10px; margin-left: -5px; left: 50%; border-radius: 5px; background: var(--brass); transition: left .08s linear; }
 .needle.intune { background: var(--good); }
-.meta { color: var(--muted); font-size: .8rem; min-height: 1.2em; }
+.meta { color: var(--muted); font-size: .9rem; min-height: 1.2em; }
 .stage-fing:empty { display: none; }
-.stage .btn.big { margin-top: 14px; }
+.stage .btn.big { margin-top: 16px; }
 
 details > summary { cursor: pointer; list-style: none; font-weight: 600; color: var(--muted); }
 details > summary::-webkit-details-marker { display: none; }
 details > summary::before { content: "▸"; display: inline-block; width: 1em; transition: transform .15s; }
 details[open] > summary::before { transform: rotate(90deg); }
-.settings { margin-top: 14px; text-align: left; }
+.settings { position: absolute; top: 12px; right: 14px; margin: 0; text-align: left; z-index: 30; }
+.settings > summary { font-size: .85rem; padding: 4px 8px; border-radius: 8px; }
+.settings > summary::before { content: none; }
+.settings > summary:hover { background: var(--bg); }
+.settings[open] .settings-grid { position: absolute; right: 0; top: calc(100% + 6px); width: min(300px, calc(100vw - 48px)); margin: 0; padding: 14px; background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,.2); }
 .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 24px; margin-top: 12px; }
 .setting { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; }
 .setting .lab { display: flex; justify-content: space-between; font-weight: 600; }
@@ -176,6 +180,13 @@ details[open] > summary::before { transform: rotate(90deg); }
 .ins:hover::before, .ins:focus-visible::before { background: var(--brass); transform: scale(1.25); }
 .ins.end { width: 40px; margin-left: 2px; }
 .ins.end::before { width: 28px; height: 28px; font-size: 1.1rem; }
+.mel-card.is-empty .editpanel, .mel-card.is-empty .legend, .mel-card.is-empty .song-tools, .mel-card.is-empty .viewpick { display: none; }
+.mel-card.is-empty .mel-layout { grid-template-columns: minmax(0, 1fr); }
+.mel-card.is-empty .seq { min-height: 0; padding: 26px 16px; }
+.mel-empty { text-align: center; gap: 6px !important; }
+.mel-empty .ea-ic { font-size: 1.8rem; line-height: 1; }
+.mel-empty strong { color: var(--ink); font-size: 1.05rem; }
+.mel-empty .ea-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 16px; margin-top: 8px; }
 .seq .empty-add { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--muted); }
 .head-right { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .viewpick { position: relative; }
@@ -199,6 +210,9 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 .octpair .btn:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1.5px; }
 .octpair .btn[hidden] { display: none; }
 .credits { text-align: center; margin-top: 28px; }
+.credits > summary { display: inline-block; font-size: .8rem; font-weight: 600; }
+.credits > summary::before { content: none; }
+.credits p { max-width: 640px; margin: 6px auto 0; }
 .credits a { color: inherit; }
 .remix-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: var(--brass-soft); border: 1.5px solid var(--brass); }
 .remix-banner[hidden] { display: none; }
@@ -443,16 +457,15 @@ details.hint li { margin: 3px 0; }
         <div class="note-wrap">
           <div id="note" class="note idle" aria-live="polite">♪</div>
           <div class="meter" aria-hidden="true"><div id="needle" class="needle"></div></div>
-          <div id="meta" class="meta">Sing or hum one note at a time</div>
+          <div id="meta" class="meta">Say “doo” once for each note: doo, doo, doo</div>
           <canvas id="trace" class="trace" hidden aria-hidden="true"></canvas>
         </div>
         <div id="stageFing" class="stage-fing"></div>
       </div>
       <button id="toggle" type="button" class="btn big primary">🎤 Start listening</button>
 
-      <p class="howto">Say <strong>“doo”</strong> once for each note: <em>doo, doo, doo</em>. Each “doo” becomes one note.</p>
       <details class="settings">
-        <summary>Settings</summary>
+        <summary>⚙ Settings</summary>
         <div class="settings-grid">
           <label class="setting">
             <span class="lab">Mic sensitivity</span>
@@ -463,10 +476,26 @@ details.hint li { margin: 3px 0; }
       </details>
     </div>
 
-    <div class="card">
+    <div class="card mel-card is-empty" id="melCard">
       <div class="row-head">
         <h2>Your melody</h2>
-        <span class="head-right"><span class="badge"></span><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍 View ▾</button></span></span>
+        <span class="head-right"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍 View ▾</button></span></span>
+      </div>
+      <div class="toolbar song-tools">
+        <button id="playMel" type="button" class="btn primary">▶ Play</button>
+        <button id="saveMel" type="button" class="btn">💾 Save as song</button>
+        <button id="undo" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
+        <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">🎚 Key<span class="wide-only"> &amp; octave</span> ▾</button>
+            <div class="menu tp-menu" role="group" aria-label="Move every note" hidden>
+              <div class="tp-row"><span class="tp-lab">Key</span><span class="octpair"><button id="melKeyDown" type="button" class="btn" title="Move every note down a half step">▼ Half step</button><button id="melKeyUp" type="button" class="btn" title="Move every note up a half step">▲ Half step</button></span></div>
+              <div class="tp-row"><span class="tp-lab">Octave</span><span class="octpair"><button id="melOctDown" type="button" class="btn" title="Move every note down an octave">▼ Lower</button><button id="melOctUp" type="button" class="btn" title="Move every note up an octave">▲ Higher</button></span></div>
+              <p class="fine" style="margin:0">Moves every note, chords too. ↩ Undo puts it back.</p>
+            </div></span>
+        <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⋯ More</button>
+          <div class="menu list-menu" hidden>
+            <button id="copy" type="button" class="menu-item">📋 Copy notes</button>
+            <button id="clear" type="button" class="menu-item danger">🗑 Clear melody</button>
+          </div></span>
       </div>
       <div class="mel-layout">
         <div class="mel-main">
@@ -501,22 +530,6 @@ details.hint li { margin: 3px 0; }
             <p class="ep-keys">← → next note · ↑ ↓ pitch · Alt+← → move · Del remove</p>
           </div>
         </aside>
-      </div>
-      <div class="toolbar">
-        <button id="playMel" type="button" class="btn primary">▶ Play</button>
-        <button id="saveMel" type="button" class="btn">💾 Save as song</button>
-        <button id="undo" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
-        <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">🎚 Key<span class="wide-only"> &amp; octave</span> ▾</button>
-            <div class="menu tp-menu" role="group" aria-label="Move every note" hidden>
-              <div class="tp-row"><span class="tp-lab">Key</span><span class="octpair"><button id="melKeyDown" type="button" class="btn" title="Move every note down a half step">▼ Half step</button><button id="melKeyUp" type="button" class="btn" title="Move every note up a half step">▲ Half step</button></span></div>
-              <div class="tp-row"><span class="tp-lab">Octave</span><span class="octpair"><button id="melOctDown" type="button" class="btn" title="Move every note down an octave">▼ Lower</button><button id="melOctUp" type="button" class="btn" title="Move every note up an octave">▲ Higher</button></span></div>
-              <p class="fine" style="margin:0">Moves every note, chords too. ↩ Undo puts it back.</p>
-            </div></span>
-        <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⋯ More</button>
-          <div class="menu list-menu" hidden>
-            <button id="copy" type="button" class="menu-item">📋 Copy notes</button>
-            <button id="clear" type="button" class="menu-item danger">🗑 Clear melody</button>
-          </div></span>
       </div>
     </div>
 
@@ -687,7 +700,7 @@ details.hint li { margin: 3px 0; }
       </div>
     </div>
   </section>
-  <p class="fine credits">Instrument sounds: <a href="https://tonejs.github.io/audio/salamander/README" target="_blank" rel="noopener">Salamander Grand Piano</a> by Alexander Holm, <a href="https://github.com/nbrosowsky/tonejs-instruments" target="_blank" rel="noopener">tonejs-instruments</a> (guitar, clarinet), and the FluidR3 GM soundfont via <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noopener">midi-js-soundfonts</a>, all <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>. Sax, flute, recorder and ocarina use built-in sounds, as does everything when offline.</p>
+  <details class="credits"><summary>Sound credits</summary>  <p class="fine">Instrument sounds: <a href="https://tonejs.github.io/audio/salamander/README" target="_blank" rel="noopener">Salamander Grand Piano</a> by Alexander Holm, <a href="https://github.com/nbrosowsky/tonejs-instruments" target="_blank" rel="noopener">tonejs-instruments</a> (guitar, clarinet), and the FluidR3 GM soundfont via <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noopener">midi-js-soundfonts</a>, all <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>. Sax, flute, recorder and ocarina use built-in sounds, as does everything when offline.</p></details>
 </main>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <div id="viewPop" class="viewpop" role="dialog" aria-label="View options" hidden>
@@ -1243,7 +1256,12 @@ details.hint li { margin: 3px 0; }
   function renderSeq() {
     if (selState && selState.list === "mel" && !(selState.idx < melody.length)) selState = null;
     refit(); preloadSoon();
-    seqEl.innerHTML = melody.some(isNote) ? chipsHTML(melody) : '<div class="empty-add"><span>Notes you sing will show up here.</span><button type="button" class="btn" data-ins="0">＋ Add a note by hand</button><button type="button" class="link" data-newsong>Already have the notes? Type or paste them into a new song →</button></div>';
+    const has = melody.some(isNote);
+    $("melCard").classList.toggle("is-empty", !has);
+    const canUndo = typeof histMel !== "undefined" && histMel.undo.length > 0;
+    seqEl.innerHTML = has ? chipsHTML(melody) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>Your notes will appear here</strong><span>Press <b>Start listening</b> and sing “doo” for each note.</span>'
+      + '<div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note by hand</button><button type="button" class="link" data-newsong>Type or paste a song instead →</button>'
+      + (canUndo ? '<button type="button" class="link" data-undomel>↩ Undo</button>' : '') + '</div></div>';
   }
   let stageMidi = null;
   function renderStage(m) {
@@ -1415,7 +1433,7 @@ details.hint li { margin: 3px 0; }
     toggle.textContent = "🎤 Start listening"; toggle.classList.remove("live"); toggle.classList.add("primary");
     noteEl.classList.add("idle"); noteEl.textContent = "♪";
     $("trace").hidden = true; endSeg();
-    metaEl.textContent = "Sing or hum one note at a time";
+    metaEl.textContent = "Say “doo” once for each note: doo, doo, doo";
     needle.style.left = "50%"; renderStage(null);
     stopSongUI();
   }
@@ -3020,6 +3038,7 @@ details.hint li { margin: 3px 0; }
   toggle.addEventListener("click", () => { if (running && recTarget === "mel") { stop(); return; } if (running) stop(); start("mel"); });
   $("clear").addEventListener("click", () => { if (melody.length && !confirm("Clear your melody?")) return; remember("mel"); selState = null; updateEditbar("mel"); melody.length = 0; renderSeq(); });
   $("undo").addEventListener("click", () => undoRedo("mel", false));
+  document.addEventListener("click", e => { if (e.target.closest("[data-undomel]")) undoRedo("mel", false); });
   $("undoSong").addEventListener("click", () => undoRedo("song", false));
   // Small menus (🎚 Key & octave, ⋯ More): one open at a time; list menus close after a choice
   function closeMenus(except) {
