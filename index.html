@@ -200,6 +200,17 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 .octpair .btn[hidden] { display: none; }
 .credits { text-align: center; margin-top: 28px; }
 .credits a { color: inherit; }
+.remix-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: var(--brass-soft); border: 1.5px solid var(--brass); }
+.remix-banner[hidden] { display: none; }
+.rb-ic { font-size: 1.8rem; line-height: 1; }
+.rb-text { flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; font-size: .92rem; }
+.rb-text strong { font-size: 1.02rem; }
+.rb-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+@keyframes songIn { from { opacity: 0; transform: translateX(48px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes titlePop { from { background: var(--brass-soft); } to { background: transparent; } }
+#songView .card.song-enter { animation: songIn .42s cubic-bezier(.2,.8,.2,1); }
+#songView .card.song-enter #songViewTitle { animation: titlePop 1.6s ease-out; border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) { #songView .card.song-enter, #songView .card.song-enter #songViewTitle { animation: none; } }
 .song-tools { margin: 0 0 14px; }
 .singbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -4px 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); }
 .singbar .fine { margin: 0; }
@@ -474,6 +485,7 @@ details.hint li { margin: 3px 0; }
         <button id="playMel" type="button" class="btn primary">▶ Play</button>
         <button id="saveMel" type="button" class="btn">💾 Save as song</button>
         <button id="undo" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
+        <span class="octpair" role="group" aria-label="Change the key"><button id="melKeyDown" type="button" class="btn" title="Move every note down a half step">Key ▼</button><button id="melKeyUp" type="button" class="btn" title="Move every note up a half step">Key ▲</button></span>
         <span class="octpair" role="group" aria-label="Move the whole song by an octave"><button id="melOctDown" type="button" class="btn" title="Move every note down an octave">Octave ▼</button><button id="melOctUp" type="button" class="btn" title="Move every note up an octave">Octave ▲</button></span>
         <button id="copy" type="button" class="btn">📋 Copy</button>
         <button id="clear" type="button" class="btn danger">Clear</button>
@@ -580,11 +592,18 @@ details.hint li { margin: 3px 0; }
           <button id="playSong" type="button" class="btn primary">▶ Play</button>
           <button id="singSong" type="button" class="btn">🎤 Sing more</button>
           <button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
+          <span class="octpair" role="group" aria-label="Change the key"><button id="songKeyDown" type="button" class="btn" title="Move every note down a half step">Key ▼</button><button id="songKeyUp" type="button" class="btn" title="Move every note up a half step">Key ▲</button></span>
           <span class="octpair" role="group" aria-label="Move the whole song by an octave"><button id="songOctDown" type="button" class="btn" title="Move every note down an octave">Octave ▼</button><button id="songOctUp" type="button" class="btn" title="Move every note up an octave">Octave ▲</button></span>
           <button id="editSong" type="button" class="btn">✏️ Edit</button>
-          <button id="dupSong" type="button" class="btn" title="Make a copy named “… Remix”">⧉ Duplicate</button>
+          <button id="dupSong" type="button" class="btn" title="Make your own copy to change, named “… Remix”">🎛 Remix</button>
           <button id="unmergeSong" type="button" class="btn" hidden>✂️ Unmerge</button>
           <button id="deleteSong" type="button" class="btn danger">Delete</button>
+        </div>
+        <div id="remixBanner" class="remix-banner" role="status" hidden>
+          <span class="rb-ic" aria-hidden="true">🎛</span>
+          <div class="rb-text"><strong>New song: <span id="rbName"></span></strong><span>This is your own copy to change. <span id="rbOrigName"></span> stays just as it was.</span></div>
+          <div class="rb-actions"><button id="rbRename" type="button" class="btn">✏️ Rename</button><button id="rbOrig" type="button" class="link">Open the original</button></div>
+          <button id="rbClose" type="button" class="ep-close" aria-label="Hide this message">✕</button>
         </div>
         <div id="singBar" class="singbar" hidden>
           <span class="live-dot" aria-hidden="true"></span>
@@ -1602,7 +1621,7 @@ details.hint li { margin: 3px 0; }
   function setPreviewMode(on) {
     $("songView").classList.toggle("preview", on);
     $("previewNote").hidden = !on;
-    ["undoSong", "editSong", "deleteSong", "singSong", "songOctDown", "songOctUp", "dupSong"].forEach(id => { $(id).hidden = on; });
+    ["undoSong", "editSong", "deleteSong", "singSong", "songOctDown", "songOctUp", "songKeyDown", "songKeyUp", "dupSong"].forEach(id => { $(id).hidden = on; });
     if (on) $("unmergeSong").hidden = true;
   }
   function previewLibrary(id) {
@@ -1623,6 +1642,7 @@ details.hint li { margin: 3px 0; }
     return { k: best, items: best ? items.map(x => isNote(x) ? withPitch(x, pitchOf(x) + 12 * best) : x) : items.slice() };
   }
   function showLibPreview() {
+    $("remixBanner").hidden = true;
     const fit = fitOctave(libPreview.base);
     libPreview.items = fit.items;
     $("previewFit").textContent = fit.k ? "Moved " + (fit.k > 0 ? "up " : "down ") + (Math.abs(fit.k) === 1 ? "an octave" : Math.abs(fit.k) + " octaves") + " to fit " + inst().name + "." : "";
@@ -1645,8 +1665,9 @@ details.hint li { margin: 3px 0; }
     if (isSax()) sg.sax = instSel.value;
     songs.push(sg);
     if (!storeSongs()) alert("Couldn't save to this browser's storage. Use Export to keep a copy.");
+    const from = { lib: libPreview.libId, name: libPreview.name };
     openSong(sg.id, true);
-    toast("Saved “" + name + "” to Your songs");
+    announceRemix(sg, from);
   });
   $("libSearch").addEventListener("input", renderLibrary);
   $("libCats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; libCat = b.dataset.cat; renderLibrary(); });
@@ -1901,6 +1922,7 @@ details.hint li { margin: 3px 0; }
   function openSong(id, keepInstrument) {
     if (libPreview && id === libPreview.id) { showLibPreview(); return; }
     libPreview = null; setPreviewMode(false);
+    if (openId !== id) $("remixBanner").hidden = true;
     const sg = songs.find(x => x.id === id); if (!sg) { showSongHome(); return; }
     const target = keepInstrument ? null : instForSong(sg);
     if (target && target !== instSel.value && INSTS[target]) {
@@ -2193,7 +2215,32 @@ details.hint li { margin: 3px 0; }
     songs.splice(songs.indexOf(sg) + 1, 0, copy);
     if (!storeSongs()) alert("Couldn't save to this browser's storage. Use Export to keep a copy.");
     openSong(copy.id, true);
-    toast("Made a copy: “" + copy.name + "”");
+    announceRemix(copy, { song: sg.id, name: sg.name });
+  });
+  // Opening a fresh remix: slide the new song in and say plainly that it is a separate copy
+  let remixFrom = null;
+  function announceRemix(sg, from) {
+    remixFrom = from;
+    $("rbName").textContent = sg.name;
+    $("rbOrigName").textContent = from.lib ? "The library version of “" + from.name + "”" : "“" + from.name + "”";
+    $("remixBanner").hidden = false;
+    const card = $("songView").querySelector(".card");
+    card.classList.remove("song-enter"); void card.offsetWidth; card.classList.add("song-enter");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  $("songView").querySelector(".card").addEventListener("animationend", e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove("song-enter"); });
+  $("rbClose").addEventListener("click", () => { $("remixBanner").hidden = true; });
+  $("rbRename").addEventListener("click", () => {
+    const sg = currentSong(); if (!sg || isPreview()) return;
+    const n = prompt("Name this song:", sg.name); if (!n || !n.trim()) return;
+    sg.name = n.trim(); storeSongs();
+    $("songViewTitle").innerHTML = songIcon(sg) + " " + esc(sg.name); $("rbName").textContent = sg.name;
+  });
+  $("rbOrig").addEventListener("click", () => {
+    if (!remixFrom) return;
+    if (remixFrom.lib) previewLibrary(remixFrom.lib);
+    else if (songs.some(x => x.id === remixFrom.song)) openSong(remixFrom.song, true);
+    else toast("The original song is no longer in Your songs");
   });
   $("unmergeSong").addEventListener("click", unmergeOpen);
   $("deleteSong").addEventListener("click", () => {
@@ -2937,23 +2984,33 @@ details.hint li { margin: 3px 0; }
   $("clear").addEventListener("click", () => { if (melody.length && !confirm("Clear your melody?")) return; remember("mel"); selState = null; updateEditbar("mel"); melody.length = 0; renderSeq(); });
   $("undo").addEventListener("click", () => undoRedo("mel", false));
   $("undoSong").addEventListener("click", () => undoRedo("song", false));
-  // Move the whole song (or the Hum melody) up or down an octave; Undo puts it back
-  function shiftOctave(which, d) {
+  // Move the whole song (or the Hum melody) by half steps or octaves; chords move with it; Undo puts it back
+  function shiftOctave(which, d) { shiftSong(which, 12 * d); }
+  function shiftSong(which, semis) {
     if (which === "song" && (!currentSong() || isPreview())) return;
     const list = getList(which); if (!list.some(isNote)) return;
     const lim = pitchLimits(), outside = () => list.filter(x => isNote(x) && (pitchOf(x) < lim.lo || pitchOf(x) > lim.hi)).length;
     const before = outside();
     remember(which);
-    const sel = selState && selState.list === which ? selState.idx : null;
-    for (let i = 0; i < list.length; i++) if (isNote(list[i])) list[i] = withPitch(list[i], pitchOf(list[i]) + 12 * d);
+    const sel = selState && selState.list === which ? selState.idx : null, d = Math.sign(semis);
+    const was = displayLabel(list.find(isNote));
+    for (let i = 0; i < list.length; i++) if (isNote(list[i])) {
+      let x = withPitch(list[i], pitchOf(list[i]) + semis);
+      const ch = chordOf(x);
+      if (ch && !ch.on && semis % 12) x = withChord(x, Object.assign({}, ch, { root: (((ch.root + semis) % 12) + 12) % 12 }));
+      list[i] = x;
+    }
     const extra = outside() - before;
     selState = null; rerender(which);
     if (sel !== null) select(which, sel, false);
-    toast((d > 0 ? "Up" : "Down") + " an octave" + (extra > 0 ? " · " + extra + " note" + (extra === 1 ? " is" : "s are") + " " + (d > 0 ? "too high" : "too low") + " for " + inst().name + ", so " + (extra === 1 ? "it shows" : "they show") + " in a nearer octave" : ""));
+    const what = Math.abs(semis) === 12 ? (d > 0 ? "Up" : "Down") + " an octave" : (d > 0 ? "Up" : "Down") + " a half step · first note " + was + " → " + displayLabel(list.find(isNote));
+    toast(what + (extra > 0 ? " · " + extra + " note" + (extra === 1 ? " is" : "s are") + " " + (d > 0 ? "too high" : "too low") + " for " + inst().name + ", so " + (extra === 1 ? "it shows" : "they show") + " in a nearer octave" : ""));
   }
   [["mel", "mel"], ["song", "song"]].forEach(([p, which]) => {
     $(p + "OctDown").addEventListener("click", () => shiftOctave(which, -1));
     $(p + "OctUp").addEventListener("click", () => shiftOctave(which, 1));
+    $(p + "KeyDown").addEventListener("click", () => shiftSong(which, -1));
+    $(p + "KeyUp").addEventListener("click", () => shiftSong(which, 1));
   });
   $("copy").addEventListener("click", async () => {
     const btn = $("copy");
