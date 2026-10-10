@@ -261,6 +261,17 @@ details[open] > summary::before { transform: rotate(90deg); }
 .fing .vlab.on { fill: #fff; }
 .kpills { display: flex; flex-direction: column; gap: 3px; align-items: center; max-width: 110px; }
 .kpill { font-size: .66rem; line-height: 1.2; font-weight: 700; background: var(--brass); color: #fff; border-radius: 6px; padding: 2px 6px; text-align: center; }
+/* Song library & sheet music import */
+.library { margin-top: 26px; }
+.lib-tools { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 12px; }
+.lib-tools input[type=search] { font: inherit; color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 12px; flex: 1 1 220px; min-width: 0; }
+.lib-tools input[type=search]:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.lib-card .by { color: var(--muted); font-size: .78rem; display: block; }
+.lib-card .tag { display: inline-block; margin-top: 2px; }
+.lib-empty a { color: var(--brass); font-weight: 700; }
+.import-panel { border-color: var(--brass); }
+.import-preview { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; background: var(--bg); border-radius: 10px; padding: 10px 12px; color: var(--ink); overflow-wrap: anywhere; }
+.import-preview:empty { display: none; }
 @media (prefers-reduced-motion: reduce) { .needle, .note, details > summary::before { transition: none; } }
 </style>
 </head>
@@ -417,7 +428,22 @@ details[open] > summary::before { transform: rotate(90deg); }
         <div class="toolbar" style="margin:0">
           <button id="selectMode" type="button" class="btn">☑ Select</button>
           <button id="newFolder" type="button" class="btn">📁 New folder</button>
+          <button id="importMusic" type="button" class="btn">📄 Import sheet music</button>
           <button id="newSong" type="button" class="btn primary">＋ New song</button>
+          <input id="musicFile" type="file" accept=".mid,.midi,.musicxml,.xml,.mxl,audio/midi,audio/x-midi" hidden>
+        </div>
+      </div>
+      <div id="importPanel" class="card import-panel" hidden>
+        <div class="row-head" style="margin-bottom:4px"><h2>📄 Import sheet music</h2></div>
+        <p id="importInfo" class="fine" style="margin-top:0"></p>
+        <div id="importPick" class="src-row">
+          <label class="field-label" for="importPart" style="margin:0">Take the melody from</label>
+          <select id="importPart" class="srcSel"></select>
+        </div>
+        <p id="importPreview" class="import-preview"></p>
+        <div class="toolbar">
+          <button id="importUse" type="button" class="btn primary">Use this part</button>
+          <button id="importCancel" type="button" class="btn">Cancel</button>
         </div>
       </div>
       <div id="folderTools" class="toolbar" style="margin:0 0 12px" hidden>
@@ -432,6 +458,15 @@ details[open] > summary::before { transform: rotate(90deg); }
         <label class="instpick">Move to <select id="moveSel"></select></label>
         <button id="cancelSel" type="button" class="btn">Done</button>
       </div>
+      <section id="library" class="library" aria-labelledby="libTitle">
+        <div class="row-head"><h2 id="libTitle">📚 Song library</h2></div>
+        <div class="lib-tools">
+          <input id="libSearch" type="search" placeholder="Search songs…" aria-label="Search the song library" autocomplete="off">
+          <div id="libCats" class="seg" role="group" aria-label="Filter by type"></div>
+        </div>
+        <div id="libList" class="song-grid"></div>
+        <p class="fine">Tap a song to add it to Your songs. These are classic and traditional tunes that are free to use. For other songs, use <strong>📄 Import sheet music</strong> with a MusicXML or MIDI file.</p>
+      </section>
       <details class="backup">
         <summary>Back up or move songs</summary>
         <p class="fine">Songs and folders are saved in this browser. Export a backup file before switching to a new version of this tool, then Import it there.</p>
@@ -1242,6 +1277,257 @@ details[open] > summary::before { transform: rotate(90deg); }
   const inFolder = id => songs.filter(sg => (sg.folder || null) === id && (id === null || folders.some(f => f.id === id)));
   const looseSongs = () => songs.filter(sg => !sg.folder || !folders.some(f => f.id === sg.folder));
 
+  // ---------- Song library (public-domain tunes, concert pitch) ----------
+  const LIB_CATS = [["all", "All"], ["kids", "🧸 Kids"], ["holiday", "🎄 Holiday"], ["classical", "🎻 Classical"], ["folk", "🪕 Folk & hymns"]];
+  const LIBRARY = [
+    { id: "twinkle", name: "Twinkle, Twinkle, Little Star", by: "Traditional", cat: "kids", also: "abc alphabet baa baa black sheep",
+      notes: "C4 C4 G4 G4 A4 A4 G4 | F4 F4 E4 E4 D4 D4 C4 | G4 G4 F4 F4 E4 E4 D4 | G4 G4 F4 F4 E4 E4 D4 | C4 C4 G4 G4 A4 A4 G4 | F4 F4 E4 E4 D4 D4 C4" },
+    { id: "birthday", name: "Happy Birthday", by: "Traditional", cat: "kids", also: "birthday party",
+      notes: "G4 G4 A4 G4 C5 B4 | G4 G4 A4 G4 D5 C5 | G4 G4 G5 E5 C5 B4 A4 | F5 F5 E5 C5 D5 C5" },
+    { id: "mary", name: "Mary Had a Little Lamb", by: "Traditional", cat: "kids",
+      notes: "E4 D4 C4 D4 | E4 E4 E4 | D4 D4 D4 | E4 G4 G4 | E4 D4 C4 D4 | E4 E4 E4 E4 | D4 D4 E4 D4 | C4" },
+    { id: "hotcross", name: "Hot Cross Buns", by: "Traditional", cat: "kids", also: "beginner",
+      notes: "E4 D4 C4 | E4 D4 C4 | C4 C4 C4 C4 D4 D4 D4 D4 | E4 D4 C4" },
+    { id: "rowboat", name: "Row, Row, Row Your Boat", by: "Traditional", cat: "kids", also: "round",
+      notes: "C4 C4 C4 D4 E4 | E4 D4 E4 F4 G4 | C5 C5 C5 G4 G4 G4 E4 E4 E4 C4 C4 C4 | G4 F4 E4 D4 C4" },
+    { id: "jacques", name: "Frère Jacques", by: "Traditional (French)", cat: "kids", also: "are you sleeping brother john frere round",
+      notes: "C4 D4 E4 C4 | C4 D4 E4 C4 | E4 F4 G4 | E4 F4 G4 | G4 A4 G4 F4 E4 C4 | G4 A4 G4 F4 E4 C4 | C4 G3 C4 | C4 G3 C4" },
+    { id: "macdonald", name: "Old MacDonald Had a Farm", by: "Traditional", cat: "kids", also: "e i e i o farm animals",
+      notes: "C4 C4 C4 G3 A3 A3 G3 | E4 E4 D4 D4 C4 | G3 C4 C4 C4 G3 A3 A3 G3 | E4 E4 D4 D4 C4 | G3 G3 C4 C4 C4 G3 G3 C4 C4 C4 | C4 C4 C4 C4 C4 C4 C4 C4 C4 C4 C4 C4 | C4 C4 C4 G3 A3 A3 G3 | E4 E4 D4 D4 C4" },
+    { id: "london", name: "London Bridge Is Falling Down", by: "Traditional", cat: "kids",
+      notes: "G4 A4 G4 F4 E4 F4 G4 | D4 E4 F4 | E4 F4 G4 | G4 A4 G4 F4 E4 F4 G4 | D4 G4 E4 C4" },
+    { id: "yankee", name: "Yankee Doodle", by: "Traditional", cat: "folk", also: "america",
+      notes: "C4 C4 D4 E4 C4 E4 D4 G3 | C4 C4 D4 E4 C4 B3 | C4 C4 D4 E4 F4 E4 D4 C4 | B3 G3 A3 B3 C4 C4" },
+    { id: "saints", name: "When the Saints Go Marching In", by: "Traditional (spiritual)", cat: "folk", also: "jazz dixieland",
+      notes: "C4 E4 F4 G4 | C4 E4 F4 G4 | C4 E4 F4 G4 E4 C4 E4 D4 | E4 E4 D4 C4 C4 E4 G4 G4 F4 | E4 F4 G4 E4 C4 D4 C4" },
+    { id: "susanna", name: "Oh! Susanna", by: "Stephen Foster", cat: "folk",
+      notes: "C4 D4 E4 G4 G4 A4 G4 E4 C4 D4 E4 E4 D4 C4 D4 | C4 D4 E4 G4 G4 A4 G4 E4 C4 D4 E4 E4 D4 D4 C4 | F4 F4 A4 A4 A4 G4 G4 E4 C4 D4 | C4 D4 E4 G4 G4 A4 G4 E4 C4 D4 E4 E4 D4 D4 C4" },
+    { id: "grace", name: "Amazing Grace", by: "Traditional hymn", cat: "folk", also: "hymn church new britain",
+      notes: "D4 G4 B4 G4 B4 A4 G4 E4 D4 | D4 G4 B4 G4 B4 A4 D5 | B4 D5 B4 D5 B4 G4 D4 E4 G4 E4 D4 | D4 G4 B4 G4 B4 A4 G4" },
+    { id: "greensleeves", name: "Greensleeves", by: "Traditional (English)", cat: "folk", also: "what child is this",
+      notes: "A4 | C5 D5 E5 F5 E5 D5 | B4 G4 A4 B4 C5 A4 | A4 G#4 A4 B4 G#4 E4 | A4 C5 D5 E5 F5 E5 D5 | B4 G4 A4 B4 C5 B4 A4 G#4 F#4 G#4 A4" },
+    { id: "jingle", name: "Jingle Bells", by: "James Lord Pierpont", cat: "holiday", also: "christmas",
+      notes: "E4 E4 E4 | E4 E4 E4 | E4 G4 C4 D4 | E4 | F4 F4 F4 F4 | F4 E4 E4 E4 E4 | E4 D4 D4 E4 | D4 G4 | E4 E4 E4 | E4 E4 E4 | E4 G4 C4 D4 | E4 | F4 F4 F4 F4 | F4 E4 E4 E4 E4 | G4 G4 F4 D4 | C4" },
+    { id: "silent", name: "Silent Night", by: "Franz Gruber", cat: "holiday", also: "christmas stille nacht",
+      notes: "G4 A4 G4 E4 | G4 A4 G4 E4 | D5 D5 B4 | C5 C5 G4 | A4 A4 C5 B4 A4 G4 A4 G4 E4 | A4 A4 C5 B4 A4 G4 A4 G4 E4 | D5 D5 F5 D5 B4 C5 E5 | C5 G4 E4 G4 F4 D4 C4" },
+    { id: "deck", name: "Deck the Halls", by: "Traditional (Welsh)", cat: "holiday", also: "christmas fa la la",
+      notes: "G4 F4 E4 D4 C4 D4 E4 C4 | D4 E4 F4 D4 E4 D4 C4 B3 C4 | G4 F4 E4 D4 C4 D4 E4 C4 | D4 E4 F4 D4 E4 D4 C4 B3 C4 | D4 E4 F4 D4 E4 F4 G4 D4 | E4 F#4 G4 A4 B4 C5 B4 A4 G4 | G4 F4 E4 D4 C4 D4 E4 C4 | A4 A4 A4 A4 G4 F4 E4 D4 C4" },
+    { id: "joy", name: "Joy to the World", by: "Lowell Mason, after Handel", cat: "holiday", also: "christmas",
+      notes: "C5 B4 A4 G4 F4 E4 D4 C4 | G4 A4 A4 B4 B4 C5 | C5 C5 B4 A4 G4 G4 F4 E4 | C5 C5 B4 A4 G4 G4 F4 E4 | E4 E4 E4 E4 E4 F4 G4 | F4 E4 D4 D4 D4 D4 E4 F4 | E4 D4 C4 C5 A4 G4 F4 E4 F4 E4 D4 C4" },
+    { id: "wewish", name: "We Wish You a Merry Christmas", by: "Traditional (English)", cat: "holiday", also: "christmas",
+      notes: "D4 G4 G4 A4 G4 F#4 E4 E4 | E4 A4 A4 B4 A4 G4 F#4 D4 | D4 B4 B4 C5 B4 A4 G4 E4 | D4 D4 E4 A4 F#4 G4" },
+    { id: "ode", name: "Ode to Joy", by: "Ludwig van Beethoven", cat: "classical", also: "symphony 9 ninth",
+      notes: "E4 E4 F4 G4 | G4 F4 E4 D4 | C4 C4 D4 E4 | E4 D4 D4 | E4 E4 F4 G4 | G4 F4 E4 D4 | C4 C4 D4 E4 | D4 C4 C4 | D4 D4 E4 C4 | D4 E4 F4 E4 C4 | D4 E4 F4 E4 D4 | C4 D4 G3 | E4 E4 F4 G4 | G4 F4 E4 D4 | C4 C4 D4 E4 | D4 C4 C4" },
+    { id: "elise", name: "Für Elise", by: "Ludwig van Beethoven", cat: "classical", also: "fur elise piano",
+      notes: "E5 D#5 E5 D#5 E5 B4 D5 C5 A4 | C4 E4 A4 B4 | E4 G#4 B4 C5 | E4 E5 D#5 E5 D#5 E5 B4 D5 C5 A4 | C4 E4 A4 B4 | E4 C5 B4 A4" },
+    { id: "minuet", name: "Minuet in G", by: "Christian Petzold (once credited to Bach)", cat: "classical", also: "bach",
+      notes: "D5 G4 A4 B4 C5 | D5 G4 G4 | E5 C5 D5 E5 F#5 | G5 G4 G4 | C5 D5 C5 B4 A4 | B4 C5 B4 A4 G4 | F#4 G4 A4 B4 G4 | B4 A4" },
+    { id: "mountainking", name: "In the Hall of the Mountain King", by: "Edvard Grieg", cat: "classical", also: "peer gynt",
+      notes: "B3 C#4 D4 E4 F#4 D4 F#4 | F4 C#4 F4 | E4 C4 E4 | B3 C#4 D4 E4 F#4 D4 F#4 B4 | A4 F#4 D4 F#4 | A4" }
+  ];
+  const CAT_EMOJI = { kids: "🧸", holiday: "🎄", classical: "🎻", folk: "🪕" };
+  const libItems = s => parseNotes(s.notes, 67).items;
+  let libCat = "all";
+  const searchKey = t => String(t).toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/[^a-z0-9 ]+/g, " ");
+  $("libCats").innerHTML = LIB_CATS.map(([id, label]) => '<button type="button" data-cat="' + id + '" class="' + (id === libCat ? "active" : "") + '">' + label + '</button>').join("");
+  function renderLibrary() {
+    const lib = $("library");
+    lib.hidden = !!curFolder || picking;
+    if (lib.hidden) return;
+    const q = searchKey($("libSearch").value).trim(), words = q.split(/\s+/).filter(Boolean);
+    const hits = LIBRARY.filter(s => (libCat === "all" || s.cat === libCat) && words.every(w => searchKey(s.name + " " + s.by + " " + (s.also || "")).includes(w)));
+    $("libCats").querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.cat === libCat));
+    if (!hits.length) {
+      const raw = $("libSearch").value.trim();
+      $("libList").innerHTML = '<div class="empty-songs lib-empty">' + (raw
+        ? 'No library song matches “' + esc(raw) + '”. You can <a href="https://www.google.com/search?q=' + encodeURIComponent(raw + " sheet music musicxml OR midi") + '" target="_blank" rel="noopener">look for its sheet music online ↗</a> and bring it in with 📄 Import sheet music.'
+        : "No songs in this group.") + '</div>';
+      return;
+    }
+    $("libList").innerHTML = hits.map(s => {
+      const have = songs.some(sg => sg.libId === s.id);
+      return '<button type="button" class="song-card lib-card" data-lib="' + s.id + '"><span class="emo" aria-hidden="true">' + CAT_EMOJI[s.cat] + '</span><span><span class="nm">' + esc(s.name) + '</span><span class="by">' + esc(s.by) + '</span>'
+        + (have ? '<span class="tag">✓ In your songs</span>' : '<span class="ct">' + noteCount(libItems(s)) + ' notes</span>') + '</span></button>';
+    }).join("");
+  }
+  function addFromLibrary(id) {
+    const s = LIBRARY.find(x => x.id === id); if (!s) return;
+    const have = songs.find(sg => sg.libId === id);
+    if (have) { openSong(have.id, true); return; }
+    const sg = { id: newId("s"), name: s.name, items: libItems(s), instr: inst().songInstr, folder: null, libId: id };
+    if (isSax()) sg.sax = instSel.value;
+    songs.push(sg);
+    if (!storeSongs()) alert("Couldn't save to this browser's storage. Use Export to keep a copy.");
+    openSong(sg.id, true);
+    toast("Added to Your songs");
+  }
+  $("libSearch").addEventListener("input", renderLibrary);
+  $("libCats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; libCat = b.dataset.cat; renderLibrary(); });
+  $("libList").addEventListener("click", e => { const b = e.target.closest("[data-lib]"); if (b) addFromLibrary(b.dataset.lib); });
+
+  // ---------- Sheet music import (MusicXML, compressed .mxl, MIDI) ----------
+  async function unzipMxl(buf) {
+    const d = new DataView(buf), u8 = new Uint8Array(buf), dec = new TextDecoder();
+    let e = buf.byteLength - 22;
+    while (e >= 0 && d.getUint32(e, true) !== 0x06054b50) e--;
+    if (e < 0) throw new Error("zip");
+    const count = d.getUint16(e + 10, true), files = {};
+    let p = d.getUint32(e + 16, true);
+    for (let i = 0; i < count && d.getUint32(p, true) === 0x02014b50; i++) {
+      const nlen = d.getUint16(p + 28, true);
+      files[dec.decode(u8.subarray(p + 46, p + 46 + nlen))] = { method: d.getUint16(p + 10, true), size: d.getUint32(p + 20, true), at: d.getUint32(p + 42, true) };
+      p += 46 + nlen + d.getUint16(p + 30, true) + d.getUint16(p + 32, true);
+    }
+    const read = async name => {
+      const f = files[name], start = f.at + 30 + d.getUint16(f.at + 26, true) + d.getUint16(f.at + 28, true);
+      const data = u8.subarray(start, start + f.size);
+      if (f.method === 0) return dec.decode(data);
+      if (!window.DecompressionStream) throw new Error("This browser can't open .mxl files. Export as uncompressed MusicXML (.musicxml) instead.");
+      return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).text();
+    };
+    let root = null;
+    if (files["META-INF/container.xml"]) { const m = (await read("META-INF/container.xml")).match(/full-path="([^"]+)"/); if (m) root = m[1]; }
+    if (!root || !files[root]) root = Object.keys(files).find(n => !n.startsWith("META-INF") && /\.(musicxml|xml)$/i.test(n));
+    if (!root) throw new Error("zip");
+    return read(root);
+  }
+  function parseMusicXML(text) {
+    const doc = new DOMParser().parseFromString(text, "application/xml");
+    if (doc.getElementsByTagName("parsererror").length || !doc.getElementsByTagName("part").length) throw new Error("xml");
+    const first = (el, tag) => { const x = el.getElementsByTagName(tag)[0]; return x ? x.textContent.trim() : null; };
+    const names = {};
+    [...doc.getElementsByTagName("score-part")].forEach(sp => { names[sp.getAttribute("id")] = first(sp, "part-name") || ""; });
+    const parts = [...doc.getElementsByTagName("part")].map((part, k) => {
+      const items = []; let shift = 0, voice = null;
+      [...part.children].filter(m => m.tagName === "measure").forEach(measure => {
+        [...measure.children].forEach(el => {
+          if (el.tagName === "attributes") {
+            const tr = el.getElementsByTagName("transpose")[0];
+            if (tr) shift = (parseInt(first(tr, "chromatic"), 10) || 0) + 12 * (parseInt(first(tr, "octave-change"), 10) || 0);
+            return;
+          }
+          if (el.tagName !== "note" || el.getElementsByTagName("rest").length) return;
+          if ((first(el, "staff") || "1") !== "1") return;            // treble staff only on piano-style parts
+          const v = first(el, "voice") || "1";
+          if (voice === null) voice = v;
+          if (v !== voice) return;                                     // one voice: the tune, not the harmony
+          if ([...el.getElementsByTagName("tie")].some(t => t.getAttribute("type") === "stop")) return; // held over, not a new note
+          const step = first(el, "step"), oct = first(el, "octave"); if (!step || oct === null) return;
+          const midi = (parseInt(oct, 10) + 1) * 12 + PC[step] + Math.round(parseFloat(first(el, "alter")) || 0) + shift;
+          if (el.getElementsByTagName("chord").length) {               // a chord: keep its top note as the melody
+            const last = items[items.length - 1];
+            if (typeof last === "number" && midi > last) items[items.length - 1] = midi;
+            return;
+          }
+          items.push(midi);
+        });
+        if (items.length && items[items.length - 1] !== "|") items.push("|");
+      });
+      while (items[items.length - 1] === "|") items.pop();
+      return { name: names[part.getAttribute("id")] || "Part " + (k + 1), items };
+    }).filter(p => p.items.some(isNote));
+    const title = first(doc, "work-title") || first(doc, "movement-title") || "";
+    return { title, parts, pick: 0 };
+  }
+  function parseMidi(buf) {
+    const d = new DataView(buf), N = buf.byteLength;
+    const tag = at => String.fromCharCode(d.getUint8(at), d.getUint8(at + 1), d.getUint8(at + 2), d.getUint8(at + 3));
+    if (tag(0) !== "MThd") throw new Error("midi");
+    const ntrk = d.getUint16(10), div = d.getUint16(12), tpq = div & 0x8000 ? 480 : div;
+    let p = 8 + d.getUint32(4), ts = null;
+    const parts = [];
+    for (let t = 0; t < ntrk && p + 8 <= N; t++) {
+      const len = d.getUint32(p + 4), isTrk = tag(p) === "MTrk"; p += 8;
+      const end = Math.min(N, p + len);
+      if (!isTrk) { p = end; continue; }
+      let tick = 0, run = 0, name = "";
+      const byCh = {};
+      const vlq = () => { let v = 0, b; do { b = d.getUint8(p++); v = (v << 7) | (b & 0x7f); } while (b & 0x80 && p < end); return v; };
+      while (p < end) {
+        tick += vlq();
+        const b = d.getUint8(p);
+        if (b === 0xff) {
+          const type = d.getUint8(p + 1); p += 2; const l = vlq();
+          if (type === 0x03 && !name) name = new TextDecoder().decode(new Uint8Array(buf, p, l)).trim();
+          if (type === 0x58 && !ts) ts = { num: d.getUint8(p), den: Math.pow(2, d.getUint8(p + 1)) };
+          p += l; continue;
+        }
+        if (b === 0xf0 || b === 0xf7) { p++; p += vlq(); continue; }
+        if (b & 0x80) { run = b; p++; }
+        const hi = run & 0xf0, ch = run & 0x0f;
+        if (hi === 0xc0 || hi === 0xd0) { p += 1; continue; }
+        const note = d.getUint8(p), vel = d.getUint8(p + 1); p += 2;
+        if (hi === 0x90 && vel > 0 && ch !== 9) (byCh[ch] = byCh[ch] || []).push({ t: tick, m: note }); // channel 10 is drums
+      }
+      p = end;
+      const chans = Object.keys(byCh);
+      chans.forEach(ch => parts.push({ name: (name || "Track " + (t + 1)) + (chans.length > 1 ? " · channel " + (+ch + 1) : ""), notes: byCh[ch] }));
+    }
+    const barLen = tpq * 4 * (ts ? ts.num / ts.den : 1);
+    const out = parts.map(pt => {
+      const top = {};                                                  // at each moment keep the highest note: that's usually the tune
+      pt.notes.forEach(n => { if (!(n.t in top) || n.m > top[n.t]) top[n.t] = n.m; });
+      const items = []; let bar = null;
+      Object.keys(top).map(Number).sort((a, b) => a - b).forEach(t => {
+        const nb = Math.floor(t / barLen);
+        if (bar !== null && nb > bar) items.push("|");
+        bar = nb; items.push(top[t]);
+      });
+      const sorted = items.filter(isNote).sort((a, b) => a - b);
+      return { name: pt.name, items, median: sorted[Math.floor(sorted.length / 2)] || 0 };
+    }).filter(pt => pt.items.length);
+    // best guess for the melody: the highest-sounding part that has a real tune's worth of notes
+    let pick = 0;
+    out.forEach((pt, k) => { const n = noteCount(pt.items), b = out[pick]; if (n >= 12 && (noteCount(b.items) < 12 || pt.median > b.median)) pick = k; });
+    return { title: "", parts: out, pick };
+  }
+  let importData = null;
+  function showImport(data, fileName) {
+    importData = data;
+    importData.title = data.title || fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+    $("importInfo").textContent = "“" + importData.title + "”: found " + data.parts.length + (data.parts.length === 1 ? " part." : " parts. Pick the one with the tune.");
+    $("importPart").innerHTML = data.parts.map((pt, k) => '<option value="' + k + '">' + esc(pt.name) + " (" + noteCount(pt.items) + (noteCount(pt.items) === 1 ? " note)" : " notes)") + "</option>").join("");
+    $("importPart").value = String(data.pick);
+    $("importPick").hidden = data.parts.length < 2;
+    $("importPanel").hidden = false;
+    updateImportPreview();
+    $("importPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  function updateImportPreview() {
+    const pt = importData && importData.parts[+$("importPart").value]; if (!pt) return;
+    const notes = pt.items.filter(isNote), shown = notes.slice(0, 32);
+    $("importPreview").textContent = itemsToText(shown) + (notes.length > shown.length ? "  …" : "");
+  }
+  function closeImport() { importData = null; $("importPanel").hidden = true; }
+  $("importMusic").addEventListener("click", () => $("musicFile").click());
+  $("importPart").addEventListener("change", updateImportPreview);
+  $("importCancel").addEventListener("click", closeImport);
+  $("importUse").addEventListener("click", () => {
+    const pt = importData && importData.parts[+$("importPart").value]; if (!pt) return;
+    const title = importData.title;
+    closeImport();
+    openEditor(null, pt.items.slice(0, 3000));
+    $("songName").value = title;
+    $("songInstr").value = inst().songInstr;
+  });
+  $("musicFile").addEventListener("change", async e => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    closeImport();
+    try {
+      if (/\.(pdf|png|jpe?g|gif|webp|heic)$/i.test(f.name) || /^image\/|pdf/.test(f.type)) throw new Error("That's a picture or PDF of sheet music, which this app can't read directly. Open it in MuseScore (free), use File → Import PDF, then File → Export as MusicXML and import that file here.");
+      const buf = await f.arrayBuffer(), h = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
+      let data;
+      if (h[0] === 0x4d && h[1] === 0x54 && h[2] === 0x68 && h[3] === 0x64) data = parseMidi(buf);                  // "MThd"
+      else if (h[0] === 0x50 && h[1] === 0x4b) data = parseMusicXML(await unzipMxl(buf));                          // "PK" zip = .mxl
+      else data = parseMusicXML(new TextDecoder().decode(buf));
+      if (!data.parts.length) throw new Error("No notes were found in that file.");
+      showImport(data, f.name);
+    } catch (err) {
+      const m = err && err.message && err.message.length > 8 ? err.message : "That file couldn't be read. Use a MusicXML (.musicxml, .mxl) or MIDI (.mid) file.";
+      alert(m);
+    }
+  });
+
   function showTab(which) {
     const hum = which === "hum";
     $("view-hum").hidden = !hum; $("view-songs").hidden = hum;
@@ -1284,6 +1570,7 @@ details[open] > summary::before { transform: rotate(90deg); }
       : (songs.length ? "" : '<div class="empty-songs">No songs yet. Press <strong>New song</strong>, or save a melody from the Hum tab.</div>');
     $("songList").innerHTML = list.length ? head + '<div class="song-grid">' + list.map(songCard).join("") + '</div>' : (empty ? '<div class="song-grid">' + empty + '</div>' : "");
     updateSelectBar();
+    renderLibrary();
   }
   function updateSelectBar() {
     $("selectBar").hidden = !picking;
@@ -1550,7 +1837,7 @@ details[open] > summary::before { transform: rotate(90deg); }
       let added = 0;
       (data.folders || []).filter(x => x && x.id && x.name).forEach(x => { if (!folders.some(y => y.id === x.id)) folders.push({ id: x.id, name: x.name }); });
       (data.songs || []).filter(x => x && x.name && Array.isArray(x.items)).forEach(x => {
-        if (!songs.some(y => y.id === x.id)) { songs.push({ id: x.id || newId("s"), name: x.name, items: x.items, instr: x.instr || "sax", folder: x.folder || null }); added++; }
+        if (!songs.some(y => y.id === x.id)) { songs.push({ id: x.id || newId("s"), name: x.name, items: x.items, instr: x.instr || "sax", folder: x.folder || null, libId: x.libId }); added++; }
       });
       storeSongs(); showSongHome();
       $("backupMsg").textContent = "Imported " + added + " song" + (added === 1 ? "" : "s") + ".";
