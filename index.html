@@ -272,6 +272,26 @@ details[open] > summary::before { transform: rotate(90deg); }
 .import-panel { border-color: var(--brass); }
 .import-preview { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; background: var(--bg); border-radius: 10px; padding: 10px 12px; color: var(--ink); overflow-wrap: anywhere; }
 .import-preview:empty { display: none; }
+/* Your-songs search, song icons, folder colors, library preview */
+.my-search { margin: 0 0 12px; }
+.my-search input { width: 100%; }
+.song-card .in-folder-tag { display: block; font-size: .75rem; color: var(--muted); }
+.folder-card[style*="--fc"] { background: color-mix(in srgb, var(--fc) 26%, var(--panel)); border-color: color-mix(in srgb, var(--fc) 45%, transparent); }
+.folder-dot { display: inline-block; width: .7em; height: .7em; border-radius: 50%; margin-right: 2px; vertical-align: .05em; }
+.colorbar { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 8px; background: var(--panel); border: 1.5px solid var(--line); border-radius: 10px; }
+.colorbar .lab { font-size: .9rem; font-weight: 600; color: var(--muted); margin-right: 2px; }
+.swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1.5px var(--line); cursor: pointer; padding: 0; }
+.swatch.current { box-shadow: 0 0 0 2.5px var(--ink); }
+.swatch.none { background: var(--brass-soft); }
+.icon-field { margin-bottom: 14px; }
+.icon-pick { display: flex; flex-wrap: wrap; gap: 4px; }
+.icon-pick button { font: inherit; font-size: 1.3rem; line-height: 1; width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--panel); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.icon-pick button.auto { width: auto; padding: 0 10px; font-size: .85rem; font-weight: 600; color: var(--ink); gap: 6px; display: inline-flex; align-items: center; }
+.icon-pick button:hover { border-color: var(--brass); }
+.icon-pick button.current { border-color: var(--brass); background: var(--brass-soft); box-shadow: 0 0 0 1.5px var(--brass) inset; }
+.preview-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: -4px 0 12px; color: var(--muted); font-size: .9rem; }
+#songView.preview .editpanel, #songView.preview .ins, #songView.preview .empty-add button { display: none; }
+#songView.preview .mel-layout { grid-template-columns: 1fr; }
 @media (prefers-reduced-motion: reduce) { .needle, .note, details > summary::before { transition: none; } }
 </style>
 </head>
@@ -448,7 +468,11 @@ details[open] > summary::before { transform: rotate(90deg); }
       </div>
       <div id="folderTools" class="toolbar" style="margin:0 0 12px" hidden>
         <button id="renameFolder" type="button" class="btn">✏️ Rename folder</button>
+        <div id="folderColors" class="colorbar" role="group" aria-label="Folder color"></div>
         <button id="deleteFolder" type="button" class="btn danger">Delete folder</button>
+      </div>
+      <div id="mySearchWrap" class="my-search lib-tools" hidden>
+        <input id="mySearch" type="search" placeholder="Search your songs…" aria-label="Search your songs" autocomplete="off">
       </div>
       <div id="folderList"></div>
       <div id="songList"></div>
@@ -465,7 +489,7 @@ details[open] > summary::before { transform: rotate(90deg); }
           <div id="libCats" class="seg" role="group" aria-label="Filter by type"></div>
         </div>
         <div id="libList" class="song-grid"></div>
-        <p class="fine">Tap a song to add it to Your songs. These are classic and traditional tunes that are free to use. For other songs, use <strong>📄 Import sheet music</strong> with a MusicXML or MIDI file.</p>
+        <p class="fine">Tap a song to see and hear it. Press <strong>🎛 Remix</strong> to save your own copy you can change. These are classic and traditional tunes that are free to use. For other songs, use <strong>📄 Import sheet music</strong> with a MusicXML or MIDI file.</p>
       </section>
       <details class="backup">
         <summary>Back up or move songs</summary>
@@ -495,6 +519,10 @@ details[open] > summary::before { transform: rotate(90deg); }
           <select id="songFolder"></select>
         </div>
       </div>
+      <div class="icon-field">
+        <span class="field-label" id="iconLab">Icon</span>
+        <div id="iconPick" class="icon-pick" role="group" aria-labelledby="iconLab"></div>
+      </div>
       <label class="field-label" for="songNotes">Notes</label>
       <textarea id="songNotes" rows="6" placeholder="G A Bb | C5 D"></textarea>
       <p class="fine" style="margin:4px 0 0">Start a line with # to add a section title, like <code># Verse</code>.</p>
@@ -521,6 +549,10 @@ details[open] > summary::before { transform: rotate(90deg); }
         <div class="row-head">
           <h2 id="songViewTitle"></h2>
           <span class="badge"></span>
+        </div>
+        <div id="previewNote" class="preview-note" hidden>
+          <span>📚 From the song library. Tap a note to hear it.</span>
+          <button id="remixSong" type="button" class="btn primary">🎛 Remix: save my own copy</button>
         </div>
         <div class="mel-layout">
           <div class="mel-main">
@@ -1345,25 +1377,73 @@ details[open] > summary::before { transform: rotate(90deg); }
       return;
     }
     $("libList").innerHTML = hits.map(s => {
-      const have = songs.some(sg => sg.libId === s.id);
+      const remixes = songs.filter(sg => sg.libId === s.id).length;
       return '<button type="button" class="song-card lib-card" data-lib="' + s.id + '"><span class="emo" aria-hidden="true">' + CAT_EMOJI[s.cat] + '</span><span><span class="nm">' + esc(s.name) + '</span><span class="by">' + esc(s.by) + '</span>'
-        + (have ? '<span class="tag">✓ In your songs</span>' : '<span class="ct">' + noteCount(libItems(s)) + ' notes</span>') + '</span></button>';
+        + '<span class="ct">' + noteCount(libItems(s)) + ' notes</span>'
+        + (remixes ? '<br><span class="tag">🎛 Remixed' + (remixes > 1 ? " ×" + remixes : "") + '</span>' : '') + '</span></button>';
     }).join("");
   }
-  function addFromLibrary(id) {
+  // Library songs open as a read-only preview; "Remix" saves an editable copy to Your songs
+  let libPreview = null;
+  const isPreview = () => !!libPreview && openId === libPreview.id;
+  function setPreviewMode(on) {
+    $("songView").classList.toggle("preview", on);
+    $("previewNote").hidden = !on;
+    ["undoSong", "editSong", "deleteSong"].forEach(id => { $(id).hidden = on; });
+    if (on) $("unmergeSong").hidden = true;
+  }
+  function previewLibrary(id) {
     const s = LIBRARY.find(x => x.id === id); if (!s) return;
-    const have = songs.find(sg => sg.libId === id);
-    if (have) { openSong(have.id, true); return; }
-    const sg = { id: newId("s"), name: s.name, items: libItems(s), instr: inst().songInstr, folder: null, libId: id };
+    stopPlayback(); selState = null; picking = false; picked = [];
+    libPreview = { id: "lib:" + s.id, name: s.name, items: libItems(s), libId: s.id, cat: s.cat };
+    showLibPreview();
+  }
+  function showLibPreview() {
+    openId = libPreview.id; showPanel("view"); setPreviewMode(true);
+    $("songViewTitle").textContent = CAT_EMOJI[libPreview.cat] + " " + libPreview.name;
+    $("backSongs").textContent = "← Song library";
+    renderSongSeq();
+    window.scrollTo({ top: 0 });
+  }
+  $("remixSong").addEventListener("click", () => {
+    if (!libPreview) return;
+    const base = libPreview.name + " Remix";
+    let name = base, n = 2;
+    while (songs.some(x => x.name === name)) name = base + " " + n++;
+    const sg = { id: newId("s"), name, items: libPreview.items.slice(), instr: inst().songInstr, folder: null, libId: libPreview.libId };
     if (isSax()) sg.sax = instSel.value;
     songs.push(sg);
     if (!storeSongs()) alert("Couldn't save to this browser's storage. Use Export to keep a copy.");
     openSong(sg.id, true);
-    toast("Added to Your songs");
-  }
+    toast("Saved “" + name + "” to Your songs");
+  });
   $("libSearch").addEventListener("input", renderLibrary);
   $("libCats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; libCat = b.dataset.cat; renderLibrary(); });
-  $("libList").addEventListener("click", e => { const b = e.target.closest("[data-lib]"); if (b) addFromLibrary(b.dataset.lib); });
+  $("libList").addEventListener("click", e => { const b = e.target.closest("[data-lib]"); if (b) previewLibrary(b.dataset.lib); });
+
+  // ---------- Song icons & folder colors ----------
+  const ICONS = ["🎵", "🎶", "🎷", "🎺", "🎸", "🎹", "🎻", "🥁", "🎤", "🎧", "📻", "💿", "❤️", "⭐", "🔥", "✨", "🌙", "☀️", "🌈", "🌊", "🌸", "🍀", "🎉", "🎂", "🎄", "🎃", "👻", "🦄", "🐱", "🐶", "🐸", "🚀", "⚡", "💎", "🎮", "🏆"];
+  const FOLDER_COLORS = [["red", "#E0524F"], ["orange", "#EE8A2E"], ["yellow", "#E9C230"], ["green", "#3FA66B"], ["teal", "#2FA4A6"], ["blue", "#3E7BD6"], ["purple", "#8A5BD6"], ["pink", "#DB5C9E"], ["gray", "#8A93A6"]];
+  const folderHex = f => { const c = f && FOLDER_COLORS.find(x => x[0] === f.color); return c ? c[1] : null; };
+  const songIcon = sg => sg.icon || instrEmoji(sg.instr);
+  let editorIcon = null;
+  function renderIconPick() {
+    $("iconPick").innerHTML = '<button type="button" class="auto' + (!editorIcon ? " current" : "") + '" data-icon="" aria-pressed="' + !editorIcon + '" title="Use the instrument\'s icon"><span>' + instrEmoji($("songInstr").value) + '</span>Auto</button>'
+      + ICONS.map(ic => '<button type="button" data-icon="' + ic + '" class="' + (editorIcon === ic ? "current" : "") + '" aria-pressed="' + (editorIcon === ic) + '" aria-label="Icon ' + ic + '">' + ic + '</button>').join("");
+  }
+  $("iconPick").addEventListener("click", e => { const b = e.target.closest("[data-icon]"); if (!b) return; editorIcon = b.dataset.icon || null; renderIconPick(); });
+  $("songInstr").addEventListener("change", renderIconPick);
+  function renderFolderColors() {
+    const f = folders.find(x => x.id === curFolder); if (!f) return;
+    $("folderColors").innerHTML = '<span class="lab">🎨 Color</span><button type="button" class="swatch none' + (!f.color ? " current" : "") + '" data-color="" aria-label="Default color" title="Default"></button>'
+      + FOLDER_COLORS.map(([k, hex]) => '<button type="button" class="swatch' + (f.color === k ? " current" : "") + '" data-color="' + k + '" style="background:' + hex + '" aria-label="' + k + '" title="' + k.charAt(0).toUpperCase() + k.slice(1) + '"></button>').join("");
+  }
+  $("folderColors").addEventListener("click", e => {
+    const b = e.target.closest("[data-color]"); if (!b) return;
+    const f = folders.find(x => x.id === curFolder); if (!f) return;
+    if (b.dataset.color) f.color = b.dataset.color; else delete f.color;
+    storeSongs(); showSongHome();
+  });
 
   // ---------- Sheet music import (MusicXML, compressed .mxl, MIDI) ----------
   async function unzipMxl(buf) {
@@ -1539,39 +1619,60 @@ details[open] > summary::before { transform: rotate(90deg); }
     if (selState && selState.list === "song") { selState = null; }
     $("songHome").hidden = name !== "home"; $("songEditor").hidden = name !== "editor"; $("songView").hidden = name !== "view";
   }
-  function songCard(sg) {
+  function songCard(sg, showFolder) {
     const k = picked.indexOf(sg.id);
     const secs = sectionCount(sg.items);
+    const fn = showFolder ? folderName(sg.folder) : null;
     return '<button type="button" class="song-card' + (k >= 0 ? " picked" : "") + '" data-id="' + sg.id + '" draggable="true">'
-      + '<span class="emo" aria-hidden="true">' + instrEmoji(sg.instr) + '</span>'
-      + '<span><span class="nm">' + esc(sg.name) + '</span><span class="ct">' + noteCount(sg.items) + ' notes</span>'
+      + '<span class="emo" aria-hidden="true">' + songIcon(sg) + '</span>'
+      + '<span><span class="nm">' + esc(sg.name) + '</span>'
+      + (fn ? '<span class="in-folder-tag">📁 ' + esc(fn) + '</span>' : '')
+      + '<span class="ct">' + noteCount(sg.items) + ' notes</span>'
       + (secs > 1 ? '<br><span class="tag">🔗 ' + secs + ' parts</span>' : '') + '</span>'
       + (picking ? '<span class="pick" aria-hidden="true">' + (k >= 0 ? k + 1 : "") + '</span>' : '')
       + '</button>';
   }
+  function folderCard(f) {
+    const hex = folderHex(f), n = inFolder(f.id).length;
+    return '<button type="button" class="song-card folder-card" data-folder="' + f.id + '"' + (hex ? ' style="--fc:' + hex + '"' : '') + '><span class="emo" aria-hidden="true">📁</span><span><span class="nm">' + esc(f.name) + '</span><span class="ct">' + n + (n === 1 ? ' song' : ' songs') + '</span></span></button>';
+  }
   function showSongHome() {
-    openId = null; showPanel("home");
+    openId = null; libPreview = null; setPreviewMode(false); showPanel("home");
     if (curFolder && !folders.some(f => f.id === curFolder)) curFolder = null;
+    const q = searchKey($("mySearch").value).trim(), words = q.split(/\s+/).filter(Boolean);
+    const searching = words.length > 0;
+    $("mySearchWrap").hidden = !songs.length && !folders.length && !searching;
     $("crumbs").classList.toggle("in-folder", !!curFolder);
-    $("crumbFolder").innerHTML = curFolder ? '<span class="crumb-sep">›</span> 📁 ' + esc(folderName(curFolder)) : "";
-    $("folderTools").hidden = !curFolder || picking;
+    const hex = folderHex(folders.find(f => f.id === curFolder));
+    $("crumbFolder").innerHTML = curFolder ? '<span class="crumb-sep">›</span> ' + (hex ? '<span class="folder-dot" style="background:' + hex + '"></span>' : '📁 ') + esc(folderName(curFolder)) : "";
+    $("folderTools").hidden = !curFolder || picking || searching;
+    if (curFolder) renderFolderColors();
     $("newFolder").hidden = !!curFolder;
-    let fl = "";
-    if (!curFolder && folders.length) {
-      fl = '<div class="subhead">Folders</div><div class="song-grid">' + folders.map(f =>
-        '<button type="button" class="song-card folder-card" data-folder="' + f.id + '"><span class="emo" aria-hidden="true">📁</span><span><span class="nm">' + esc(f.name) + '</span><span class="ct">' + inFolder(f.id).length + (inFolder(f.id).length === 1 ? ' song' : ' songs') + '</span></span></button>'
-      ).join("") + '</div>';
+    if (searching) {
+      // search everything: song names, the folder they're in, and folder names
+      const hit = t => words.every(w => searchKey(t).includes(w));
+      const fHits = folders.filter(f => hit(f.name));
+      const sHits = songs.filter(sg => hit(sg.name + " " + (folderName(sg.folder) || "")));
+      $("folderList").innerHTML = fHits.length ? '<div class="subhead">Folders</div><div class="song-grid">' + fHits.map(folderCard).join("") + '</div>' : "";
+      $("songList").innerHTML = sHits.length
+        ? '<div class="subhead">Songs</div><div class="song-grid">' + sHits.map(sg => songCard(sg, true)).join("") + '</div>'
+        : (fHits.length ? "" : '<div class="song-grid"><div class="empty-songs">None of your songs match “' + esc($("mySearch").value.trim()) + '”.</div></div>');
+      updateSelectBar();
+      renderLibrary();
+      return;
     }
-    $("folderList").innerHTML = fl;
+    $("folderList").innerHTML = (!curFolder && folders.length) ? '<div class="subhead">Folders</div><div class="song-grid">' + folders.map(folderCard).join("") + '</div>' : "";
     const list = curFolder ? inFolder(curFolder) : looseSongs();
     const head = (!curFolder && folders.length) ? '<div class="subhead">Songs</div>' : "";
     const empty = curFolder
       ? '<div class="empty-songs">This folder is empty. Press <strong>New song</strong>, or select songs elsewhere and move them here.</div>'
-      : (songs.length ? "" : '<div class="empty-songs">No songs yet. Press <strong>New song</strong>, or save a melody from the Hum tab.</div>');
-    $("songList").innerHTML = list.length ? head + '<div class="song-grid">' + list.map(songCard).join("") + '</div>' : (empty ? '<div class="song-grid">' + empty + '</div>' : "");
+      : (songs.length ? "" : '<div class="empty-songs">No songs yet. Press <strong>New song</strong>, save a melody from the Hum tab, or remix one from the library below.</div>');
+    $("songList").innerHTML = list.length ? head + '<div class="song-grid">' + list.map(sg => songCard(sg)).join("") + '</div>' : (empty ? '<div class="song-grid">' + empty + '</div>' : "");
     updateSelectBar();
     renderLibrary();
   }
+  $("mySearch").addEventListener("input", showSongHome);
+  $("mySearch").addEventListener("keydown", e => { if (e.key === "Escape" && e.target.value) { e.target.value = ""; showSongHome(); } });
   function updateSelectBar() {
     $("selectBar").hidden = !picking;
     $("selectMode").textContent = picking ? "☑ Selecting…" : "☑ Select";
@@ -1613,6 +1714,8 @@ details[open] > summary::before { transform: rotate(90deg); }
     $("songName").value = sg ? sg.name : "";
     $("songInstr").value = sg ? (sg.instr || "sax") : inst().songInstr;
     fillFolderSelect($("songFolder"), sg ? sg.folder : curFolder);
+    editorIcon = sg ? sg.icon || null : null;
+    renderIconPick();
     editorFrame = frameFor($("songInstr").value);
     $("songNotes").value = itemsToTextIn(sg ? sg.items : (presetItems || []), editorFrame);
     $("songSrc").value = String(editorFrame); // the text below is written in this form
@@ -1628,6 +1731,8 @@ details[open] > summary::before { transform: rotate(90deg); }
     return null; // other instruments: keep whatever is selected
   }
   function openSong(id, keepInstrument) {
+    if (libPreview && id === libPreview.id) { showLibPreview(); return; }
+    libPreview = null; setPreviewMode(false);
     const sg = songs.find(x => x.id === id); if (!sg) { showSongHome(); return; }
     const target = keepInstrument ? null : instForSong(sg);
     if (target && target !== instSel.value && INSTS[target]) {
@@ -1638,7 +1743,7 @@ details[open] > summary::before { transform: rotate(90deg); }
     }
     openId = id; showPanel("view");
     const fn = folderName(sg.folder);
-    $("songViewTitle").textContent = instrEmoji(sg.instr) + " " + sg.name;
+    $("songViewTitle").textContent = songIcon(sg) + " " + sg.name;
     $("backSongs").textContent = "← " + (fn ? "📁 " + fn : "Your songs");
     $("unmergeSong").hidden = splitSections(sg).length < 2;
     renderSongSeq();
@@ -1791,8 +1896,9 @@ details[open] > summary::before { transform: rotate(90deg); }
   $("cancelSong").addEventListener("click", () => editingId ? openSong(editingId) : showSongHome());
   $("backSongs").addEventListener("click", () => {
     stopPlayback();
-    const sg = currentSong(); curFolder = sg && sg.folder && folders.some(f => f.id === sg.folder) ? sg.folder : null;
+    const fromLib = isPreview(), sg = currentSong(); curFolder = !fromLib && sg && sg.folder && folders.some(f => f.id === sg.folder) ? sg.folder : null;
     showSongHome();
+    if (fromLib) $("library").scrollIntoView({ block: "start" });
   });
   $("editSong").addEventListener("click", () => openEditor(openId));
   $("songInstr").addEventListener("change", updateLabels);
@@ -1814,9 +1920,10 @@ details[open] > summary::before { transform: rotate(90deg); }
       const sg = songs.find(x => x.id === id);
       const h = H("song", id); h.undo.push({ items: sg.items.slice(), sel: null }); h.redo = [];
       sg.name = name; sg.items = conv; sg.instr = instr; sg.folder = folder;
+      if (editorIcon) sg.icon = editorIcon; else delete sg.icon;
       if (instr === "sax" && isSax()) sg.sax = instSel.value;
     }
-    else { id = newId("s"); songs.push(Object.assign({ id, name, items: conv, instr, folder }, instr === "sax" && isSax() ? { sax: instSel.value } : {})); }
+    else { id = newId("s"); songs.push(Object.assign({ id, name, items: conv, instr, folder }, editorIcon ? { icon: editorIcon } : {}, instr === "sax" && isSax() ? { sax: instSel.value } : {})); }
     const ok = storeSongs();
     editingId = null; openSong(id);
     if (!ok) alert("Couldn't save to this browser's storage. Use Export to keep a copy.");
@@ -1835,9 +1942,9 @@ details[open] > summary::before { transform: rotate(90deg); }
     try {
       const data = JSON.parse(await f.text());
       let added = 0;
-      (data.folders || []).filter(x => x && x.id && x.name).forEach(x => { if (!folders.some(y => y.id === x.id)) folders.push({ id: x.id, name: x.name }); });
+      (data.folders || []).filter(x => x && x.id && x.name).forEach(x => { if (!folders.some(y => y.id === x.id)) folders.push(Object.assign({ id: x.id, name: x.name }, x.color ? { color: x.color } : {})); });
       (data.songs || []).filter(x => x && x.name && Array.isArray(x.items)).forEach(x => {
-        if (!songs.some(y => y.id === x.id)) { songs.push({ id: x.id || newId("s"), name: x.name, items: x.items, instr: x.instr || "sax", folder: x.folder || null, libId: x.libId }); added++; }
+        if (!songs.some(y => y.id === x.id)) { songs.push({ id: x.id || newId("s"), name: x.name, items: x.items, instr: x.instr || "sax", folder: x.folder || null, libId: x.libId, icon: x.icon }); added++; }
       });
       storeSongs(); showSongHome();
       $("backupMsg").textContent = "Imported " + added + " song" + (added === 1 ? "" : "s") + ".";
@@ -1976,7 +2083,7 @@ details[open] > summary::before { transform: rotate(90deg); }
 
   // ---------- Selecting, moving, and adjusting notes ----------
   let selState = null; // { list: "mel" | "song", idx }
-  function currentSong() { return songs.find(x => x.id === openId) || null; }
+  function currentSong() { return isPreview() ? libPreview : songs.find(x => x.id === openId) || null; }
   function getList(which) { if (which === "mel") return melody; const sg = currentSong(); return sg ? sg.items : []; }
   function seqFor(which) { return which === "mel" ? $("seq") : $("songSeq"); }
 
@@ -2232,9 +2339,9 @@ details[open] > summary::before { transform: rotate(90deg); }
   // Click a note: select it and hear it
   document.addEventListener("click", e => {
     const ins = e.target.closest("[data-ins]");
-    if (ins && ins.closest(".seq")) { insertAt(ins.closest(".seq").dataset.list, +ins.dataset.ins); return; }
+    if (ins && ins.closest(".seq")) { if (ins.closest(".seq").dataset.list === "song" && isPreview()) return; insertAt(ins.closest(".seq").dataset.list, +ins.dataset.ins); return; }
     const c = e.target.closest(".chip[data-i]");
-    if (c) { const which = c.closest(".seq").dataset.list; select(which, +c.dataset.i, true); return; }
+    if (c) { const which = c.closest(".seq").dataset.list; if (which === "song" && isPreview()) { playChips([c], null); return; } select(which, +c.dataset.i, true); return; }
     if (!e.target.isConnected) return; // the clicked button was redrawn by its own action
     if (selState && !e.target.closest(".editpanel") && !e.target.closest(".seq") && !e.target.closest("#playMel,#playSong")) deselect();
   });
