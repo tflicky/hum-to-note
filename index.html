@@ -194,6 +194,10 @@ body.v-notitles .seq .sec-title, body.v-notitles .seq .bar { display: none; }
 body.v-floatpanel .mel-layout { grid-template-columns: minmax(0, 1fr); }
 body.v-floatpanel .editpanel { display: none; }
 body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); top: auto; width: min(300px, calc(100vw - 32px)); max-height: 70vh; z-index: 40; background: var(--panel); box-shadow: 0 12px 36px rgba(0,0,0,.22); }
+.octpair { display: inline-flex; }
+.octpair .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.octpair .btn:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1.5px; }
+.octpair .btn[hidden] { display: none; }
 .song-tools { margin: 0 0 14px; }
 .singbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -4px 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); }
 .singbar .fine { margin: 0; }
@@ -468,6 +472,7 @@ details.hint li { margin: 3px 0; }
         <button id="playMel" type="button" class="btn primary">▶ Play</button>
         <button id="saveMel" type="button" class="btn">💾 Save as song</button>
         <button id="undo" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
+        <span class="octpair" role="group" aria-label="Move the whole song by an octave"><button id="melOctDown" type="button" class="btn" title="Move every note down an octave">Octave ▼</button><button id="melOctUp" type="button" class="btn" title="Move every note up an octave">Octave ▲</button></span>
         <button id="copy" type="button" class="btn">📋 Copy</button>
         <button id="clear" type="button" class="btn danger">Clear</button>
       </div>
@@ -573,6 +578,7 @@ details.hint li { margin: 3px 0; }
           <button id="playSong" type="button" class="btn primary">▶ Play</button>
           <button id="singSong" type="button" class="btn">🎤 Sing more</button>
           <button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
+          <span class="octpair" role="group" aria-label="Move the whole song by an octave"><button id="songOctDown" type="button" class="btn" title="Move every note down an octave">Octave ▼</button><button id="songOctUp" type="button" class="btn" title="Move every note up an octave">Octave ▲</button></span>
           <button id="editSong" type="button" class="btn">✏️ Edit</button>
           <button id="unmergeSong" type="button" class="btn" hidden>✂️ Unmerge</button>
           <button id="deleteSong" type="button" class="btn danger">Delete</button>
@@ -1592,7 +1598,7 @@ details.hint li { margin: 3px 0; }
   function setPreviewMode(on) {
     $("songView").classList.toggle("preview", on);
     $("previewNote").hidden = !on;
-    ["undoSong", "editSong", "deleteSong", "singSong"].forEach(id => { $(id).hidden = on; });
+    ["undoSong", "editSong", "deleteSong", "singSong", "songOctDown", "songOctUp"].forEach(id => { $(id).hidden = on; });
     if (on) $("unmergeSong").hidden = true;
   }
   function previewLibrary(id) {
@@ -2662,7 +2668,7 @@ details.hint li { margin: 3px 0; }
     const c = e.target.closest(".chip[data-i]");
     if (c) { const which = c.closest(".seq").dataset.list; if (which === "song" && isPreview()) { playChips([c], null); return; } select(which, +c.dataset.i, true); return; }
     if (!e.target.isConnected) return; // the clicked button was redrawn by its own action
-    if (selState && !e.target.closest(".editpanel") && !e.target.closest(".seq") && !e.target.closest("#playMel,#playSong")) deselect();
+    if (selState && !e.target.closest(".editpanel") && !e.target.closest(".seq") && !e.target.closest("#playMel,#playSong,.octpair")) deselect();
   });
   // Keyboard: arrows move/adjust the selected note
   document.addEventListener("keydown", e => {
@@ -2784,6 +2790,24 @@ details.hint li { margin: 3px 0; }
   $("clear").addEventListener("click", () => { if (melody.length && !confirm("Clear your melody?")) return; remember("mel"); selState = null; updateEditbar("mel"); melody.length = 0; renderSeq(); });
   $("undo").addEventListener("click", () => undoRedo("mel", false));
   $("undoSong").addEventListener("click", () => undoRedo("song", false));
+  // Move the whole song (or the Hum melody) up or down an octave; Undo puts it back
+  function shiftOctave(which, d) {
+    if (which === "song" && (!currentSong() || isPreview())) return;
+    const list = getList(which); if (!list.some(isNote)) return;
+    const lim = pitchLimits(), outside = () => list.filter(x => isNote(x) && (pitchOf(x) < lim.lo || pitchOf(x) > lim.hi)).length;
+    const before = outside();
+    remember(which);
+    const sel = selState && selState.list === which ? selState.idx : null;
+    for (let i = 0; i < list.length; i++) if (isNote(list[i])) list[i] = withPitch(list[i], pitchOf(list[i]) + 12 * d);
+    const extra = outside() - before;
+    selState = null; rerender(which);
+    if (sel !== null) select(which, sel, false);
+    toast((d > 0 ? "Up" : "Down") + " an octave" + (extra > 0 ? " · " + extra + " note" + (extra === 1 ? " is" : "s are") + " " + (d > 0 ? "too high" : "too low") + " for " + inst().name + ", so " + (extra === 1 ? "it shows" : "they show") + " in a nearer octave" : ""));
+  }
+  [["mel", "mel"], ["song", "song"]].forEach(([p, which]) => {
+    $(p + "OctDown").addEventListener("click", () => shiftOctave(which, -1));
+    $(p + "OctUp").addEventListener("click", () => shiftOctave(which, 1));
+  });
   $("copy").addEventListener("click", async () => {
     const btn = $("copy");
     try { await navigator.clipboard.writeText(itemsToText(melody)); btn.textContent = "✓ Copied"; }
