@@ -19,4 +19,8 @@ Hum or sing a melody and see the notes, with fingering charts for your instrumen
 Everything runs in your browser as a single `index.html` with no build step. Songs are saved in your browser's local storage.
 
 ## Credits
-Instrument sounds come from the FluidR3 GM soundfont, released under [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/), as pre-rendered by [midi-js-soundfonts](https://github.com/gleitz/midi-js-soundfonts). They load from the internet the first time each note plays; without a connection the app uses simpler built-in sounds.
+Instrument sounds load from the internet the first time each note plays; without a connection the app uses simpler built-in sounds. Sax, flute, recorder and ocarina always use the built-in sounds.
+
+- Piano: [Salamander Grand Piano](https://tonejs.github.io/audio/salamander/README) by Alexander Holm, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
+- Acoustic guitar and clarinet: [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments) by Nicholaus Brosowsky, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
+- Bass, ukulele (nylon guitar), violin, cello and trumpet: FluidR3 GM soundfont via [midi-js-soundfonts](https://github.com/gleitz/midi-js-soundfonts), [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)

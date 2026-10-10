@@ -593,7 +593,7 @@ details.hint li { margin: 3px 0; }
           <label class="check"><input type="checkbox" id="carryChord"> Keep the last chord going on new notes</label>
         </div>
         <div id="previewNote" class="preview-note" hidden>
-          <span>📚 From the song library. Tap a note to hear it.</span>
+          <span>📚 From the song library. Tap a note to hear it. <span id="previewFit"></span></span>
           <button id="remixSong" type="button" class="btn primary">🎛 Remix: save my own copy</button>
         </div>
         <div class="mel-layout">
@@ -636,7 +636,7 @@ details.hint li { margin: 3px 0; }
       </div>
     </div>
   </section>
-  <p class="fine credits">Instrument sounds: FluidR3 GM soundfont (<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>) via <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noopener">midi-js-soundfonts</a>. Without internet, simpler built-in sounds play instead.</p>
+  <p class="fine credits">Instrument sounds: <a href="https://tonejs.github.io/audio/salamander/README" target="_blank" rel="noopener">Salamander Grand Piano</a> by Alexander Holm, <a href="https://github.com/nbrosowsky/tonejs-instruments" target="_blank" rel="noopener">tonejs-instruments</a> (guitar, clarinet), and the FluidR3 GM soundfont via <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noopener">midi-js-soundfonts</a>, all <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>. Sax, flute, recorder and ocarina use built-in sounds, as does everything when offline.</p>
 </main>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <div id="viewPop" class="viewpop" role="dialog" aria-label="View options" hidden>
@@ -1608,10 +1608,24 @@ details.hint li { margin: 3px 0; }
   function previewLibrary(id) {
     const s = LIBRARY.find(x => x.id === id); if (!s) return;
     stopPlayback(); selState = null; picking = false; picked = [];
-    libPreview = { id: "lib:" + s.id, name: s.name, items: libItems(s), libId: s.id, cat: s.cat };
+    libPreview = { id: "lib:" + s.id, name: s.name, base: libItems(s), items: [], libId: s.id, cat: s.cat };
     showLibPreview();
   }
+  // Move a song by whole octaves so as many notes as possible fit the selected instrument
+  function fitOctave(items) {
+    const lim = pitchLimits(), notes = items.filter(isNote).map(pitchOf);
+    let best = 0, bestScore = -Infinity;
+    for (let k = -4; k <= 4; k++) {
+      const inRange = notes.filter(p => p + 12 * k >= lim.lo && p + 12 * k <= lim.hi).length;
+      const score = inRange * 100 - Math.abs(k);
+      if (score > bestScore) { bestScore = score; best = k; }
+    }
+    return { k: best, items: best ? items.map(x => isNote(x) ? withPitch(x, pitchOf(x) + 12 * best) : x) : items.slice() };
+  }
   function showLibPreview() {
+    const fit = fitOctave(libPreview.base);
+    libPreview.items = fit.items;
+    $("previewFit").textContent = fit.k ? "Moved " + (fit.k > 0 ? "up " : "down ") + (Math.abs(fit.k) === 1 ? "an octave" : Math.abs(fit.k) + " octaves") + " to fit " + inst().name + "." : "";
     openId = libPreview.id; showPanel("view"); setPreviewMode(true);
     $("songViewTitle").textContent = CAT_EMOJI[libPreview.cat] + " " + libPreview.name;
     $("backSongs").textContent = "← Song library";
@@ -2237,35 +2251,56 @@ details.hint li { margin: 3px 0; }
     if (!pctx) pctx = new (window.AudioContext || window.webkitAudioContext)();
     if (pctx.state === "suspended") pctx.resume();
   }
-  // Recorded instrument sounds: one small mp3 per note, fetched the first time that note is needed.
-  // Every note is leveled to the same loudness so no instrument is louder than the others.
-  // Without internet the built-in synth below plays instead.
-  const SF_BASE = "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/";
-  const SF_NAMES = { tenor: "tenor_sax", alto: "alto_sax", piano: "acoustic_grand_piano", guitar: "acoustic_guitar_steel", bass: "electric_bass_finger",
-    ukulele: "acoustic_guitar_nylon", recorder: "recorder", ocarina: "ocarina", violin: "violin", cello: "cello", flute: "flute", clarinet: "clarinet", trumpet: "trumpet" };
+  // Recorded instrument sounds, fetched the first time a note is needed (sax, recorder, flute and ocarina use the built-in synth).
+  // Some sets recorded every few notes; the nearest recording is retuned to fill the gaps.
+  // Every recording is leveled to the same loudness. Without internet the built-in synth plays instead.
+  const NOTE_SHARP = ["C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs", "A", "As", "B"], NOTE_FLAT = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+  const noteMidi = n => { const m = n.match(/^([A-G]s?)(\d)$/); return (+m[2] + 1) * 12 + NOTE_SHARP.indexOf(m[1]); };
+  const FLUID = "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/", TONEJS = "https://nbrosowsky.github.io/tonejs-instruments/samples/";
+  const fluid = name => ({ notes: Array.from({ length: 88 }, (_, i) => 21 + i), url: m => FLUID + name + "-mp3/" + NOTE_FLAT[m % 12] + (Math.floor(m / 12) - 1) + ".mp3" });
+  const sparse = (base, names) => ({ notes: names.map(noteMidi).sort((a, b) => a - b), url: m => base + NOTE_SHARP[m % 12] + (Math.floor(m / 12) - 1) + ".mp3" });
+  const SAMPLE_SETS = {
+    // Salamander Grand Piano (Yamaha C5), recorded every minor third
+    piano: sparse("https://tonejs.github.io/audio/salamander/", ["A0", "C1", "Ds1", "Fs1", "A1", "C2", "Ds2", "Fs2", "A2", "C3", "Ds3", "Fs3", "A3", "C4", "Ds4", "Fs4", "A4", "C5", "Ds5", "Fs5", "A5", "C6", "Ds6", "Fs6", "A6", "C7", "Ds7", "Fs7", "A7", "C8"]),
+    guitar: sparse(TONEJS + "guitar-acoustic/", ["D2", "Ds2", "E2", "F2", "Fs2", "G2", "Gs2", "A2", "As2", "B2", "C3", "Cs3", "D3", "Ds3", "E3", "F3", "Fs3", "G3", "Gs3", "A3", "As3", "B3", "C4", "Cs4", "D4", "Ds4", "E4", "F4", "Fs4", "G4", "Gs4", "A4", "As4", "B4", "C5", "Cs5", "D5"]),
+    clarinet: sparse(TONEJS + "clarinet/", ["D3", "F3", "As3", "D4", "F4", "As4", "D5", "F5", "D6", "Fs6"]),
+    bass: fluid("electric_bass_finger"), ukulele: fluid("acoustic_guitar_nylon"),
+    violin: fluid("violin"), cello: fluid("cello"), trumpet: fluid("trumpet")
+  };
   const SF_RING = { piano: 1, guitar: 1, bass: 1, ukulele: 1 }; // struck/plucked: let the note ring and fade naturally
-  const SF_TRIM = { guitar: 0.76, bass: 0.71, cello: 1.15, violin: 1.09, flute: 1.11 }; // measured so a played song comes out equally loud
-  const SF_FILE = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-  const sfLoads = {}, sfReady = {}; // per instrument: midi -> Promise / AudioBuffer (null = unavailable)
-  function sfKey() { return SF_NAMES[instSel.value] ? instSel.value : null; }
-  function sampleFor(key, midi) {
-    if (!key || midi < 21 || midi > 108) return Promise.resolve(null);
-    const loads = sfLoads[key] || (sfLoads[key] = {}), ready = sfReady[key] || (sfReady[key] = {});
-    if (loads[midi]) return loads[midi];
-    const url = SF_BASE + SF_NAMES[key] + "-mp3/" + SF_FILE[midi % 12] + (Math.floor(midi / 12) - 1) + ".mp3";
-    return (loads[midi] = fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+  // Measured so a played song comes out equally loud; plucked guitar is set a bit lower because it cuts through more
+  const SF_TRIM = { piano: 1.1, guitar: 0.66, bass: 0.59, ukulele: 0.85, violin: 1.03, cello: 1.2, clarinet: 0.94, trumpet: 0.94 };
+  const SYNTH_TRIM = { sax: 1.5, flute: 1.07, recorder: 1.07, ocarina: 0.67 }; // the built-in synth sounds, matched to the rest
+  const fileLoads = {}, sfReady = {}; // fileLoads: url -> Promise<{buf, offset}|null>; sfReady[inst][midi] -> voice or null
+  function sfKey() { const k = inst().kind; return SAMPLE_SETS[k] ? k : null; }
+  function loadFile(url) {
+    if (fileLoads[url]) return fileLoads[url];
+    return (fileLoads[url] = fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
       .then(data => new Promise((ok, bad) => pctx.decodeAudioData(data, ok, bad)))
       .then(buf => {
+        const sr = buf.sampleRate, d0 = buf.getChannelData(0);
+        let peak = 0;
+        for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i])); }
+        // skip silence before the note starts, so it lands right on the beat
+        let st = 0; while (st < d0.length && Math.abs(d0[st]) < peak * 0.03) st++;
+        st = Math.max(0, st - Math.floor(sr * 0.004));
         // level by the loudness of the first half second (RMS), so plucked and held notes match
-        const n = Math.min(buf.length, Math.floor(buf.sampleRate * 0.5));
-        let sum = 0, peak = 0;
-        for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < n; i++) sum += d[i] * d[i]; for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(d[i])); }
-        const rms = Math.sqrt(sum / (n * buf.numberOfChannels)) || 1e-4;
-        const k = Math.min(0.16 / rms, 0.95 / (peak || 1));
+        const n = Math.min(buf.length - st, Math.floor(sr * 0.5));
+        let sum = 0;
+        for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = st; i < st + n; i++) sum += d[i] * d[i]; }
+        const rms = Math.sqrt(sum / (n * buf.numberOfChannels)) || 1e-4, k = Math.min(0.16 / rms, 0.95 / (peak || 1));
         for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= k; }
-        return (ready[midi] = buf);
+        return { buf, offset: st / sr };
       })
-      .catch(() => { ready[midi] = null; delete loads[midi]; return null; }));
+      .catch(() => { delete fileLoads[url]; return null; }));
+  }
+  function sampleFor(key, midi) {
+    const set = SAMPLE_SETS[key]; if (!set) return Promise.resolve(null);
+    const ready = sfReady[key] || (sfReady[key] = {});
+    let near = set.notes[0];
+    set.notes.forEach(m => { if (Math.abs(m - midi) < Math.abs(near - midi)) near = m; });
+    if (Math.abs(near - midi) > 12) { ready[midi] = null; return Promise.resolve(null); }
+    return loadFile(set.url(near)).then(f => (ready[midi] = f ? { buf: f.buf, offset: f.offset, rate: Math.pow(2, (midi - near) / 12) } : null));
   }
   function sfHas(key, midi) { return !!(sfReady[key] && sfReady[key][midi]); }
   function preloadSamples(midis) { // get notes ready in the background (decoding works before any tap)
@@ -2273,22 +2308,27 @@ details.hint li { margin: 3px 0; }
     if (!pctx) pctx = new (window.AudioContext || window.webkitAudioContext)();
     return Promise.all([...new Set(midis)].map(m => sampleFor(key, m)));
   }
-  function playSample(buf, midi, when, dur, out, vol) {
+  function playSample(v, midi, when, dur, out, vol) {
     const src = pctx.createBufferSource(), g = pctx.createGain();
-    src.buffer = buf; src.connect(g); g.connect(out);
-    const level = 0.9 * vol * (SF_TRIM[inst().kind] || 1);
-    if (SF_RING[inst().kind]) {
-      const ring = Math.min(buf.duration, dur + 1.4);
+    src.buffer = v.buf; src.playbackRate.value = v.rate; src.connect(g);
+    const kd = inst().kind;
+    if (kd === "piano") { // a touch of presence so the piano speaks clearly
+      const eq = pctx.createBiquadFilter(); eq.type = "peaking"; eq.frequency.value = 2800; eq.Q.value = 0.8; eq.gain.value = 3;
+      g.connect(eq); eq.connect(out);
+    } else g.connect(out);
+    const level = 0.9 * vol * (SF_TRIM[kd] || 1), length = (v.buf.duration - v.offset) / v.rate;
+    if (SF_RING[kd]) {
+      const ring = Math.min(length, dur + 1.4);
       g.gain.setValueAtTime(level, when);
       g.gain.setValueAtTime(level, when + ring - 0.3);
       g.gain.linearRampToValueAtTime(0, when + ring);
-      src.start(when); src.stop(when + ring + 0.02);
+      src.start(when, v.offset); src.stop(when + ring + 0.02);
     } else {
-      const end = Math.min(buf.duration, dur) ;
+      const end = Math.min(length, dur);
       g.gain.setValueAtTime(level, when);
       g.gain.setValueAtTime(level, when + end - 0.04);
       g.gain.linearRampToValueAtTime(0, when + end + 0.1);
-      src.start(when); src.stop(when + end + 0.12);
+      src.start(when, v.offset); src.stop(when + end + 0.12);
     }
   }
   const pluckCache = {};
@@ -2381,6 +2421,7 @@ details.hint li { margin: 3px 0; }
     vol = vol || 1;
     const key = sfKey();
     if (sfHas(key, midi)) { playSample(sfReady[key][midi], midi, when, dur, out, vol); return; }
+    vol *= SYNTH_TRIM[inst().kind] || 1;
     if (inst().kind === "piano") { synthPiano(midi, when, dur, out, vol); return; }
     if (inst().kind === "guitar") { pluck(midi, when, dur, out, vol); return; }
     const kd = inst().kind;
