@@ -431,7 +431,7 @@ details[open] > summary::before { transform: rotate(90deg); }
       <div class="src-row">
         <label class="field-label" for="pasteSrc-btn" style="margin:0">Notes are written for</label>
         <span class="srcpick"><button type="button" class="instbtn srcbtn" id="pasteSrc-btn" aria-haspopup="true" aria-expanded="false"><span class="sb-ic"></span><span class="sb-nm"></span><span class="caret">▾</span></button><div class="instgrid srcgrid" role="dialog" aria-label="Which instrument is this music written for?" hidden></div></span>
-          <select id="pasteSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option><option value="21"></option></select>
+          <select id="pasteSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option></select>
         <span class="fine explain" data-for="pasteSrc"></span>
       </div>
       <button id="pasteGo" type="button" class="btn primary">Show fingerings</button>
@@ -459,7 +459,7 @@ details[open] > summary::before { transform: rotate(90deg); }
         <div class="src-row">
           <label class="field-label" for="sheetSrc-btn" style="margin:0">Notes are written for</label>
           <span class="srcpick"><button type="button" class="instbtn srcbtn" id="sheetSrc-btn" aria-haspopup="true" aria-expanded="false"><span class="sb-ic"></span><span class="sb-nm"></span><span class="caret">▾</span></button><div class="instgrid srcgrid" role="dialog" aria-label="Which instrument is this music written for?" hidden></div></span>
-          <select id="sheetSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option><option value="21"></option></select>
+          <select id="sheetSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option></select>
           <span class="fine explain" data-for="sheetSrc"></span>
         </div>
         <p id="sheetInfo" class="msg"></p>
@@ -532,7 +532,7 @@ details[open] > summary::before { transform: rotate(90deg); }
       <div class="src-row">
         <label class="field-label" for="songSrc-btn" style="margin:0">Notes are written for</label>
         <span class="srcpick"><button type="button" class="instbtn srcbtn" id="songSrc-btn" aria-haspopup="true" aria-expanded="false"><span class="sb-ic"></span><span class="sb-nm"></span><span class="caret">▾</span></button><div class="instgrid srcgrid" role="dialog" aria-label="Which instrument is this music written for?" hidden></div></span>
-          <select id="songSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option><option value="21"></option></select>
+          <select id="songSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option></select>
         <span class="fine explain" data-for="songSrc"></span>
       </div>
       <div class="toolbar">
@@ -671,11 +671,6 @@ details[open] > summary::before { transform: rotate(90deg); }
     other: '<path d="M12.6 22V7L25 3.6V19" fill="none" stroke="#8A5BD6" stroke-width="2"/><path d="M12.6 7L25 3.6V7.4L12.6 10.8Z" fill="#8A5BD6"/>'
       + '<ellipse cx="9.6" cy="22.4" rx="3.6" ry="2.6" transform="rotate(-20 9.6 22.4)" fill="#8A5BD6"/><ellipse cx="22" cy="19.4" rx="3.6" ry="2.6" transform="rotate(-20 22 19.4)" fill="#8A5BD6"/>'
   };
-  // soprano sax is straight; baritone sax has the extra loop by the mouthpiece
-  ICON_ART.soprano = '<g transform="rotate(35 16 16)"><path d="M14.7 2.6H17.3L19.4 25H12.6Z" fill="' + BR + '"/><path d="M11.4 24.4H20.6L22 29.4H10Z" fill="' + BR + '"/>'
-    + '<rect x="9.8" y="28.8" width="12.4" height="1.8" rx=".9" fill="' + BRD + '"/><rect x="15.1" y=".4" width="1.8" height="2.6" rx=".6" fill="#222"/>'
-    + [9, 13, 17, 21].map(y => '<circle cx="16" cy="' + y + '" r="1.1" fill="' + BRD + '"/>').join("") + '</g>';
-  ICON_ART.bari = '<circle cx="8.4" cy="7.4" r="3" fill="none" stroke="' + BR + '" stroke-width="1.9"/>' + ICON_ART.sax;
   ICON_ART.tenor = ICON_ART.alto = ICON_ART.sax;
   const instIcon = id => '<svg class="ii" viewBox="0 0 32 32" aria-hidden="true">' + (ICON_ART[id] || ICON_ART.other) + '</svg>';
   const folderIcon = hex => {
@@ -1347,9 +1342,9 @@ details[open] > summary::before { transform: rotate(90deg); }
   // "Notes are written for": an instrument grid grouped by how each instrument's music is written.
   // shift = how many half steps the written note sits above the sound (the hidden <select> keeps the number)
   const SRC_GROUPS = [
-    ["Regular notes · C instruments", "The notes are the real sound", [["piano", "Piano", 0], ["guitar", "Guitar", 0], ["bass", "Bass guitar", 0], ["ukulele", "Ukulele", 0], ["violin", "Violin", 0], ["cello", "Cello", 0], ["flute", "Flute", 0], ["voice", "Voice", 0], ["recorder", "Recorder", -12], ["ocarina", "Ocarina", -12]]],
-    ["B♭ instruments", "A written C sounds as B♭", [["trumpet", "Trumpet", 2], ["clarinet", "Clarinet", 2], ["soprano", "Soprano sax", 2], ["tenor", "Tenor sax", 14]]],
-    ["E♭ instruments", "A written C sounds as E♭", [["alto", "Alto sax", 9], ["bari", "Baritone sax", 21]]]
+    ["Regular notes · C instruments", "The notes are the real sound", [["piano", "Piano", 0], ["guitar", "Guitar", 0], ["bass", "Bass guitar", 0], ["ukulele", "Ukulele", 0], ["violin", "Violin", 0], ["cello", "Cello", 0], ["flute", "Flute", 0], ["recorder", "Recorder", -12], ["ocarina", "Ocarina", -12]]],
+    ["B♭ instruments", "A written C sounds as B♭", [["trumpet", "Trumpet", 2], ["clarinet", "Clarinet", 2], ["tenor", "Tenor sax", 14]]],
+    ["E♭ instruments", "A written C sounds as E♭", [["alto", "Alto sax", 9]]]
   ];
   const SRC_TILES = {};
   SRC_GROUPS.forEach(([, , tiles]) => tiles.forEach(([id, name, shift]) => { SRC_TILES[id] = { id, name, shift }; }));
