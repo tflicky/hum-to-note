@@ -211,6 +211,30 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 #songView .card.song-enter { animation: songIn .42s cubic-bezier(.2,.8,.2,1); }
 #songView .card.song-enter #songViewTitle { animation: titlePop 1.6s ease-out; border-radius: 8px; }
 @media (prefers-reduced-motion: reduce) { #songView .card.song-enter, #songView .card.song-enter #songViewTitle { animation: none; } }
+.menu-wrap { position: relative; display: inline-flex; }
+.menu { position: absolute; left: 0; top: calc(100% + 6px); z-index: 45; background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,.2); padding: 8px; }
+.menu[hidden] { display: none; }
+.song-more .menu, .toolbar > .menu-wrap:last-child .menu { left: auto; right: 0; }
+.list-menu { display: flex; flex-direction: column; min-width: 230px; }
+.menu-item { font: inherit; font-weight: 600; text-align: left; background: none; border: none; color: var(--ink); padding: 10px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap; }
+.menu-item:hover, .menu-item:focus-visible { background: var(--bg); }
+.menu-item.danger { color: var(--danger); }
+.menu-item[hidden] { display: none; }
+.tp-menu { display: flex; flex-direction: column; gap: 10px; padding: 12px; width: max-content; max-width: calc(100vw - 32px); }
+.tp-row { display: flex; align-items: center; gap: 10px; }
+.tp-lab { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); width: 54px; }
+#songView.preview .song-tools .menu-wrap { display: none; }
+@media (max-width: 600px) {
+  .toolbar .btn { padding: 8px 11px; font-size: .9rem; }
+  .wide-only { display: none; }
+  .menu, .song-more .menu, .toolbar > .menu-wrap:last-child .menu { position: fixed; left: 12px; right: 12px; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); width: auto; max-width: none; box-shadow: 0 -8px 40px rgba(0,0,0,.3); }
+  .menu-item { padding: 14px; font-size: 1rem; }
+}
+.ep-keys { margin: 10px 0 0; font-size: .72rem; color: var(--muted); text-align: center; }
+details.ep-chord > summary { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 9px; background: var(--panel); color: var(--ink); }
+details.ep-chord > summary .ep-t { margin: 0; }
+details.ep-chord > summary .ep-chsum { margin-left: auto; font-weight: 800; font-size: .9rem; }
+details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass); }
 .song-tools { margin: 0 0 14px; }
 .singbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -4px 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); }
 .singbar .fine { margin: 0; }
@@ -452,12 +476,12 @@ details.hint li { margin: 3px 0; }
         <aside class="editpanel" aria-label="Edit note">
           <div class="ep-empty">
             <strong>Edit your notes</strong>
-            <p>Tap a note to change it. To add a note in between, tap the note next to that spot and use ＋ Before or ＋ After.</p>
+            <p>Tap any note to hear it and change it: pick a new note, move it, add notes around it, or give it a chord.</p>
           </div>
           <div class="ep-body" hidden>
             <div class="ep-head"><button type="button" class="eb-label" title="Play this note"></button><button type="button" data-act="done" class="ep-close" aria-label="Close" title="Close (Esc)">✕</button></div>
             <div class="ep-sec"><span class="ep-t">Change to</span><div class="ep-notes"><button type="button" data-act="set" data-pc="0">C</button><button type="button" data-act="set" data-pc="1">C♯</button><button type="button" data-act="set" data-pc="2">D</button><button type="button" data-act="set" data-pc="3">E♭</button><button type="button" data-act="set" data-pc="4">E</button><button type="button" data-act="set" data-pc="5">F</button><button type="button" data-act="set" data-pc="6">F♯</button><button type="button" data-act="set" data-pc="7">G</button><button type="button" data-act="set" data-pc="8">A♭</button><button type="button" data-act="set" data-pc="9">A</button><button type="button" data-act="set" data-pc="10">B♭</button><button type="button" data-act="set" data-pc="11">B</button></div></div>
-            <div class="ep-sec"><span class="ep-t">Fine-tune</span>
+            <div class="ep-sec"><span class="ep-t">Pitch</span>
               <div class="ep-grid">
                 <button type="button" data-act="down" title="Half step lower (↓)">▼ Lower</button>
                 <button type="button" data-act="up" title="Half step higher (↑)">▲ Higher</button>
@@ -465,19 +489,16 @@ details.hint li { margin: 3px 0; }
                 <button type="button" data-act="octup" title="Octave higher (Shift+↑)">Octave ▲</button>
               </div>
             </div>
-            <div class="ep-sec"><span class="ep-t">Move</span>
+            <div class="ep-sec"><span class="ep-t">Move or add</span>
               <div class="ep-grid">
-                <button type="button" data-act="left" title="Move left (Alt+←)">◀ Left</button>
-                <button type="button" data-act="right" title="Move right (Alt+→)">Right ▶</button>
-              </div>
-            </div>
-            <div class="ep-sec"><span class="ep-t">Add a note</span>
-              <div class="ep-grid">
-                <button type="button" data-act="insbefore">＋ Before</button>
-                <button type="button" data-act="insafter">＋ After</button>
+                <button type="button" data-act="left" title="Move left (Alt+←)">◀ Move</button>
+                <button type="button" data-act="right" title="Move right (Alt+→)">Move ▶</button>
+                <button type="button" data-act="insbefore" title="Add a note before this one">＋ Before</button>
+                <button type="button" data-act="insafter" title="Add a note after this one">＋ After</button>
               </div>
             </div>
             <button type="button" data-act="del" class="ep-del" title="Remove (Delete)">🗑 Remove note</button>
+            <p class="ep-keys">← → next note · ↑ ↓ pitch · Alt+← → move · Del remove</p>
           </div>
         </aside>
       </div>
@@ -485,10 +506,17 @@ details.hint li { margin: 3px 0; }
         <button id="playMel" type="button" class="btn primary">▶ Play</button>
         <button id="saveMel" type="button" class="btn">💾 Save as song</button>
         <button id="undo" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
-        <span class="octpair" role="group" aria-label="Change the key"><button id="melKeyDown" type="button" class="btn" title="Move every note down a half step">Key ▼</button><button id="melKeyUp" type="button" class="btn" title="Move every note up a half step">Key ▲</button></span>
-        <span class="octpair" role="group" aria-label="Move the whole song by an octave"><button id="melOctDown" type="button" class="btn" title="Move every note down an octave">Octave ▼</button><button id="melOctUp" type="button" class="btn" title="Move every note up an octave">Octave ▲</button></span>
-        <button id="copy" type="button" class="btn">📋 Copy</button>
-        <button id="clear" type="button" class="btn danger">Clear</button>
+        <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">🎚 Key<span class="wide-only"> &amp; octave</span> ▾</button>
+            <div class="menu tp-menu" role="group" aria-label="Move every note" hidden>
+              <div class="tp-row"><span class="tp-lab">Key</span><span class="octpair"><button id="melKeyDown" type="button" class="btn" title="Move every note down a half step">▼ Half step</button><button id="melKeyUp" type="button" class="btn" title="Move every note up a half step">▲ Half step</button></span></div>
+              <div class="tp-row"><span class="tp-lab">Octave</span><span class="octpair"><button id="melOctDown" type="button" class="btn" title="Move every note down an octave">▼ Lower</button><button id="melOctUp" type="button" class="btn" title="Move every note up an octave">▲ Higher</button></span></div>
+              <p class="fine" style="margin:0">Moves every note, chords too. ↩ Undo puts it back.</p>
+            </div></span>
+        <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⋯ More</button>
+          <div class="menu list-menu" hidden>
+            <button id="copy" type="button" class="menu-item">📋 Copy notes</button>
+            <button id="clear" type="button" class="menu-item danger">🗑 Clear melody</button>
+          </div></span>
       </div>
     </div>
 
@@ -586,18 +614,25 @@ details.hint li { margin: 3px 0; }
       <div class="card">
         <div class="row-head">
           <h2 id="songViewTitle"></h2>
-          <span class="head-right"><span class="badge"></span><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍 View ▾</button></span></span>
+          <span class="head-right"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍 View ▾</button></span></span>
         </div>
         <div class="toolbar song-tools">
           <button id="playSong" type="button" class="btn primary">▶ Play</button>
           <button id="singSong" type="button" class="btn">🎤 Sing more</button>
           <button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
-          <span class="octpair" role="group" aria-label="Change the key"><button id="songKeyDown" type="button" class="btn" title="Move every note down a half step">Key ▼</button><button id="songKeyUp" type="button" class="btn" title="Move every note up a half step">Key ▲</button></span>
-          <span class="octpair" role="group" aria-label="Move the whole song by an octave"><button id="songOctDown" type="button" class="btn" title="Move every note down an octave">Octave ▼</button><button id="songOctUp" type="button" class="btn" title="Move every note up an octave">Octave ▲</button></span>
-          <button id="editSong" type="button" class="btn">✏️ Edit</button>
-          <button id="dupSong" type="button" class="btn" title="Make your own copy to change, named “… Remix”">🎛 Remix</button>
-          <button id="unmergeSong" type="button" class="btn" hidden>✂️ Unmerge</button>
-          <button id="deleteSong" type="button" class="btn danger">Delete</button>
+          <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">🎚 Key<span class="wide-only"> &amp; octave</span> ▾</button>
+            <div class="menu tp-menu" role="group" aria-label="Move every note" hidden>
+              <div class="tp-row"><span class="tp-lab">Key</span><span class="octpair"><button id="songKeyDown" type="button" class="btn" title="Move every note down a half step">▼ Half step</button><button id="songKeyUp" type="button" class="btn" title="Move every note up a half step">▲ Half step</button></span></div>
+              <div class="tp-row"><span class="tp-lab">Octave</span><span class="octpair"><button id="songOctDown" type="button" class="btn" title="Move every note down an octave">▼ Lower</button><button id="songOctUp" type="button" class="btn" title="Move every note up an octave">▲ Higher</button></span></div>
+              <p class="fine" style="margin:0">Moves every note, chords too. ↩ Undo puts it back.</p>
+            </div></span>
+          <span class="menu-wrap song-more"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⋯ More</button>
+            <div class="menu list-menu" hidden>
+              <button id="editSong" type="button" class="menu-item">✏️ Edit notes as text</button>
+              <button id="dupSong" type="button" class="menu-item" title="Make your own copy to change, named “… Remix”">🎛 Remix (make my own copy)</button>
+              <button id="unmergeSong" type="button" class="menu-item" hidden>✂️ Unmerge into separate songs</button>
+              <button id="deleteSong" type="button" class="menu-item danger">🗑 Delete song</button>
+            </div></span>
         </div>
         <div id="remixBanner" class="remix-banner" role="status" hidden>
           <span class="rb-ic" aria-hidden="true">🎛</span>
@@ -623,12 +658,12 @@ details.hint li { margin: 3px 0; }
           <aside class="editpanel" aria-label="Edit note">
           <div class="ep-empty">
             <strong>Edit your notes</strong>
-            <p>Tap a note to change it. To add a note in between, tap the note next to that spot and use ＋ Before or ＋ After.</p>
+            <p>Tap any note to hear it and change it: pick a new note, move it, add notes around it, or give it a chord.</p>
           </div>
           <div class="ep-body" hidden>
             <div class="ep-head"><button type="button" class="eb-label" title="Play this note"></button><button type="button" data-act="done" class="ep-close" aria-label="Close" title="Close (Esc)">✕</button></div>
             <div class="ep-sec"><span class="ep-t">Change to</span><div class="ep-notes"><button type="button" data-act="set" data-pc="0">C</button><button type="button" data-act="set" data-pc="1">C♯</button><button type="button" data-act="set" data-pc="2">D</button><button type="button" data-act="set" data-pc="3">E♭</button><button type="button" data-act="set" data-pc="4">E</button><button type="button" data-act="set" data-pc="5">F</button><button type="button" data-act="set" data-pc="6">F♯</button><button type="button" data-act="set" data-pc="7">G</button><button type="button" data-act="set" data-pc="8">A♭</button><button type="button" data-act="set" data-pc="9">A</button><button type="button" data-act="set" data-pc="10">B♭</button><button type="button" data-act="set" data-pc="11">B</button></div></div>
-            <div class="ep-sec"><span class="ep-t">Fine-tune</span>
+            <div class="ep-sec"><span class="ep-t">Pitch</span>
               <div class="ep-grid">
                 <button type="button" data-act="down" title="Half step lower (↓)">▼ Lower</button>
                 <button type="button" data-act="up" title="Half step higher (↑)">▲ Higher</button>
@@ -636,19 +671,16 @@ details.hint li { margin: 3px 0; }
                 <button type="button" data-act="octup" title="Octave higher (Shift+↑)">Octave ▲</button>
               </div>
             </div>
-            <div class="ep-sec"><span class="ep-t">Move</span>
+            <div class="ep-sec"><span class="ep-t">Move or add</span>
               <div class="ep-grid">
-                <button type="button" data-act="left" title="Move left (Alt+←)">◀ Left</button>
-                <button type="button" data-act="right" title="Move right (Alt+→)">Right ▶</button>
-              </div>
-            </div>
-            <div class="ep-sec"><span class="ep-t">Add a note</span>
-              <div class="ep-grid">
-                <button type="button" data-act="insbefore">＋ Before</button>
-                <button type="button" data-act="insafter">＋ After</button>
+                <button type="button" data-act="left" title="Move left (Alt+←)">◀ Move</button>
+                <button type="button" data-act="right" title="Move right (Alt+→)">Move ▶</button>
+                <button type="button" data-act="insbefore" title="Add a note before this one">＋ Before</button>
+                <button type="button" data-act="insafter" title="Add a note after this one">＋ After</button>
               </div>
             </div>
             <button type="button" data-act="del" class="ep-del" title="Remove (Delete)">🗑 Remove note</button>
+            <p class="ep-keys">← → next note · ↑ ↓ pitch · Alt+← → move · Del remove</p>
           </div>
         </aside>
         </div>
@@ -2811,12 +2843,12 @@ details.hint li { margin: 3px 0; }
   document.addEventListener("keyup", e => {
     if ((e.key === " " || e.code === "Space") && spaceHandled) { e.preventDefault(); spaceHandled = false; }
   });
-  const CHORD_UI = '<div class="ep-sec ep-chord"><span class="ep-t">Chord</span>'
+  const CHORD_UI = '<details class="ep-sec ep-chord"><summary><span class="ep-t">Chord</span><span class="ep-chsum"></span></summary>'
     + '<div class="ep-grid3"><button type="button" data-act="chord:none">None</button><button type="button" data-act="chord:under" title="Add a chord under this note, played by the left hand">Under note</button><button type="button" data-act="chord:on" title="Turn this note into a chord built on it">Make chord</button></div>'
     + '<div class="ep-sug"><span class="ep-t2">Chords that fit this note</span><div class="ep-sugs"></div></div>'
     + '<div class="ep-root"><span class="ep-t2">Chord root</span><div class="ep-notes">' + NAMES.map((n, i) => '<button type="button" data-act="croot" data-pc="' + i + '"></button>').join("") + '</div></div>'
     + '<div class="ep-type"><span class="ep-t2">Chord type</span><div class="ep-types">' + ["maj", "m", "7", "maj7", "m7", "dim", "aug", "sus2", "sus4"].map(k => '<button type="button" data-act="ctype" data-type="' + k + '">' + CHORDS[k].name + '</button>').join("") + '</div></div>'
-    + '</div>';
+    + '</details>';
   document.querySelectorAll(".editpanel .ep-del").forEach(d => d.insertAdjacentHTML("beforebegin", CHORD_UI));
   function chordSuggestions(x) {
     const np = ((soundingMidi(x) % 12) + 12) % 12, out = [];
@@ -2825,8 +2857,13 @@ details.hint li { margin: 3px 0; }
     if (first > 0) out.unshift(out.splice(first, 1)[0]);
     return out;
   }
+  let chordOpen = false; // the Chord section stays open or closed the way you left it
+  document.addEventListener("toggle", e => { if (e.target.classList && e.target.classList.contains("ep-chord")) chordOpen = e.target.open; }, true);
   function updateChordUI(bar, m) {
     const ch = chordOf(m), mode = !ch ? "none" : ch.on ? "on" : "under";
+    const fold = bar.querySelector(".ep-chord");
+    fold.querySelector(".ep-chsum").textContent = mode === "none" ? "None" : (mode === "on" ? "♫ " : "+ ") + chordSymbol(m);
+    if (fold.open !== chordOpen) fold.open = chordOpen;
     bar.querySelectorAll('[data-act^="chord:"]').forEach(b => b.classList.toggle("current", b.dataset.act === "chord:" + mode));
     bar.querySelector(".ep-root").hidden = mode !== "under";
     bar.querySelector(".ep-type").hidden = mode === "none";
@@ -2862,7 +2899,7 @@ details.hint li { margin: 3px 0; }
     const c = e.target.closest(".chip[data-i]");
     if (c) { const which = c.closest(".seq").dataset.list; if (which === "song" && isPreview()) { playChips([c], null); return; } select(which, +c.dataset.i, true); return; }
     if (!e.target.isConnected) return; // the clicked button was redrawn by its own action
-    if (selState && !e.target.closest(".editpanel") && !e.target.closest(".seq") && !e.target.closest("#playMel,#playSong,.octpair")) deselect();
+    if (selState && !e.target.closest(".editpanel") && !e.target.closest(".seq") && !e.target.closest("#playMel,#playSong,.menu-wrap")) deselect();
   });
   // Keyboard: arrows move/adjust the selected note
   document.addEventListener("keydown", e => {
@@ -2984,6 +3021,18 @@ details.hint li { margin: 3px 0; }
   $("clear").addEventListener("click", () => { if (melody.length && !confirm("Clear your melody?")) return; remember("mel"); selState = null; updateEditbar("mel"); melody.length = 0; renderSeq(); });
   $("undo").addEventListener("click", () => undoRedo("mel", false));
   $("undoSong").addEventListener("click", () => undoRedo("song", false));
+  // Small menus (🎚 Key & octave, ⋯ More): one open at a time; list menus close after a choice
+  function closeMenus(except) {
+    document.querySelectorAll(".menu-wrap .menu").forEach(m => { if (m !== except) { m.hidden = true; m.previousElementSibling.setAttribute("aria-expanded", false); } });
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest(".menubtn");
+    if (b) { const m = b.nextElementSibling, open = m.hidden; closeMenus(m); m.hidden = !open; b.setAttribute("aria-expanded", open); return; }
+    const item = e.target.closest(".list-menu .menu-item");
+    if (item) { setTimeout(() => closeMenus(), 0); return; }
+    if (!e.target.closest(".menu-wrap")) closeMenus();
+  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenus(); });
   // Move the whole song (or the Hum melody) by half steps or octaves; chords move with it; Undo puts it back
   function shiftOctave(which, d) { shiftSong(which, 12 * d); }
   function shiftSong(which, semis) {
@@ -3016,7 +3065,7 @@ details.hint li { margin: 3px 0; }
     const btn = $("copy");
     try { await navigator.clipboard.writeText(itemsToText(melody)); btn.textContent = "✓ Copied"; }
     catch (e) { btn.textContent = "Copy failed"; }
-    setTimeout(() => btn.textContent = "📋 Copy", 1500);
+    setTimeout(() => btn.textContent = "📋 Copy notes", 1500);
   });
   try {
     let iv = localStorage.getItem("htn-inst");
