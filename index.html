@@ -261,7 +261,7 @@ details[open] > summary::before { transform: rotate(90deg); }
 .fing .vlab.on { fill: #fff; }
 .kpills { display: flex; flex-direction: column; gap: 3px; align-items: center; max-width: 110px; }
 .kpill { font-size: .66rem; line-height: 1.2; font-weight: 700; background: var(--brass); color: #fff; border-radius: 6px; padding: 2px 6px; text-align: center; }
-/* Song library & sheet music import */
+/* Song library & paste a song */
 .library { margin-top: 26px; }
 .lib-tools { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 12px; }
 .lib-tools input[type=search] { font: inherit; color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 12px; flex: 1 1 220px; min-width: 0; }
@@ -270,14 +270,15 @@ details[open] > summary::before { transform: rotate(90deg); }
 .lib-card .tag { display: inline-block; margin-top: 2px; }
 .lib-empty a { color: var(--brass); font-weight: 700; }
 .import-panel { border-color: var(--brass); }
-.import-preview { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; background: var(--bg); border-radius: 10px; padding: 10px 12px; color: var(--ink); overflow-wrap: anywhere; }
+.import-preview { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; background: var(--bg); border-radius: 10px; padding: 10px 12px; color: var(--ink); overflow-wrap: anywhere; white-space: pre-wrap; max-height: 220px; overflow-y: auto; margin: 10px 0 0; }
 .import-preview:empty { display: none; }
 /* Your-songs search, song icons, folder colors, library preview */
 .my-search { margin: 0 0 12px; }
 .my-search input { width: 100%; }
 .song-card .in-folder-tag { display: block; font-size: .75rem; color: var(--muted); }
 .folder-card[style*="--fc"] { background: color-mix(in srgb, var(--fc) 26%, var(--panel)); border-color: color-mix(in srgb, var(--fc) 45%, transparent); }
-.folder-dot { display: inline-block; width: .7em; height: .7em; border-radius: 50%; margin-right: 2px; vertical-align: .05em; }
+.ii { display: inline-block; width: 1em; height: 1em; vertical-align: -0.15em; flex: none; overflow: visible; }
+.crumb-sep + .ii, #crumbFolder .ii { width: 1.15em; height: 1.15em; }
 .colorbar { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 8px; background: var(--panel); border: 1.5px solid var(--line); border-radius: 10px; }
 .colorbar .lab { font-size: .9rem; font-weight: 600; color: var(--muted); margin-right: 2px; }
 .swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1.5px var(--line); cursor: pointer; padding: 0; }
@@ -447,23 +448,30 @@ details[open] > summary::before { transform: rotate(90deg); }
         <h2 class="crumbs" id="crumbs"><button type="button" class="crumb" id="crumbRoot">Your songs</button><span id="crumbFolder"></span></h2>
         <div class="toolbar" style="margin:0">
           <button id="selectMode" type="button" class="btn">☑ Select</button>
-          <button id="newFolder" type="button" class="btn">📁 New folder</button>
-          <button id="importMusic" type="button" class="btn">📄 Import sheet music</button>
+          <button id="newFolder" type="button" class="btn"><span id="newFolderIcon"></span> New folder</button>
+          <button id="pasteSong" type="button" class="btn">📋 Paste a song</button>
           <button id="newSong" type="button" class="btn primary">＋ New song</button>
-          <input id="musicFile" type="file" accept=".mid,.midi,.musicxml,.xml,.mxl,audio/midi,audio/x-midi" hidden>
         </div>
       </div>
-      <div id="importPanel" class="card import-panel" hidden>
-        <div class="row-head" style="margin-bottom:4px"><h2>📄 Import sheet music</h2></div>
-        <p id="importInfo" class="fine" style="margin-top:0"></p>
-        <div id="importPick" class="src-row">
-          <label class="field-label" for="importPart" style="margin:0">Take the melody from</label>
-          <select id="importPart" class="srcSel"></select>
+      <div id="pastePanel" class="card import-panel" hidden>
+        <div class="row-head" style="margin-bottom:4px"><h2>📋 Paste a song</h2></div>
+        <p class="fine" style="margin-top:0">Copy a song's notes from a website and paste everything here, lyrics included. Lines of words are skipped. <strong>^C</strong> means the C one octave up. Notes joined with a dash, like <strong>D-C-Bb</strong>, stay together.</p>
+        <textarea id="sheetBox" rows="9" spellcheck="false" placeholder="^C   A   A   ^C   ^D-C-Bb   G&#10;(a line of lyrics here is skipped)&#10;&#10;F   G   A   ^D-^C   Bb   A"></textarea>
+        <div class="src-row">
+          <label class="field-label" for="sheetSrc" style="margin:0">Notes are written for</label>
+          <select id="sheetSrc" class="srcSel">
+            <option value="0">🎹 Regular notes: piano, guitar, voice, violin, cello, flute, recorder…</option>
+            <option value="9">🎷 Alto sax (also bari sax &amp; other E♭ instruments)</option>
+            <option value="14">🎷 Tenor sax</option>
+            <option value="2">🎺 Trumpet, clarinet &amp; other B♭ instruments</option>
+          </select>
+          <span class="fine explain" data-for="sheetSrc"></span>
         </div>
-        <p id="importPreview" class="import-preview"></p>
+        <p id="sheetInfo" class="msg"></p>
+        <p id="sheetPreview" class="import-preview"></p>
         <div class="toolbar">
-          <button id="importUse" type="button" class="btn primary">Use this part</button>
-          <button id="importCancel" type="button" class="btn">Cancel</button>
+          <button id="sheetGo" type="button" class="btn primary" disabled>Make a song</button>
+          <button id="sheetCancel" type="button" class="btn">Cancel</button>
         </div>
       </div>
       <div id="folderTools" class="toolbar" style="margin:0 0 12px" hidden>
@@ -489,7 +497,7 @@ details[open] > summary::before { transform: rotate(90deg); }
           <div id="libCats" class="seg" role="group" aria-label="Filter by type"></div>
         </div>
         <div id="libList" class="song-grid"></div>
-        <p class="fine">Tap a song to see and hear it. Press <strong>🎛 Remix</strong> to save your own copy you can change. These are classic and traditional tunes that are free to use. For other songs, use <strong>📄 Import sheet music</strong> with a MusicXML or MIDI file.</p>
+        <p class="fine">Tap a song to see and hear it. Press <strong>🎛 Remix</strong> to save your own copy you can change. These are classic and traditional tunes that are free to use. For other songs, copy the notes from a website and use <strong>📋 Paste a song</strong>.</p>
       </section>
       <details class="backup">
         <summary>Back up or move songs</summary>
@@ -609,6 +617,77 @@ details[open] > summary::before { transform: rotate(90deg); }
   const NAMES = ["C","C♯","D","E♭","E","F","F♯","G","A♭","A","B♭","B"];
   const PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
   const $ = id => document.getElementById(id);
+  // ---------- Instrument & folder icons (drawn, so each instrument looks like itself) ----------
+  const BR = "#D9A62E", BRD = "#9C7316", SIL = "#CBD1D9", SILD = "#7F8894", DK = "#3B2412";
+  const VIOLIN_BODY = "M16 9C20 9 21 10.5 20.5 13C20 14.5 19 15 19 16C19 17 21.5 18 21.5 21C21.5 25 19 27 16 27C13 27 10.5 25 10.5 21C10.5 18 13 17 13 16C13 15 12 14.5 11.5 13C11 10.5 12 9 16 9Z";
+  const ICON_ART = {
+    sax: '<path d="M11 3.6Q15 3.6 15 8V21Q15 27 19.5 27Q24 27 24 21V17.5" fill="none" stroke="' + BR + '" stroke-width="4.2" stroke-linecap="round"/>'
+      + '<path d="M20.2 17.5H27.8L29.2 11H18.8Z" fill="' + BR + '"/><rect x="18.4" y="10" width="11.2" height="2" rx="1" fill="' + BRD + '"/>'
+      + '<path d="M11 3.6L6.2 5.2" stroke="' + BRD + '" stroke-width="2.4" stroke-linecap="round"/><circle cx="5" cy="5.6" r="1.7" fill="#222"/>'
+      + '<circle cx="15" cy="10" r="1.3" fill="' + BRD + '"/><circle cx="15" cy="14" r="1.3" fill="' + BRD + '"/><circle cx="15" cy="18" r="1.3" fill="' + BRD + '"/><circle cx="19.5" cy="23.5" r="1.3" fill="' + BRD + '"/>',
+    trumpet: '<path d="M9.5 18V22.5Q9.5 25 12 25H19.5V18" fill="none" stroke="' + BR + '" stroke-width="2.2"/>'
+      + '<rect x="2" y="14.6" width="3.6" height="2.6" rx="1" fill="#A9AFB8"/><rect x="5" y="14.8" width="16" height="2.4" fill="' + BR + '"/>'
+      + '<path d="M20 14.2L29.4 9V23L20 17.8Z" fill="' + BR + '"/><rect x="28.8" y="8.4" width="1.8" height="15.2" rx=".9" fill="' + BRD + '"/>'
+      + [9.2, 12.6, 16].map(x => '<rect x="' + x + '" y="11" width="2.6" height="11" rx=".6" fill="#C08F22"/><rect x="' + (x - .5) + '" y="8.4" width="3.6" height="2.4" rx=".8" fill="' + BRD + '"/>').join(""),
+    piano: '<rect x="2.5" y="5" width="27" height="5" rx="1.5" fill="#2B2B2B"/><rect x="2.5" y="8" width="27" height="17" rx="2" fill="#fff" stroke="#2B2B2B" stroke-width="1.4"/>'
+      + [1, 2, 3, 4, 5, 6].map(k => '<line x1="' + (2.5 + 27 / 7 * k) + '" x2="' + (2.5 + 27 / 7 * k) + '" y1="8.5" y2="24.5" stroke="#2B2B2B" stroke-width=".9"/>').join("")
+      + [1, 2, 4, 5, 6].map(k => '<rect x="' + (2.5 + 27 / 7 * k - 1.35) + '" y="8.5" width="2.7" height="9.5" rx=".5" fill="#2B2B2B"/>').join(""),
+    guitar: '<g transform="rotate(40 16 16)"><rect x="15" y="1" width="2" height="14" fill="#6B4423"/><rect x="14.2" y=".4" width="3.6" height="3.8" rx="1" fill="' + DK + '"/>'
+      + '<circle cx="16" cy="15.5" r="5.2" fill="#D08C3E"/><circle cx="16" cy="23.5" r="6.8" fill="#D08C3E"/>'
+      + '<circle cx="16" cy="17.6" r="2.1" fill="' + DK + '"/><rect x="13.2" y="24.4" width="5.6" height="1.4" rx=".6" fill="' + DK + '"/></g>',
+    bass: '<g transform="rotate(40 16 16)"><rect x="15.1" y="1" width="1.8" height="16.5" fill="#E3C089"/><rect x="14.5" y="-.6" width="3" height="5" rx=".8" fill="#E3C089"/>'
+      + [0, 1.3, 2.6, 3.9].map(y => '<circle cx="13.8" cy="' + (.2 + y) + '" r=".7" fill="#A9AFB8"/>').join("")
+      + '<path d="M10.5 22C10 18 11 15.5 12.3 14.5C13.3 13.8 14 15.5 14.6 17.3H17.4C18.2 15 19 12.5 20.4 13.3C21.8 14.2 22 18 21.5 22C21 27 19 29 16 29C13 29 11 27 10.5 22Z" fill="#B3261E"/>'
+      + '<rect x="14.1" y="20.6" width="3.8" height="1.5" rx=".4" fill="#1D1D1D"/><rect x="14.1" y="24" width="3.8" height="1.5" rx=".4" fill="#1D1D1D"/>'
+      + '<circle cx="19.6" cy="25.6" r=".85" fill="#E6E6E6"/><circle cx="18.6" cy="27.4" r=".85" fill="#E6E6E6"/></g>',
+    ukulele: '<rect x="15.1" y="4" width="1.8" height="11" fill="#6B4423"/><path d="M13.9 1H18.1L17.7 5.4H14.3Z" fill="' + DK + '"/>'
+      + [2.2, 4].map(y => '<circle cx="13.3" cy="' + y + '" r=".8" fill="#A9AFB8"/><circle cx="18.7" cy="' + y + '" r=".8" fill="#A9AFB8"/>').join("")
+      + '<circle cx="16" cy="17" r="4.6" fill="#EDB566"/><circle cx="16" cy="23.6" r="6.2" fill="#EDB566"/>'
+      + '<circle cx="16" cy="18.6" r="1.8" fill="' + DK + '"/><rect x="13.8" y="24.6" width="4.4" height="1.2" rx=".5" fill="' + DK + '"/>',
+    violin: '<line x1="4" y1="29" x2="29" y2="4" stroke="#5A3A1E" stroke-width="1.3" stroke-linecap="round"/><line x1="5" y1="29.6" x2="29.6" y2="5" stroke="#EDE6D6" stroke-width=".6"/>'
+      + '<path d="' + VIOLIN_BODY + '" fill="#C2601F"/><rect x="15.2" y="3.4" width="1.6" height="15.5" rx=".6" fill="#1D1A18"/><circle cx="16" cy="3" r="1.8" fill="#8E3F14"/>'
+      + '<path d="M13.3 17.6q-.7 1.6 0 3.3M18.7 17.6q.7 1.6 0 3.3" stroke="#3B1A08" stroke-width=".8" fill="none"/>'
+      + '<rect x="14" y="20.6" width="4" height=".9" fill="#E3C089"/><path d="M15 22.2H17L16.6 26H15.4Z" fill="#1D1A18"/>',
+    cello: '<line x1="16" y1="27.6" x2="16" y2="31.6" stroke="#A9AFB8" stroke-width="1.3" stroke-linecap="round"/>'
+      + '<g transform="translate(16 17) scale(1.3 1.22) translate(-16 -18)"><path d="' + VIOLIN_BODY + '" fill="#7E3814"/></g>'
+      + '<rect x="15" y="1.8" width="2" height="18" rx=".7" fill="#1D1A18"/><circle cx="16" cy="1.9" r="1.6" fill="#5A2810"/>'
+      + '<path d="M12.6 17.4q-.8 2 0 4M19.4 17.4q.8 2 0 4" stroke="#2A1206" stroke-width=".9" fill="none"/>'
+      + '<rect x="13.4" y="21" width="5.2" height="1" fill="#E3C089"/><path d="M14.8 22.8H17.2L16.8 27H15.2Z" fill="#1D1A18"/>',
+    flute: '<g transform="rotate(-28 16 16)"><rect x="1" y="14.6" width="30" height="2.8" rx="1.4" fill="' + SIL + '" stroke="' + SILD + '" stroke-width=".6"/>'
+      + '<ellipse cx="5" cy="14.5" rx="1.9" ry="1.1" fill="#AEB6C1" stroke="' + SILD + '" stroke-width=".5"/><ellipse cx="5" cy="14.5" rx=".7" ry=".4" fill="#333"/>'
+      + '<rect x="8.6" y="14.3" width=".8" height="3.4" fill="' + SILD + '"/><rect x="26.8" y="14.3" width=".8" height="3.4" fill="' + SILD + '"/>'
+      + [11, 13.6, 16.2, 19.6, 22.2, 24.8].map(x => '<circle cx="' + x + '" cy="16" r="1.05" fill="#EEF0F3" stroke="' + SILD + '" stroke-width=".6"/>').join("") + '</g>',
+    recorder: '<path d="M12.8 2H19.2L18.6 8.6H13.4Z" fill="#C8955A"/><rect x="14.9" y="5.9" width="2.2" height="1.4" fill="' + DK + '"/>'
+      + '<rect x="13.6" y="8.5" width="4.8" height="17.5" fill="#E6C08A"/><rect x="13.3" y="8.2" width="5.4" height="1.1" fill="#C8955A"/>'
+      + [11.8, 14.4, 17, 19.6, 22.2].map(y => '<circle cx="16" cy="' + y + '" r=".95" fill="' + DK + '"/>').join("")
+      + '<circle cx="15.3" cy="24.3" r=".5" fill="' + DK + '"/><circle cx="16.7" cy="24.3" r=".5" fill="' + DK + '"/><path d="M13.6 25.5H18.4L19.8 30H12.2Z" fill="#C8955A"/>',
+    clarinet: '<path d="M14.8 1H17.2L17.8 4.6H14.2Z" fill="#111"/><rect x="13.9" y="3.4" width="4.2" height="1" fill="' + SIL + '"/>'
+      + '<rect x="13.8" y="4.5" width="4.4" height="3.2" fill="#26282E" stroke="#5B6070" stroke-width=".4"/><rect x="14.2" y="7.5" width="3.6" height="16.5" fill="#26282E" stroke="#5B6070" stroke-width=".4"/>'
+      + '<path d="M14.2 23.6H17.8L21.6 30H10.4Z" fill="#26282E" stroke="#5B6070" stroke-width=".4"/><rect x="10.2" y="29.3" width="11.6" height="1.1" rx=".5" fill="' + SIL + '"/>'
+      + '<rect x="13.8" y="7.3" width="4.4" height=".9" fill="' + SIL + '"/><rect x="13.8" y="15.3" width="4.4" height=".9" fill="' + SIL + '"/>'
+      + '<line x1="17.7" y1="9" x2="17.7" y2="22.5" stroke="' + SIL + '" stroke-width=".5"/>'
+      + [10, 12.5, 18, 20.5].map(y => '<circle cx="16" cy="' + y + '" r=".95" fill="#26282E" stroke="' + SIL + '" stroke-width=".6"/>').join(""),
+    ocarina: '<g transform="rotate(-12 17 17)"><path d="M8.4 14.2L2.6 15Q1.6 15.2 1.6 16.2V17.8Q1.6 18.8 2.6 19L8.4 19.8Z" fill="#C66A3A"/>'
+      + '<ellipse cx="17.6" cy="17" rx="10.6" ry="7.3" fill="#C66A3A"/><ellipse cx="15.5" cy="12.6" rx="5" ry="1.5" fill="#fff" opacity=".18"/>'
+      + '<rect x="1.6" y="16.3" width="1.3" height="1.4" fill="#5A2A12"/><rect x="8.8" y="13.4" width="2.8" height="1.7" rx=".4" fill="#5A2A12"/>'
+      + [[14.2, 15.3], [17.2, 14], [20.3, 13.8], [23.4, 14.7], [15.4, 19.8], [19.2, 20.5], [22.8, 19.8]].map(([x, y]) => '<circle cx="' + x + '" cy="' + y + '" r="1.05" fill="#5A2A12"/>').join("") + '</g>',
+    drums: '<ellipse cx="16" cy="23" rx="11" ry="3.2" fill="#9E2C21"/><rect x="5" y="14" width="22" height="9" fill="#C0392B"/>'
+      + [8, 13, 18.6, 24].map(x => '<rect x="' + x + '" y="15.6" width="1.4" height="6" rx=".5" fill="#D7DBE0"/>').join("")
+      + '<ellipse cx="16" cy="14" rx="11" ry="3.2" fill="#F1EFEA" stroke="#A9AFB8"/>'
+      + '<path d="M6 2.5L15 12M26 2.5L17 12" stroke="#E3C089" stroke-width="1.7" stroke-linecap="round"/>',
+    voice: '<path d="M13.2 15H18.8L17.6 28Q16 29.6 14.4 28Z" fill="#2B2D33"/><rect x="12.8" y="15" width="6.4" height="1.7" rx=".6" fill="#6E7580"/>'
+      + '<circle cx="16" cy="9.6" r="6.4" fill="#A9AFB8"/><path d="M10.4 7H21.6M9.6 9.6H22.4M10.4 12.2H21.6M13 3.8V15.4M16 3.2V16M19 3.8V15.4" stroke="#7F8894" stroke-width=".6"/>',
+    other: '<path d="M12.6 22V7L25 3.6V19" fill="none" stroke="#8A5BD6" stroke-width="2"/><path d="M12.6 7L25 3.6V7.4L12.6 10.8Z" fill="#8A5BD6"/>'
+      + '<ellipse cx="9.6" cy="22.4" rx="3.6" ry="2.6" transform="rotate(-20 9.6 22.4)" fill="#8A5BD6"/><ellipse cx="22" cy="19.4" rx="3.6" ry="2.6" transform="rotate(-20 22 19.4)" fill="#8A5BD6"/>'
+  };
+  ICON_ART.tenor = ICON_ART.alto = ICON_ART.sax;
+  const instIcon = id => '<svg class="ii" viewBox="0 0 32 32" aria-hidden="true">' + (ICON_ART[id] || ICON_ART.other) + '</svg>';
+  const folderIcon = hex => {
+    const c = hex || "#E9B949";
+    return '<svg class="ii" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 9Q3 6.5 5.5 6.5H12.2L15 9.5H26.5Q29 9.5 29 12V24.5Q29 27 26.5 27H5.5Q3 27 3 24.5Z" fill="' + c + '"/>'
+      + '<path d="M3 9Q3 6.5 5.5 6.5H12.2L15 9.5H26.5Q29 9.5 29 12V24.5Q29 27 26.5 27H5.5Q3 27 3 24.5Z" fill="#000" opacity=".22"/>'
+      + '<path d="M3 13.5Q3 12 4.6 12H27.4Q29 12 29 13.5V24.5Q29 27 26.5 27H5.5Q3 27 3 24.5Z" fill="' + c + '"/><path d="M3.6 13.2H28.4" stroke="#fff" stroke-opacity=".35" stroke-width=".8"/></svg>';
+  };
   // A note is a number (MIDI, concert pitch) or { m, ch } when it carries a chord.
   // ch = { root, type } for a supporting chord under the note, or { on: true, type } when the note itself becomes a chord.
   const isNote = x => typeof x === "number" || (!!x && typeof x === "object" && typeof x.m === "number");
@@ -628,21 +707,21 @@ details[open] > summary::before { transform: rotate(90deg); }
   const toggle = $("toggle"), instSel = $("inst");
   // lo/hi = playable range in the instrument's own (written) note numbers
   const INSTS = {
-    tenor:  { shift: 14, kind: "sax",    name: "tenor sax", emoji: "🎷", lo: 58, hi: 90, songInstr: "sax" },
-    alto:   { shift: 9,  kind: "sax",    name: "alto sax",  emoji: "🎷", lo: 58, hi: 90, songInstr: "sax" },
-    piano:  { shift: 0,  kind: "piano",  name: "piano",     emoji: "🎹", lo: 21, hi: 108, songInstr: "piano" },
-    guitar: { shift: 0,  kind: "guitar", name: "guitar",    emoji: "🎸", lo: 40, hi: 84, songInstr: "guitar" },
+    tenor:  { shift: 14, kind: "sax",    name: "tenor sax", lo: 58, hi: 90, songInstr: "sax" },
+    alto:   { shift: 9,  kind: "sax",    name: "alto sax",  lo: 58, hi: 90, songInstr: "sax" },
+    piano:  { shift: 0,  kind: "piano",  name: "piano",     lo: 21, hi: 108, songInstr: "piano" },
+    guitar: { shift: 0,  kind: "guitar", name: "guitar",    lo: 40, hi: 84, songInstr: "guitar" },
     // soprano recorder and 12-hole alto C ocarina both sound an octave above their written notes
-    recorder: { shift: -12, kind: "recorder", name: "recorder", emoji: "🪈", lo: 60, hi: 84, songInstr: "recorder" },
-    ocarina:  { shift: -12, kind: "ocarina",  name: "ocarina",  emoji: "🍠", lo: 57, hi: 77, songInstr: "ocarina" },
-    ukulele:  { shift: 0,  kind: "ukulele",  name: "ukulele",     emoji: "🪕", lo: 60, hi: 81, songInstr: "ukulele" },
-    bass:     { shift: 0,  kind: "bass",     name: "bass guitar", emoji: "🎸", lo: 28, hi: 67, songInstr: "bass" },
-    violin:   { shift: 0,  kind: "violin",   name: "violin",      emoji: "🎻", lo: 55, hi: 88, songInstr: "violin" },
-    cello:    { shift: 0,  kind: "cello",    name: "cello",       emoji: "🎻", lo: 36, hi: 76, songInstr: "cello" },
-    flute:    { shift: 0,  kind: "flute",    name: "flute",       emoji: "🪈", lo: 60, hi: 85, songInstr: "flute" },
+    recorder: { shift: -12, kind: "recorder", name: "recorder", lo: 60, hi: 84, songInstr: "recorder" },
+    ocarina:  { shift: -12, kind: "ocarina",  name: "ocarina",  lo: 57, hi: 77, songInstr: "ocarina" },
+    ukulele:  { shift: 0,  kind: "ukulele",  name: "ukulele",     lo: 60, hi: 81, songInstr: "ukulele" },
+    bass:     { shift: 0,  kind: "bass",     name: "bass guitar", lo: 28, hi: 67, songInstr: "bass" },
+    violin:   { shift: 0,  kind: "violin",   name: "violin",      lo: 55, hi: 88, songInstr: "violin" },
+    cello:    { shift: 0,  kind: "cello",    name: "cello",       lo: 36, hi: 76, songInstr: "cello" },
+    flute:    { shift: 0,  kind: "flute",    name: "flute",       lo: 60, hi: 85, songInstr: "flute" },
     // clarinet and trumpet are B♭ instruments: their music is written a whole step above the sound
-    clarinet: { shift: 2,  kind: "clarinet", name: "clarinet",    emoji: "🎶", lo: 52, hi: 84, songInstr: "clarinet" },
-    trumpet:  { shift: 2,  kind: "trumpet",  name: "trumpet",     emoji: "🎺", lo: 54, hi: 84, songInstr: "trumpet" }
+    clarinet: { shift: 2,  kind: "clarinet", name: "clarinet",    lo: 52, hi: 84, songInstr: "clarinet" },
+    trumpet:  { shift: 2,  kind: "trumpet",  name: "trumpet",     lo: 54, hi: 84, songInstr: "trumpet" }
   };
   const inst = () => INSTS[instSel.value] || INSTS.tenor;
   const shiftNow = () => inst().shift;
@@ -1272,7 +1351,8 @@ details[open] > summary::before { transform: rotate(90deg); }
   ["pasteSrc", "songSrc"].forEach(id => $(id).addEventListener("change", updateLabels));
   $("pasteGo").addEventListener("click", () => {
     const ss = srcShift("pasteSrc");
-    const { items, bad } = parseNotes($("pasteBox").value, (ss ? 67 : 67 - (isSax() ? shiftNow() : 0)));
+    const text = $("pasteBox").value;
+    const { items, bad } = looksLikeSheet(text) ? parseSheet(text) : parseNotes(text, (ss ? 67 : 67 - (isSax() ? shiftNow() : 0)));
     const conv = items.map(x => convertItem(x, true, ss));
     const count = conv.filter(isNote).length;
     remember("mel"); selState = null; updateEditbar("mel"); melody.splice(0, melody.length, ...conv); renderSeq();
@@ -1284,14 +1364,13 @@ details[open] > summary::before { transform: rotate(90deg); }
   // ---------- Songs & folders ----------
   const SKEY = "htn-songs", FKEY = "htn-folders";
   const INSTR = [
-    ["sax", "🎷", "Saxophone"], ["piano", "🎹", "Piano / keyboard"], ["guitar", "🎸", "Guitar"],
-    ["recorder", "🪈", "Recorder"], ["ocarina", "🍠", "Ocarina"],
-    ["ukulele", "🪕", "Ukulele"], ["bass", "🎸", "Bass guitar"], ["violin", "🎻", "Violin"], ["cello", "🎻", "Cello"],
-    ["flute", "🪈", "Flute"], ["clarinet", "🎶", "Clarinet"], ["trumpet", "🎺", "Trumpet"],
-    ["drums", "🥁", "Drums"], ["voice", "🎤", "Voice"], ["other", "🎵", "Other"]
+    ["sax", "Saxophone"], ["piano", "Piano / keyboard"], ["guitar", "Guitar"], ["recorder", "Recorder"], ["ocarina", "Ocarina"],
+    ["ukulele", "Ukulele"], ["bass", "Bass guitar"], ["violin", "Violin"], ["cello", "Cello"],
+    ["flute", "Flute"], ["clarinet", "Clarinet"], ["trumpet", "Trumpet"],
+    ["drums", "Drums"], ["voice", "Voice"], ["other", "Other"]
   ];
-  const instrEmoji = id => { const r = INSTR.find(x => x[0] === (id || "sax")); return r ? r[1] : "🎵"; };
-  $("songInstr").innerHTML = INSTR.map(([id, e, n]) => '<option value="' + id + '">' + e + "  " + n + '</option>').join("");
+  const instrIcon = id => instIcon(id || "sax");
+  $("songInstr").innerHTML = INSTR.map(([id, n]) => '<option value="' + id + '">' + n + '</option>').join("");
   let songs = [], folders = [], openId = null, editingId = null, curFolder = null;
   let picking = false, picked = [];
   const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -1372,7 +1451,7 @@ details[open] > summary::before { transform: rotate(90deg); }
     if (!hits.length) {
       const raw = $("libSearch").value.trim();
       $("libList").innerHTML = '<div class="empty-songs lib-empty">' + (raw
-        ? 'No library song matches “' + esc(raw) + '”. You can <a href="https://www.google.com/search?q=' + encodeURIComponent(raw + " sheet music musicxml OR midi") + '" target="_blank" rel="noopener">look for its sheet music online ↗</a> and bring it in with 📄 Import sheet music.'
+        ? 'No library song matches “' + esc(raw) + '”. You can <a href="https://www.google.com/search?q=' + encodeURIComponent(raw + " letter notes") + '" target="_blank" rel="noopener">look up its notes online ↗</a>, copy them, and use 📋 Paste a song.'
         : "No songs in this group.") + '</div>';
       return;
     }
@@ -1425,10 +1504,10 @@ details[open] > summary::before { transform: rotate(90deg); }
   const ICONS = ["🎵", "🎶", "🎷", "🎺", "🎸", "🎹", "🎻", "🥁", "🎤", "🎧", "📻", "💿", "❤️", "⭐", "🔥", "✨", "🌙", "☀️", "🌈", "🌊", "🌸", "🍀", "🎉", "🎂", "🎄", "🎃", "👻", "🦄", "🐱", "🐶", "🐸", "🚀", "⚡", "💎", "🎮", "🏆"];
   const FOLDER_COLORS = [["red", "#E0524F"], ["orange", "#EE8A2E"], ["yellow", "#E9C230"], ["green", "#3FA66B"], ["teal", "#2FA4A6"], ["blue", "#3E7BD6"], ["purple", "#8A5BD6"], ["pink", "#DB5C9E"], ["gray", "#8A93A6"]];
   const folderHex = f => { const c = f && FOLDER_COLORS.find(x => x[0] === f.color); return c ? c[1] : null; };
-  const songIcon = sg => sg.icon || instrEmoji(sg.instr);
+  const songIcon = sg => sg.icon || instrIcon(sg.instr);
   let editorIcon = null;
   function renderIconPick() {
-    $("iconPick").innerHTML = '<button type="button" class="auto' + (!editorIcon ? " current" : "") + '" data-icon="" aria-pressed="' + !editorIcon + '" title="Use the instrument\'s icon"><span>' + instrEmoji($("songInstr").value) + '</span>Auto</button>'
+    $("iconPick").innerHTML = '<button type="button" class="auto' + (!editorIcon ? " current" : "") + '" data-icon="" aria-pressed="' + !editorIcon + '" title="Use the instrument\'s icon"><span>' + instrIcon($("songInstr").value) + '</span>Auto</button>'
       + ICONS.map(ic => '<button type="button" data-icon="' + ic + '" class="' + (editorIcon === ic ? "current" : "") + '" aria-pressed="' + (editorIcon === ic) + '" aria-label="Icon ' + ic + '">' + ic + '</button>').join("");
   }
   $("iconPick").addEventListener("click", e => { const b = e.target.closest("[data-icon]"); if (!b) return; editorIcon = b.dataset.icon || null; renderIconPick(); });
@@ -1445,167 +1524,95 @@ details[open] > summary::before { transform: rotate(90deg); }
     storeSongs(); showSongHome();
   });
 
-  // ---------- Sheet music import (MusicXML, compressed .mxl, MIDI) ----------
-  async function unzipMxl(buf) {
-    const d = new DataView(buf), u8 = new Uint8Array(buf), dec = new TextDecoder();
-    let e = buf.byteLength - 22;
-    while (e >= 0 && d.getUint32(e, true) !== 0x06054b50) e--;
-    if (e < 0) throw new Error("zip");
-    const count = d.getUint16(e + 10, true), files = {};
-    let p = d.getUint32(e + 16, true);
-    for (let i = 0; i < count && d.getUint32(p, true) === 0x02014b50; i++) {
-      const nlen = d.getUint16(p + 28, true);
-      files[dec.decode(u8.subarray(p + 46, p + 46 + nlen))] = { method: d.getUint16(p + 10, true), size: d.getUint32(p + 20, true), at: d.getUint32(p + 42, true) };
-      p += 46 + nlen + d.getUint16(p + 30, true) + d.getUint16(p + 32, true);
-    }
-    const read = async name => {
-      const f = files[name], start = f.at + 30 + d.getUint16(f.at + 26, true) + d.getUint16(f.at + 28, true);
-      const data = u8.subarray(start, start + f.size);
-      if (f.method === 0) return dec.decode(data);
-      if (!window.DecompressionStream) throw new Error("This browser can't open .mxl files. Export as uncompressed MusicXML (.musicxml) instead.");
-      return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).text();
-    };
-    let root = null;
-    if (files["META-INF/container.xml"]) { const m = (await read("META-INF/container.xml")).match(/full-path="([^"]+)"/); if (m) root = m[1]; }
-    if (!root || !files[root]) root = Object.keys(files).find(n => !n.startsWith("META-INF") && /\.(musicxml|xml)$/i.test(n));
-    if (!root) throw new Error("zip");
-    return read(root);
+  // ---------- Paste a song: notes copied from a website, lyrics and all ----------
+  // Note lines look like "^C   A   A   ^C   ^D-C-Bb-A". Plain letters are in the octave from middle C up;
+  // ^ raises a note an octave (^^ two), v or _ lowers it. Notes joined with - are one slurred group.
+  // Any line that is mostly words is lyrics or a comment and is skipped; the first lyric line of each
+  // blank-line-separated block names that part of the song.
+  const SHEET_NOTE = /^(\^+|v+|_+)?([A-G])(##|#|♯|x|bb|b|♭)?(-?\d)?$/;
+  const SHEET_JUNK = /^[~.…|,;:!?()\[\]*'"“”‘’/\\]+$/;
+  function sheetLineNotes(line) {
+    const groups = line.replace(/\s*[-–—]\s*/g, "-").trim().split(/\s+/).filter(Boolean)
+      .map(t => t.split("-").map(p => p.replace(/^[(\[]+|[~.…,;:!?)\]]+$/g, "")).filter(p => p && !SHEET_JUNK.test(p)));
+    let notes = 0, other = 0;
+    groups.forEach(g => g.forEach(p => { if (SHEET_NOTE.test(p)) notes++; else other++; }));
+    return notes && notes / (notes + other) >= 0.75 ? groups : null;
   }
-  function parseMusicXML(text) {
-    const doc = new DOMParser().parseFromString(text, "application/xml");
-    if (doc.getElementsByTagName("parsererror").length || !doc.getElementsByTagName("part").length) throw new Error("xml");
-    const first = (el, tag) => { const x = el.getElementsByTagName(tag)[0]; return x ? x.textContent.trim() : null; };
-    const names = {};
-    [...doc.getElementsByTagName("score-part")].forEach(sp => { names[sp.getAttribute("id")] = first(sp, "part-name") || ""; });
-    const parts = [...doc.getElementsByTagName("part")].map((part, k) => {
-      const items = []; let shift = 0, voice = null;
-      [...part.children].filter(m => m.tagName === "measure").forEach(measure => {
-        [...measure.children].forEach(el => {
-          if (el.tagName === "attributes") {
-            const tr = el.getElementsByTagName("transpose")[0];
-            if (tr) shift = (parseInt(first(tr, "chromatic"), 10) || 0) + 12 * (parseInt(first(tr, "octave-change"), 10) || 0);
-            return;
-          }
-          if (el.tagName !== "note" || el.getElementsByTagName("rest").length) return;
-          if ((first(el, "staff") || "1") !== "1") return;            // treble staff only on piano-style parts
-          const v = first(el, "voice") || "1";
-          if (voice === null) voice = v;
-          if (v !== voice) return;                                     // one voice: the tune, not the harmony
-          if ([...el.getElementsByTagName("tie")].some(t => t.getAttribute("type") === "stop")) return; // held over, not a new note
-          const step = first(el, "step"), oct = first(el, "octave"); if (!step || oct === null) return;
-          const midi = (parseInt(oct, 10) + 1) * 12 + PC[step] + Math.round(parseFloat(first(el, "alter")) || 0) + shift;
-          if (el.getElementsByTagName("chord").length) {               // a chord: keep its top note as the melody
-            const last = items[items.length - 1];
-            if (typeof last === "number" && midi > last) items[items.length - 1] = midi;
-            return;
-          }
-          items.push(midi);
+  function parseSheet(text) {
+    const blocks = [], bad = [];
+    let cur = null, lyricLines = 0, blankRun = 0;
+    const clean = t => { t = t.replace(/[~…]+/g, "").replace(/\.{2,}/g, "").replace(/\s+/g, " ").trim().replace(/[,;:]+$/, ""); return t.length > 40 ? t.slice(0, 39) + "…" : t; };
+    text.replace(/\r/g, "").split("\n").forEach(line => {
+      if (!line.trim()) { blankRun++; return; }
+      // one blank line just separates phrases; a bigger gap starts a new part of the song
+      if (!cur || blankRun >= 2) { cur = { title: "", items: [] }; blocks.push(cur); }
+      blankRun = 0;
+      const groups = sheetLineNotes(line);
+      if (!groups) { if (/[a-z]{2}/i.test(line)) { lyricLines++; if (!cur.title) cur.title = clean(line); } return; }
+      if (cur.items.length && cur.items[cur.items.length - 1] !== "|") cur.items.push("|");
+      groups.forEach(g => {
+        let prev = null;
+        g.forEach(p => {
+          const m = p.match(SHEET_NOTE);
+          if (!m) { bad.push(p); return; }
+          let pc = PC[m[2]];
+          const acc = m[3] || "";
+          if (acc === "#" || acc === "♯") pc += 1; else if (acc === "##" || acc === "x") pc += 2;
+          else if (acc === "b" || acc === "♭") pc -= 1; else if (acc === "bb") pc -= 2;
+          const marks = m[1] || "", oct = marks.charAt(0) === "^" ? marks.length : -marks.length;
+          let midi = m[4] !== undefined ? (parseInt(m[4], 10) + 1) * 12 + pc + 12 * oct : 60 + pc + 12 * oct;
+          // inside a slurred group, an unmarked note stays near the one before it ("^D-C-Bb-A" walks down from high D)
+          if (!marks && m[4] === undefined && prev !== null) { while (midi - prev > 9) midi -= 12; while (prev - midi > 9) midi += 12; }
+          cur.items.push(midi); prev = midi;
         });
-        if (items.length && items[items.length - 1] !== "|") items.push("|");
       });
-      while (items[items.length - 1] === "|") items.pop();
-      return { name: names[part.getAttribute("id")] || "Part " + (k + 1), items };
-    }).filter(p => p.items.some(isNote));
-    const title = first(doc, "work-title") || first(doc, "movement-title") || "";
-    return { title, parts, pick: 0 };
+    });
+    const withNotes = blocks.filter(b => b.items.some(isNote));
+    const items = [];
+    withNotes.forEach((b, k) => {
+      while (b.items[b.items.length - 1] === "|") b.items.pop();
+      if (withNotes.length > 1) items.push("§" + (b.title || "Part " + (k + 1)));
+      items.push(...b.items);
+    });
+    const firstTitle = (withNotes.find(b => b.title) || {}).title || "";
+    return { items, bad, lyricLines, parts: withNotes.length, title: firstTitle };
   }
-  function parseMidi(buf) {
-    const d = new DataView(buf), N = buf.byteLength;
-    const tag = at => String.fromCharCode(d.getUint8(at), d.getUint8(at + 1), d.getUint8(at + 2), d.getUint8(at + 3));
-    if (tag(0) !== "MThd") throw new Error("midi");
-    const ntrk = d.getUint16(10), div = d.getUint16(12), tpq = div & 0x8000 ? 480 : div;
-    let p = 8 + d.getUint32(4), ts = null;
-    const parts = [];
-    for (let t = 0; t < ntrk && p + 8 <= N; t++) {
-      const len = d.getUint32(p + 4), isTrk = tag(p) === "MTrk"; p += 8;
-      const end = Math.min(N, p + len);
-      if (!isTrk) { p = end; continue; }
-      let tick = 0, run = 0, name = "";
-      const byCh = {};
-      const vlq = () => { let v = 0, b; do { b = d.getUint8(p++); v = (v << 7) | (b & 0x7f); } while (b & 0x80 && p < end); return v; };
-      while (p < end) {
-        tick += vlq();
-        const b = d.getUint8(p);
-        if (b === 0xff) {
-          const type = d.getUint8(p + 1); p += 2; const l = vlq();
-          if (type === 0x03 && !name) name = new TextDecoder().decode(new Uint8Array(buf, p, l)).trim();
-          if (type === 0x58 && !ts) ts = { num: d.getUint8(p), den: Math.pow(2, d.getUint8(p + 1)) };
-          p += l; continue;
-        }
-        if (b === 0xf0 || b === 0xf7) { p++; p += vlq(); continue; }
-        if (b & 0x80) { run = b; p++; }
-        const hi = run & 0xf0, ch = run & 0x0f;
-        if (hi === 0xc0 || hi === 0xd0) { p += 1; continue; }
-        const note = d.getUint8(p), vel = d.getUint8(p + 1); p += 2;
-        if (hi === 0x90 && vel > 0 && ch !== 9) (byCh[ch] = byCh[ch] || []).push({ t: tick, m: note }); // channel 10 is drums
-      }
-      p = end;
-      const chans = Object.keys(byCh);
-      chans.forEach(ch => parts.push({ name: (name || "Track " + (t + 1)) + (chans.length > 1 ? " · channel " + (+ch + 1) : ""), notes: byCh[ch] }));
-    }
-    const barLen = tpq * 4 * (ts ? ts.num / ts.den : 1);
-    const out = parts.map(pt => {
-      const top = {};                                                  // at each moment keep the highest note: that's usually the tune
-      pt.notes.forEach(n => { if (!(n.t in top) || n.m > top[n.t]) top[n.t] = n.m; });
-      const items = []; let bar = null;
-      Object.keys(top).map(Number).sort((a, b) => a - b).forEach(t => {
-        const nb = Math.floor(t / barLen);
-        if (bar !== null && nb > bar) items.push("|");
-        bar = nb; items.push(top[t]);
-      });
-      const sorted = items.filter(isNote).sort((a, b) => a - b);
-      return { name: pt.name, items, median: sorted[Math.floor(sorted.length / 2)] || 0 };
-    }).filter(pt => pt.items.length);
-    // best guess for the melody: the highest-sounding part that has a real tune's worth of notes
-    let pick = 0;
-    out.forEach((pt, k) => { const n = noteCount(pt.items), b = out[pick]; if (n >= 12 && (noteCount(b.items) < 12 || pt.median > b.median)) pick = k; });
-    return { title: "", parts: out, pick };
+  // Use the paste reader when the text has ^ octave marks or lyrics between note lines
+  function looksLikeSheet(text) {
+    if (/\{|^\s*#/m.test(text)) return false; // chords in {} or "# Section" lines: the plain note format
+    if (/(^|[\s-])(\^+|v+|_+)[A-G]/.test(text)) return true;
+    const lines = text.split("\n").filter(l => l.trim());
+    return lines.some(l => sheetLineNotes(l)) && lines.some(l => !sheetLineNotes(l) && /[a-z]{2}/i.test(l));
   }
-  let importData = null;
-  function showImport(data, fileName) {
-    importData = data;
-    importData.title = data.title || fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
-    $("importInfo").textContent = "“" + importData.title + "”: found " + data.parts.length + (data.parts.length === 1 ? " part." : " parts. Pick the one with the tune.");
-    $("importPart").innerHTML = data.parts.map((pt, k) => '<option value="' + k + '">' + esc(pt.name) + " (" + noteCount(pt.items) + (noteCount(pt.items) === 1 ? " note)" : " notes)") + "</option>").join("");
-    $("importPart").value = String(data.pick);
-    $("importPick").hidden = data.parts.length < 2;
-    $("importPanel").hidden = false;
-    updateImportPreview();
-    $("importPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  let sheetResult = null;
+  function updateSheet() {
+    const text = $("sheetBox").value;
+    if (!text.trim()) { sheetResult = null; $("sheetInfo").textContent = ""; $("sheetPreview").textContent = ""; $("sheetGo").disabled = true; return; }
+    const ss = srcShift("sheetSrc"), r = parseSheet(text);
+    sheetResult = { items: r.items.map(x => convertItem(x, true, ss)), title: r.title };
+    const n = noteCount(sheetResult.items);
+    let info = n ? "Found " + n + " note" + (n === 1 ? "" : "s") + (r.parts > 1 ? " in " + r.parts + " parts" : "") + "." : "No note lines found yet.";
+    if (r.lyricLines) info += " Skipped " + r.lyricLines + " line" + (r.lyricLines === 1 ? "" : "s") + " of words.";
+    if (r.bad.length) info += " Couldn't read: " + r.bad.slice(0, 8).join(" ") + (r.bad.length > 8 ? " …" : "");
+    $("sheetInfo").textContent = info;
+    $("sheetPreview").textContent = n ? itemsToText(sheetResult.items) : "";
+    $("sheetGo").disabled = !n;
   }
-  function updateImportPreview() {
-    const pt = importData && importData.parts[+$("importPart").value]; if (!pt) return;
-    const notes = pt.items.filter(isNote), shown = notes.slice(0, 32);
-    $("importPreview").textContent = itemsToText(shown) + (notes.length > shown.length ? "  …" : "");
+  function openPastePanel(open) {
+    $("pastePanel").hidden = !open;
+    if (open) { $("sheetSrc").value = String(defaultSrc()); updateLabels(); updateSheet(); $("sheetBox").focus(); }
   }
-  function closeImport() { importData = null; $("importPanel").hidden = true; }
-  $("importMusic").addEventListener("click", () => $("musicFile").click());
-  $("importPart").addEventListener("change", updateImportPreview);
-  $("importCancel").addEventListener("click", closeImport);
-  $("importUse").addEventListener("click", () => {
-    const pt = importData && importData.parts[+$("importPart").value]; if (!pt) return;
-    const title = importData.title;
-    closeImport();
-    openEditor(null, pt.items.slice(0, 3000));
+  $("pasteSong").addEventListener("click", () => openPastePanel($("pastePanel").hidden));
+  $("sheetCancel").addEventListener("click", () => openPastePanel(false));
+  $("sheetBox").addEventListener("input", updateSheet);
+  $("sheetSrc").addEventListener("change", () => { updateLabels(); updateSheet(); });
+  $("sheetGo").addEventListener("click", () => {
+    if (!sheetResult || !noteCount(sheetResult.items)) return;
+    const { items, title } = sheetResult;
+    openPastePanel(false);
+    $("sheetBox").value = ""; updateSheet();
+    openEditor(null, items.slice(0, 3000));
     $("songName").value = title;
-    $("songInstr").value = inst().songInstr;
-  });
-  $("musicFile").addEventListener("change", async e => {
-    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
-    closeImport();
-    try {
-      if (/\.(pdf|png|jpe?g|gif|webp|heic)$/i.test(f.name) || /^image\/|pdf/.test(f.type)) throw new Error("That's a picture or PDF of sheet music, which this app can't read directly. Open it in MuseScore (free), use File → Import PDF, then File → Export as MusicXML and import that file here.");
-      const buf = await f.arrayBuffer(), h = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
-      let data;
-      if (h[0] === 0x4d && h[1] === 0x54 && h[2] === 0x68 && h[3] === 0x64) data = parseMidi(buf);                  // "MThd"
-      else if (h[0] === 0x50 && h[1] === 0x4b) data = parseMusicXML(await unzipMxl(buf));                          // "PK" zip = .mxl
-      else data = parseMusicXML(new TextDecoder().decode(buf));
-      if (!data.parts.length) throw new Error("No notes were found in that file.");
-      showImport(data, f.name);
-    } catch (err) {
-      const m = err && err.message && err.message.length > 8 ? err.message : "That file couldn't be read. Use a MusicXML (.musicxml, .mxl) or MIDI (.mid) file.";
-      alert(m);
-    }
   });
 
   function showTab(which) {
@@ -1626,7 +1633,7 @@ details[open] > summary::before { transform: rotate(90deg); }
     return '<button type="button" class="song-card' + (k >= 0 ? " picked" : "") + '" data-id="' + sg.id + '" draggable="true">'
       + '<span class="emo" aria-hidden="true">' + songIcon(sg) + '</span>'
       + '<span><span class="nm">' + esc(sg.name) + '</span>'
-      + (fn ? '<span class="in-folder-tag">📁 ' + esc(fn) + '</span>' : '')
+      + (fn ? '<span class="in-folder-tag">' + folderIcon(folderHex(folders.find(f => f.id === sg.folder))) + " " + esc(fn) + '</span>' : '')
       + '<span class="ct">' + noteCount(sg.items) + ' notes</span>'
       + (secs > 1 ? '<br><span class="tag">🔗 ' + secs + ' parts</span>' : '') + '</span>'
       + (picking ? '<span class="pick" aria-hidden="true">' + (k >= 0 ? k + 1 : "") + '</span>' : '')
@@ -1634,7 +1641,7 @@ details[open] > summary::before { transform: rotate(90deg); }
   }
   function folderCard(f) {
     const hex = folderHex(f), n = inFolder(f.id).length;
-    return '<button type="button" class="song-card folder-card" data-folder="' + f.id + '"' + (hex ? ' style="--fc:' + hex + '"' : '') + '><span class="emo" aria-hidden="true">📁</span><span><span class="nm">' + esc(f.name) + '</span><span class="ct">' + n + (n === 1 ? ' song' : ' songs') + '</span></span></button>';
+    return '<button type="button" class="song-card folder-card" data-folder="' + f.id + '"' + (hex ? ' style="--fc:' + hex + '"' : '') + '><span class="emo" aria-hidden="true">' + folderIcon(hex) + '</span><span><span class="nm">' + esc(f.name) + '</span><span class="ct">' + n + (n === 1 ? ' song' : ' songs') + '</span></span></button>';
   }
   function showSongHome() {
     openId = null; libPreview = null; setPreviewMode(false); showPanel("home");
@@ -1644,7 +1651,7 @@ details[open] > summary::before { transform: rotate(90deg); }
     $("mySearchWrap").hidden = !songs.length && !folders.length && !searching;
     $("crumbs").classList.toggle("in-folder", !!curFolder);
     const hex = folderHex(folders.find(f => f.id === curFolder));
-    $("crumbFolder").innerHTML = curFolder ? '<span class="crumb-sep">›</span> ' + (hex ? '<span class="folder-dot" style="background:' + hex + '"></span>' : '📁 ') + esc(folderName(curFolder)) : "";
+    $("crumbFolder").innerHTML = curFolder ? '<span class="crumb-sep">›</span> ' + folderIcon(hex) + " " + esc(folderName(curFolder)) : "";
     $("folderTools").hidden = !curFolder || picking || searching;
     if (curFolder) renderFolderColors();
     $("newFolder").hidden = !!curFolder;
@@ -1671,6 +1678,7 @@ details[open] > summary::before { transform: rotate(90deg); }
     updateSelectBar();
     renderLibrary();
   }
+  $("newFolderIcon").innerHTML = folderIcon();
   $("mySearch").addEventListener("input", showSongHome);
   $("mySearch").addEventListener("keydown", e => { if (e.key === "Escape" && e.target.value) { e.target.value = ""; showSongHome(); } });
   function updateSelectBar() {
@@ -1739,12 +1747,12 @@ details[open] > summary::before { transform: rotate(90deg); }
       instSel.value = target; syncInstUI();
       save("htn-inst", target);
       stopPlayback(); updateLabels(); renderSeq(); renderStage(stageMidi);
-      toast("Switched to " + INSTS[target].emoji + " " + INSTS[target].name.charAt(0).toUpperCase() + INSTS[target].name.slice(1));
+      toast("Switched to " + INSTS[target].name.charAt(0).toUpperCase() + INSTS[target].name.slice(1));
     }
     openId = id; showPanel("view");
     const fn = folderName(sg.folder);
-    $("songViewTitle").textContent = songIcon(sg) + " " + sg.name;
-    $("backSongs").textContent = "← " + (fn ? "📁 " + fn : "Your songs");
+    $("songViewTitle").innerHTML = songIcon(sg) + " " + esc(sg.name);
+    $("backSongs").innerHTML = "← " + (fn ? folderIcon(folderHex(folders.find(f => f.id === sg.folder))) + " " + esc(fn) : "Your songs");
     $("unmergeSong").hidden = splitSections(sg).length < 2;
     renderSongSeq();
   }
@@ -2380,7 +2388,7 @@ details[open] > summary::before { transform: rotate(90deg); }
   };
   function updateLabels() {
     const r = inst(), name = r.name, cap = name.charAt(0).toUpperCase() + name.slice(1);
-    document.querySelectorAll(".badge").forEach(b => b.textContent = r.emoji + " " + cap + " notes · tap one to hear or edit it");
+    document.querySelectorAll(".badge").forEach(b => b.innerHTML = instIcon(r.kind) + " " + cap + " notes · tap one to hear or edit it");
     document.querySelectorAll(".legend").forEach(l => { l.innerHTML = LEGENDS[r.kind]; l.hidden = false; });
     document.querySelectorAll(".explain").forEach(p => {
       const ss = srcShift(p.dataset.for), cur = shiftNow();
@@ -2404,7 +2412,7 @@ details[open] > summary::before { transform: rotate(90deg); }
   // ---------- Instrument grid ----------
   const GROUPS = [["Keyboard & strings", ["piano", "guitar", "bass", "ukulele", "violin", "cello"]],
                   ["Woodwinds & brass", ["sax", "flute", "clarinet", "recorder", "ocarina", "trumpet"]]];
-  const famLabel = fam => { const o = [...$("instFamily").options].find(x => x.value === fam); const t = o ? o.textContent.trim() : fam; const i = t.indexOf(" "); return { e: t.slice(0, i), n: t.slice(i + 1) }; };
+  const famLabel = fam => { const o = [...$("instFamily").options].find(x => x.value === fam); const t = o ? o.textContent.trim() : fam; const i = t.indexOf(" "); return { e: instIcon(fam), n: t.slice(i + 1) }; };
   function buildGrid() {
     const v = instSel.value, sax = v === "tenor" || v === "alto", fam = sax ? "sax" : v;
     $("instGrid").innerHTML = GROUPS.map(([title, fams]) => '<h3>' + title + '</h3><div class="itiles">' + fams.map(f => {
@@ -2435,7 +2443,7 @@ details[open] > summary::before { transform: rotate(90deg); }
     $("saxType").hidden = true; // Tenor/Alto is chosen on the Saxophone tile in the grid
     if (sax) $("saxType").value = v;
     const L = famLabel(sax ? "sax" : v);
-    $("instBtnEmo").textContent = L.e;
+    $("instBtnEmo").innerHTML = L.e;
     $("instBtnName").textContent = sax ? (v === "tenor" ? "Tenor sax" : "Alto sax") : L.n;
     if (!$("instGrid").hidden) buildGrid();
   }
