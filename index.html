@@ -126,7 +126,10 @@ details[open] > summary::before { transform: rotate(90deg); }
 .form-row > div { display: flex; flex-direction: column; flex: 1 1 220px; }
 .src-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0; }
 .src-row .fine { margin: 0; flex-basis: 100%; }
-.srcSel { max-width: 100%; }
+.srcpick { position: relative; display: inline-block; }
+.srcbtn .sb-ic { font-size: 1.25rem; line-height: 1; display: inline-flex; }
+.srcgrid { left: 0; right: auto; }
+.srcnote { text-transform: none; letter-spacing: 0; font-weight: 500; }
 
 .paste summary { color: var(--ink); }
 .paste[open] summary { margin-bottom: 12px; }
@@ -426,13 +429,9 @@ details[open] > summary::before { transform: rotate(90deg); }
       <summary>⌨️ Type or paste notes instead</summary>
       <textarea id="pasteBox" rows="3" placeholder="G A Bb C5 D"></textarea>
       <div class="src-row">
-        <label class="field-label" for="pasteSrc" style="margin:0">Notes are written for</label>
-        <select id="pasteSrc" class="srcSel">
-          <option value="0">🎹 Regular notes: piano, guitar, voice, violin, cello, flute, recorder…</option>
-          <option value="9">🎷 Alto sax (also bari sax &amp; other E♭ instruments)</option>
-          <option value="14">🎷 Tenor sax</option>
-          <option value="2">🎺 Trumpet, clarinet &amp; other B♭ instruments</option>
-        </select>
+        <label class="field-label" for="pasteSrc-btn" style="margin:0">Notes are written for</label>
+        <span class="srcpick"><button type="button" class="instbtn srcbtn" id="pasteSrc-btn" aria-haspopup="true" aria-expanded="false"><span class="sb-ic"></span><span class="sb-nm"></span><span class="caret">▾</span></button><div class="instgrid srcgrid" role="dialog" aria-label="Which instrument is this music written for?" hidden></div></span>
+          <select id="pasteSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option><option value="21"></option></select>
         <span class="fine explain" data-for="pasteSrc"></span>
       </div>
       <button id="pasteGo" type="button" class="btn primary">Show fingerings</button>
@@ -458,13 +457,9 @@ details[open] > summary::before { transform: rotate(90deg); }
         <p class="fine" style="margin-top:0">Copy a song's notes from a website and paste everything here, lyrics included. Lines of words are skipped. <strong>^C</strong> means the C one octave up. Notes joined with a dash, like <strong>D-C-Bb</strong>, stay together.</p>
         <textarea id="sheetBox" rows="9" spellcheck="false" placeholder="^C   A   A   ^C   ^D-C-Bb   G&#10;(a line of lyrics here is skipped)&#10;&#10;F   G   A   ^D-^C   Bb   A"></textarea>
         <div class="src-row">
-          <label class="field-label" for="sheetSrc" style="margin:0">Notes are written for</label>
-          <select id="sheetSrc" class="srcSel">
-            <option value="0">🎹 Regular notes: piano, guitar, voice, violin, cello, flute, recorder…</option>
-            <option value="9">🎷 Alto sax (also bari sax &amp; other E♭ instruments)</option>
-            <option value="14">🎷 Tenor sax</option>
-            <option value="2">🎺 Trumpet, clarinet &amp; other B♭ instruments</option>
-          </select>
+          <label class="field-label" for="sheetSrc-btn" style="margin:0">Notes are written for</label>
+          <span class="srcpick"><button type="button" class="instbtn srcbtn" id="sheetSrc-btn" aria-haspopup="true" aria-expanded="false"><span class="sb-ic"></span><span class="sb-nm"></span><span class="caret">▾</span></button><div class="instgrid srcgrid" role="dialog" aria-label="Which instrument is this music written for?" hidden></div></span>
+          <select id="sheetSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option><option value="21"></option></select>
           <span class="fine explain" data-for="sheetSrc"></span>
         </div>
         <p id="sheetInfo" class="msg"></p>
@@ -535,13 +530,9 @@ details[open] > summary::before { transform: rotate(90deg); }
       <textarea id="songNotes" rows="6" placeholder="G A Bb | C5 D"></textarea>
       <p class="fine" style="margin:4px 0 0">Start a line with # to add a section title, like <code># Verse</code>.</p>
       <div class="src-row">
-        <label class="field-label" for="songSrc" style="margin:0">Notes are written for</label>
-        <select id="songSrc" class="srcSel">
-          <option value="0">🎹 Regular notes: piano, guitar, voice, violin, cello, flute, recorder…</option>
-          <option value="9">🎷 Alto sax (also bari sax &amp; other E♭ instruments)</option>
-          <option value="14">🎷 Tenor sax</option>
-          <option value="2">🎺 Trumpet, clarinet &amp; other B♭ instruments</option>
-        </select>
+        <label class="field-label" for="songSrc-btn" style="margin:0">Notes are written for</label>
+        <span class="srcpick"><button type="button" class="instbtn srcbtn" id="songSrc-btn" aria-haspopup="true" aria-expanded="false"><span class="sb-ic"></span><span class="sb-nm"></span><span class="caret">▾</span></button><div class="instgrid srcgrid" role="dialog" aria-label="Which instrument is this music written for?" hidden></div></span>
+          <select id="songSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option><option value="21"></option></select>
         <span class="fine explain" data-for="songSrc"></span>
       </div>
       <div class="toolbar">
@@ -680,6 +671,11 @@ details[open] > summary::before { transform: rotate(90deg); }
     other: '<path d="M12.6 22V7L25 3.6V19" fill="none" stroke="#8A5BD6" stroke-width="2"/><path d="M12.6 7L25 3.6V7.4L12.6 10.8Z" fill="#8A5BD6"/>'
       + '<ellipse cx="9.6" cy="22.4" rx="3.6" ry="2.6" transform="rotate(-20 9.6 22.4)" fill="#8A5BD6"/><ellipse cx="22" cy="19.4" rx="3.6" ry="2.6" transform="rotate(-20 22 19.4)" fill="#8A5BD6"/>'
   };
+  // soprano sax is straight; baritone sax has the extra loop by the mouthpiece
+  ICON_ART.soprano = '<g transform="rotate(35 16 16)"><path d="M14.7 2.6H17.3L19.4 25H12.6Z" fill="' + BR + '"/><path d="M11.4 24.4H20.6L22 29.4H10Z" fill="' + BR + '"/>'
+    + '<rect x="9.8" y="28.8" width="12.4" height="1.8" rx=".9" fill="' + BRD + '"/><rect x="15.1" y=".4" width="1.8" height="2.6" rx=".6" fill="#222"/>'
+    + [9, 13, 17, 21].map(y => '<circle cx="16" cy="' + y + '" r="1.1" fill="' + BRD + '"/>').join("") + '</g>';
+  ICON_ART.bari = '<circle cx="8.4" cy="7.4" r="3" fill="none" stroke="' + BR + '" stroke-width="1.9"/>' + ICON_ART.sax;
   ICON_ART.tenor = ICON_ART.alto = ICON_ART.sax;
   const instIcon = id => '<svg class="ii" viewBox="0 0 32 32" aria-hidden="true">' + (ICON_ART[id] || ICON_ART.other) + '</svg>';
   const folderIcon = hex => {
@@ -1348,6 +1344,52 @@ details[open] > summary::before { transform: rotate(90deg); }
   // "Notes are written for": how far that kind of sheet music is written from the real sound
   const srcShift = id => parseInt($(id).value, 10) || 0;
   const defaultSrc = () => (shiftNow() % 12) ? shiftNow() : 0; // matches the selected instrument
+  // "Notes are written for": an instrument grid grouped by how each instrument's music is written.
+  // shift = how many half steps the written note sits above the sound (the hidden <select> keeps the number)
+  const SRC_GROUPS = [
+    ["Regular notes · C instruments", "The notes are the real sound", [["piano", "Piano", 0], ["guitar", "Guitar", 0], ["bass", "Bass guitar", 0], ["ukulele", "Ukulele", 0], ["violin", "Violin", 0], ["cello", "Cello", 0], ["flute", "Flute", 0], ["voice", "Voice", 0], ["recorder", "Recorder", -12], ["ocarina", "Ocarina", -12]]],
+    ["B♭ instruments", "A written C sounds as B♭", [["trumpet", "Trumpet", 2], ["clarinet", "Clarinet", 2], ["soprano", "Soprano sax", 2], ["tenor", "Tenor sax", 14]]],
+    ["E♭ instruments", "A written C sounds as E♭", [["alto", "Alto sax", 9], ["bari", "Baritone sax", 21]]]
+  ];
+  const SRC_TILES = {};
+  SRC_GROUPS.forEach(([, , tiles]) => tiles.forEach(([id, name, shift]) => { SRC_TILES[id] = { id, name, shift }; }));
+  const SRC_IDS = ["pasteSrc", "songSrc", "sheetSrc"], srcChoice = {};
+  function syncSrcBtn(id) {
+    const v = parseInt($(id).value, 10) || 0;
+    let t = SRC_TILES[srcChoice[id]];
+    if (!t || t.shift !== v) t = (SRC_TILES[instSel.value] && SRC_TILES[instSel.value].shift === v) ? SRC_TILES[instSel.value] : Object.values(SRC_TILES).find(x => x.shift === v) || SRC_TILES.piano;
+    srcChoice[id] = t.id;
+    const b = $(id + "-btn");
+    b.querySelector(".sb-ic").innerHTML = instIcon(t.id);
+    b.querySelector(".sb-nm").textContent = t.name;
+  }
+  function openSrcGrid(id, open) {
+    const g = $(id + "-btn").nextElementSibling;
+    SRC_IDS.forEach(o => { if (o !== id) { $(o + "-btn").nextElementSibling.hidden = true; $(o + "-btn").setAttribute("aria-expanded", false); } });
+    g.hidden = !open; $(id + "-btn").setAttribute("aria-expanded", open);
+    if (!open) return;
+    g.innerHTML = SRC_GROUPS.map(([title, note, tiles]) => '<h3>' + title + ' <span class="srcnote">· ' + note + '</span></h3><div class="itiles">'
+      + tiles.map(([tid, name]) => '<button type="button" class="itile' + (srcChoice[id] === tid ? " active" : "") + '" data-src="' + tid + '"><span class="ie">' + instIcon(tid) + '</span><span class="in">' + name + '</span></button>').join("") + '</div>').join("");
+    const a = g.querySelector(".itile.active"); if (a) a.focus();
+  }
+  SRC_IDS.forEach(id => {
+    const btn = $(id + "-btn"), grid = btn.nextElementSibling;
+    btn.addEventListener("click", e => { e.stopPropagation(); openSrcGrid(id, grid.hidden); });
+    grid.addEventListener("click", e => {
+      e.stopPropagation();
+      const t = e.target.closest("[data-src]"); if (!t) return;
+      srcChoice[id] = t.dataset.src;
+      $(id).value = String(SRC_TILES[t.dataset.src].shift);
+      openSrcGrid(id, false); btn.focus();
+      $(id).dispatchEvent(new Event("change"));
+      syncSrcBtn(id);
+    });
+  });
+  document.addEventListener("click", e => { if (!e.target.closest(".srcpick")) SRC_IDS.forEach(id => openSrcGrid(id, false)); });
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    SRC_IDS.forEach(id => { if (!$(id + "-btn").nextElementSibling.hidden) { openSrcGrid(id, false); $(id + "-btn").focus(); } });
+  });
   ["pasteSrc", "songSrc"].forEach(id => $(id).addEventListener("change", updateLabels));
   $("pasteGo").addEventListener("click", () => {
     const ss = srcShift("pasteSrc");
@@ -2387,6 +2429,7 @@ details[open] > summary::before { transform: rotate(90deg); }
     guitar: '<span><i style="background:var(--brass)"></i>Finger here</span><span><i style="border:1.5px solid var(--brass)"></i>Open string (no finger)</span><span>Strings low E → high E, left to right · thick line = nut · “5fr” = starting fret</span>'
   };
   function updateLabels() {
+    SRC_IDS.forEach(syncSrcBtn);
     const r = inst(), name = r.name, cap = name.charAt(0).toUpperCase() + name.slice(1);
     document.querySelectorAll(".badge").forEach(b => b.innerHTML = instIcon(r.kind) + " " + cap + " notes · tap one to hear or edit it");
     document.querySelectorAll(".legend").forEach(l => { l.innerHTML = LEGENDS[r.kind]; l.hidden = false; });
