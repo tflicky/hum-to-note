@@ -198,6 +198,8 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 .octpair .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .octpair .btn:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1.5px; }
 .octpair .btn[hidden] { display: none; }
+.credits { text-align: center; margin-top: 28px; }
+.credits a { color: inherit; }
 .song-tools { margin: 0 0 14px; }
 .singbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -4px 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); }
 .singbar .fine { margin: 0; }
@@ -580,6 +582,7 @@ details.hint li { margin: 3px 0; }
           <button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
           <span class="octpair" role="group" aria-label="Move the whole song by an octave"><button id="songOctDown" type="button" class="btn" title="Move every note down an octave">Octave ▼</button><button id="songOctUp" type="button" class="btn" title="Move every note up an octave">Octave ▲</button></span>
           <button id="editSong" type="button" class="btn">✏️ Edit</button>
+          <button id="dupSong" type="button" class="btn" title="Make a copy named “… Remix”">⧉ Duplicate</button>
           <button id="unmergeSong" type="button" class="btn" hidden>✂️ Unmerge</button>
           <button id="deleteSong" type="button" class="btn danger">Delete</button>
         </div>
@@ -633,6 +636,7 @@ details.hint li { margin: 3px 0; }
       </div>
     </div>
   </section>
+  <p class="fine credits">Instrument sounds: FluidR3 GM soundfont (<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>) via <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noopener">midi-js-soundfonts</a>. Without internet, simpler built-in sounds play instead.</p>
 </main>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <div id="viewPop" class="viewpop" role="dialog" aria-label="View options" hidden>
@@ -1187,7 +1191,7 @@ details.hint li { margin: 3px 0; }
   }
   function renderSeq() {
     if (selState && selState.list === "mel" && !(selState.idx < melody.length)) selState = null;
-    refit();
+    refit(); preloadSoon();
     seqEl.innerHTML = melody.some(isNote) ? chipsHTML(melody) : '<div class="empty-add"><span>Notes you sing will show up here.</span><button type="button" class="btn" data-ins="0">＋ Add a note by hand</button><button type="button" class="link" data-newsong>Already have the notes? Type or paste them into a new song →</button></div>';
   }
   let stageMidi = null;
@@ -1598,7 +1602,7 @@ details.hint li { margin: 3px 0; }
   function setPreviewMode(on) {
     $("songView").classList.toggle("preview", on);
     $("previewNote").hidden = !on;
-    ["undoSong", "editSong", "deleteSong", "singSong", "songOctDown", "songOctUp"].forEach(id => { $(id).hidden = on; });
+    ["undoSong", "editSong", "deleteSong", "singSong", "songOctDown", "songOctUp", "dupSong"].forEach(id => { $(id).hidden = on; });
     if (on) $("unmergeSong").hidden = true;
   }
   function previewLibrary(id) {
@@ -1614,11 +1618,15 @@ details.hint li { margin: 3px 0; }
     renderSongSeq();
     window.scrollTo({ top: 0 });
   }
+  function remixName(name) { // "Song Remix", then "Song Remix 2", … (a remix of a remix keeps counting)
+    const base = name.replace(/ Remix( \d+)?$/, "") + " Remix";
+    let out = base, n = 2;
+    while (songs.some(x => x.name === out)) out = base + " " + n++;
+    return out;
+  }
   $("remixSong").addEventListener("click", () => {
     if (!libPreview) return;
-    const base = libPreview.name + " Remix";
-    let name = base, n = 2;
-    while (songs.some(x => x.name === name)) name = base + " " + n++;
+    const name = remixName(libPreview.name);
     const sg = { id: newId("s"), name, items: libPreview.items.slice(), instr: inst().songInstr, folder: null, libId: libPreview.libId };
     if (isSax()) sg.sax = instSel.value;
     songs.push(sg);
@@ -2164,6 +2172,15 @@ details.hint li { margin: 3px 0; }
     if (fromLib) $("library").scrollIntoView({ block: "start" });
   });
   $("editSong").addEventListener("click", () => openEditor(openId));
+  $("dupSong").addEventListener("click", () => {
+    const sg = currentSong(); if (!sg || isPreview()) return;
+    const copy = JSON.parse(JSON.stringify(sg));
+    copy.id = newId("s"); copy.name = remixName(sg.name);
+    songs.splice(songs.indexOf(sg) + 1, 0, copy);
+    if (!storeSongs()) alert("Couldn't save to this browser's storage. Use Export to keep a copy.");
+    openSong(copy.id, true);
+    toast("Made a copy: “" + copy.name + "”");
+  });
   $("unmergeSong").addEventListener("click", unmergeOpen);
   $("deleteSong").addEventListener("click", () => {
     const sg = songs.find(x => x.id === openId); if (!sg) return;
@@ -2220,6 +2237,60 @@ details.hint li { margin: 3px 0; }
     if (!pctx) pctx = new (window.AudioContext || window.webkitAudioContext)();
     if (pctx.state === "suspended") pctx.resume();
   }
+  // Recorded instrument sounds: one small mp3 per note, fetched the first time that note is needed.
+  // Every note is leveled to the same loudness so no instrument is louder than the others.
+  // Without internet the built-in synth below plays instead.
+  const SF_BASE = "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/";
+  const SF_NAMES = { tenor: "tenor_sax", alto: "alto_sax", piano: "acoustic_grand_piano", guitar: "acoustic_guitar_steel", bass: "electric_bass_finger",
+    ukulele: "acoustic_guitar_nylon", recorder: "recorder", ocarina: "ocarina", violin: "violin", cello: "cello", flute: "flute", clarinet: "clarinet", trumpet: "trumpet" };
+  const SF_RING = { piano: 1, guitar: 1, bass: 1, ukulele: 1 }; // struck/plucked: let the note ring and fade naturally
+  const SF_TRIM = { guitar: 0.76, bass: 0.71, cello: 1.15, violin: 1.09, flute: 1.11 }; // measured so a played song comes out equally loud
+  const SF_FILE = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+  const sfLoads = {}, sfReady = {}; // per instrument: midi -> Promise / AudioBuffer (null = unavailable)
+  function sfKey() { return SF_NAMES[instSel.value] ? instSel.value : null; }
+  function sampleFor(key, midi) {
+    if (!key || midi < 21 || midi > 108) return Promise.resolve(null);
+    const loads = sfLoads[key] || (sfLoads[key] = {}), ready = sfReady[key] || (sfReady[key] = {});
+    if (loads[midi]) return loads[midi];
+    const url = SF_BASE + SF_NAMES[key] + "-mp3/" + SF_FILE[midi % 12] + (Math.floor(midi / 12) - 1) + ".mp3";
+    return (loads[midi] = fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(data => new Promise((ok, bad) => pctx.decodeAudioData(data, ok, bad)))
+      .then(buf => {
+        // level by the loudness of the first half second (RMS), so plucked and held notes match
+        const n = Math.min(buf.length, Math.floor(buf.sampleRate * 0.5));
+        let sum = 0, peak = 0;
+        for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < n; i++) sum += d[i] * d[i]; for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(d[i])); }
+        const rms = Math.sqrt(sum / (n * buf.numberOfChannels)) || 1e-4;
+        const k = Math.min(0.16 / rms, 0.95 / (peak || 1));
+        for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= k; }
+        return (ready[midi] = buf);
+      })
+      .catch(() => { ready[midi] = null; delete loads[midi]; return null; }));
+  }
+  function sfHas(key, midi) { return !!(sfReady[key] && sfReady[key][midi]); }
+  function preloadSamples(midis) { // get notes ready in the background (decoding works before any tap)
+    const key = sfKey(); if (!key) return Promise.resolve();
+    if (!pctx) pctx = new (window.AudioContext || window.webkitAudioContext)();
+    return Promise.all([...new Set(midis)].map(m => sampleFor(key, m)));
+  }
+  function playSample(buf, midi, when, dur, out, vol) {
+    const src = pctx.createBufferSource(), g = pctx.createGain();
+    src.buffer = buf; src.connect(g); g.connect(out);
+    const level = 0.9 * vol * (SF_TRIM[inst().kind] || 1);
+    if (SF_RING[inst().kind]) {
+      const ring = Math.min(buf.duration, dur + 1.4);
+      g.gain.setValueAtTime(level, when);
+      g.gain.setValueAtTime(level, when + ring - 0.3);
+      g.gain.linearRampToValueAtTime(0, when + ring);
+      src.start(when); src.stop(when + ring + 0.02);
+    } else {
+      const end = Math.min(buf.duration, dur) ;
+      g.gain.setValueAtTime(level, when);
+      g.gain.setValueAtTime(level, when + end - 0.04);
+      g.gain.linearRampToValueAtTime(0, when + end + 0.1);
+      src.start(when); src.stop(when + end + 0.12);
+    }
+  }
   const pluckCache = {};
   function pluckBuffer(midi) {
     if (pluckCache[midi]) return pluckCache[midi];
@@ -2245,8 +2316,8 @@ details.hint li { margin: 3px 0; }
     body.type = "lowpass"; body.frequency.value = 3200; body.Q.value = 0.7;
     src.connect(body); body.connect(g); g.connect(out);
     const ring = dur + 0.6; // let the string ring a little past the next note
-    g.gain.setValueAtTime(0.5 * vol, when);
-    g.gain.setValueAtTime(0.5 * vol, when + ring - 0.15);
+    g.gain.setValueAtTime(0.22 * vol, when);
+    g.gain.setValueAtTime(0.22 * vol, when + ring - 0.15);
     g.gain.linearRampToValueAtTime(0, when + ring);
     src.start(when); src.stop(when + ring + 0.02);
   }
@@ -2296,12 +2367,25 @@ details.hint li { margin: 3px 0; }
     g.gain.linearRampToValueAtTime(0, when + dur);
     o1.start(when); o1.stop(when + dur + 0.02);
   }
+  function synthPiano(midi, when, dur, out, vol) { // struck-string fallback: a few partials that fade like a piano
+    const f = 440 * Math.pow(2, (midi - 69) / 12), ring = dur + 1;
+    [[1, 0.5], [2, 0.22], [3, 0.1], [4, 0.05]].forEach(([h, a]) => {
+      const o = pctx.createOscillator(), g = pctx.createGain();
+      o.type = "sine"; o.frequency.value = f * h * (1 + 0.0004 * h * h); o.connect(g); g.connect(out);
+      g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(0.32 * a * vol, when + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, when + ring / h);
+      o.start(when); o.stop(when + ring / h + 0.02);
+    });
+  }
   function tone(midi, when, dur, out, vol) {
     vol = vol || 1;
+    const key = sfKey();
+    if (sfHas(key, midi)) { playSample(sfReady[key][midi], midi, when, dur, out, vol); return; }
+    if (inst().kind === "piano") { synthPiano(midi, when, dur, out, vol); return; }
     if (inst().kind === "guitar") { pluck(midi, when, dur, out, vol); return; }
     const kd = inst().kind;
     if (kd === "recorder" || kd === "ocarina" || kd === "flute") { flute(midi, when, dur, out, vol, kd === "flute" ? "recorder" : kd); return; }
-    if (kd === "bass" || kd === "ukulele") { pluck(midi, when, dur, out, vol * (kd === "bass" ? 1.3 : 0.9)); return; }
+    if (kd === "bass" || kd === "ukulele") { pluck(midi, when, dur, out, vol * (kd === "bass" ? 1.1 : 0.9)); return; }
     if (kd === "violin" || kd === "cello" || kd === "clarinet" || kd === "trumpet") { voiceTone(midi, when, dur, out, vol, kd); return; }
     const f = 440 * Math.pow(2, (midi - 69) / 12);
     const o1 = pctx.createOscillator(), o2 = pctx.createOscillator(), g = pctx.createGain(), g2 = pctx.createGain(), lp = pctx.createBiquadFilter();
@@ -2314,7 +2398,9 @@ details.hint li { margin: 3px 0; }
     g.gain.linearRampToValueAtTime(0, when + dur);
     o1.start(when); o2.start(when); o1.stop(when + dur + 0.02); o2.stop(when + dur + 0.02);
   }
+  let playToken = 0;
   function stopPlayback() {
+    playToken++;
     playTimers.forEach(clearTimeout); playTimers = [];
     if (master) { try { master.disconnect(); } catch (e) {} master = null; }
     document.querySelectorAll(".chip.playing").forEach(c => c.classList.remove("playing"));
@@ -2322,8 +2408,17 @@ details.hint li { margin: 3px 0; }
     playingBtn = null; muteUntil = 0; playPos = null; playingSeq = false;
   }
   let playPos = null, playingSeq = false; // note currently sounding while a melody plays
-  function playChips(chips, btn, which) {
+  async function playChips(chips, btn, which) {
     stopPlayback(); ensureP();
+    const token = playToken, key = sfKey();
+    const need = [];
+    chips.forEach(c => { need.push(+c.dataset.play); (c.dataset.chord || "").split(",").filter(Boolean).forEach(t => need.push(+t)); });
+    if (key && need.some(m => !(sfReady[key] && m in sfReady[key]))) {
+      if (btn) { btn.textContent = "■ Stop"; playingBtn = btn; }
+      if (chips.length > 1) toast("Loading " + inst().name + " sounds…");
+      await Promise.race([preloadSamples(need), new Promise(r => setTimeout(r, 6000))]);
+      if (token !== playToken) return; // stopped or replaced while loading
+    }
     master = pctx.createGain(); master.connect(pctx.destination);
     const step = 0.55, dur = 0.5, t0 = pctx.currentTime + 0.05;
     chips.forEach((c, i) => {
@@ -2461,6 +2556,17 @@ details.hint li { margin: 3px 0; }
     $("songSeq").innerHTML = sg.items.some(isNote) ? chipsHTML(sg.items) : '<div class="empty-add"><span>No notes yet.</span><button type="button" class="btn" data-ins="0">＋ Add a note</button></div>';
     updateEditbar("song");
     refit();
+    preloadSoon();
+  }
+  let preloadTimer = null;
+  function preloadSoon() {
+    clearTimeout(preloadTimer);
+    preloadTimer = setTimeout(() => {
+      const w = context(); if (!w) return;
+      const midis = [];
+      seqFor(w).querySelectorAll(".chip[data-play]").forEach(c => { midis.push(+c.dataset.play); (c.dataset.chord || "").split(",").filter(Boolean).forEach(t => midis.push(+t)); });
+      if (midis.length) preloadSamples(midis.slice(0, 400));
+    }, 400);
   }
   function rerender(which) {
     if (which === "mel") { renderSeq(); updateEditbar("mel"); }
