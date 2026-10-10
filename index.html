@@ -131,8 +131,6 @@ details[open] > summary::before { transform: rotate(90deg); }
 .srcgrid { left: 0; right: auto; }
 .srcnote { text-transform: none; letter-spacing: 0; font-weight: 500; }
 
-.paste summary { color: var(--ink); }
-.paste[open] summary { margin-bottom: 12px; }
 
 /* Songs */
 .song-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
@@ -272,9 +270,6 @@ details[open] > summary::before { transform: rotate(90deg); }
 .lib-card .by { color: var(--muted); font-size: .78rem; display: block; }
 .lib-card .tag { display: inline-block; margin-top: 2px; }
 .lib-empty a { color: var(--brass); font-weight: 700; }
-.import-panel { border-color: var(--brass); }
-.import-preview { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; background: var(--bg); border-radius: 10px; padding: 10px 12px; color: var(--ink); overflow-wrap: anywhere; white-space: pre-wrap; max-height: 220px; overflow-y: auto; margin: 10px 0 0; }
-.import-preview:empty { display: none; }
 /* Your-songs search, song icons, folder colors, library preview */
 .my-search { margin: 0 0 12px; }
 .my-search input { width: 100%; }
@@ -287,7 +282,19 @@ details[open] > summary::before { transform: rotate(90deg); }
 .swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1.5px var(--line); cursor: pointer; padding: 0; }
 .swatch.current { box-shadow: 0 0 0 2.5px var(--ink); }
 .swatch.none { background: var(--brass-soft); }
-.icon-field { margin-bottom: 14px; }
+.name-row { display: flex; gap: 10px; align-items: stretch; margin-bottom: 14px; }
+.name-row input { flex: 1; min-width: 0; font-size: 1.1rem; font-weight: 600; }
+.iconpick-wrap { position: relative; }
+.icon-btn { font: inherit; height: 100%; min-height: 44px; display: inline-flex; align-items: center; gap: 4px; padding: 0 10px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); cursor: pointer; }
+.icon-btn:hover, .icon-btn[aria-expanded="true"] { border-color: var(--brass); }
+#iconBtnFace { font-size: 1.5rem; line-height: 1; display: inline-flex; }
+.icon-btn .caret { color: var(--muted); font-size: .8rem; }
+.icon-pop { position: absolute; left: 0; top: calc(100% + 8px); z-index: 50; width: min(392px, calc(100vw - 32px)); background: var(--panel); border: 1.5px solid var(--line); border-radius: 16px; padding: 12px; box-shadow: 0 12px 36px rgba(0,0,0,.18); }
+details.hint { margin: 2px 0 0; font-size: .88rem; }
+details.hint summary { font-size: .85rem; }
+details.hint ul { margin: 6px 0 0; padding-left: 20px; color: var(--muted); }
+details.hint li { margin: 3px 0; }
+#notesInfo:empty { display: none; }
 .icon-pick { display: flex; flex-wrap: wrap; gap: 4px; }
 .icon-pick button { font: inherit; font-size: 1.3rem; line-height: 1; width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--panel); cursor: pointer; display: grid; place-items: center; padding: 0; }
 .icon-pick button.auto { width: auto; padding: 0 10px; font-size: .85rem; font-weight: 600; color: var(--ink); gap: 6px; display: inline-flex; align-items: center; }
@@ -425,19 +432,6 @@ details[open] > summary::before { transform: rotate(90deg); }
       </div>
     </div>
 
-    <details class="card paste">
-      <summary>⌨️ Type or paste notes instead</summary>
-      <textarea id="pasteBox" rows="3" placeholder="G A Bb C5 D"></textarea>
-      <div class="src-row">
-        <label class="field-label" for="pasteSrc-btn" style="margin:0">Notes are written for</label>
-        <span class="srcpick"><button type="button" class="instbtn srcbtn" id="pasteSrc-btn" aria-haspopup="true" aria-expanded="false"><span class="sb-ic"></span><span class="sb-nm"></span><span class="caret">▾</span></button><div class="instgrid srcgrid" role="dialog" aria-label="Which instrument is this music written for?" hidden></div></span>
-          <select id="pasteSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option></select>
-        <span class="fine explain" data-for="pasteSrc"></span>
-      </div>
-      <button id="pasteGo" type="button" class="btn primary">Show fingerings</button>
-      <p id="pasteMsg" class="msg"></p>
-      <p class="fine">Separate notes with spaces. Octave numbers (C5) and | bar lines are optional.</p>
-    </details>
   </section>
 
   <!-- SONGS TAB -->
@@ -448,25 +442,7 @@ details[open] > summary::before { transform: rotate(90deg); }
         <div class="toolbar" style="margin:0">
           <button id="selectMode" type="button" class="btn">☑ Select</button>
           <button id="newFolder" type="button" class="btn"><span id="newFolderIcon"></span> New folder</button>
-          <button id="pasteSong" type="button" class="btn">📋 Paste a song</button>
           <button id="newSong" type="button" class="btn primary">＋ New song</button>
-        </div>
-      </div>
-      <div id="pastePanel" class="card import-panel" hidden>
-        <div class="row-head" style="margin-bottom:4px"><h2>📋 Paste a song</h2></div>
-        <p class="fine" style="margin-top:0">Copy a song's notes from a website and paste everything here, lyrics included. Lines of words are skipped. <strong>^C</strong> means the C one octave up. Notes joined with a dash, like <strong>D-C-Bb</strong>, stay together.</p>
-        <textarea id="sheetBox" rows="9" spellcheck="false" placeholder="^C   A   A   ^C   ^D-C-Bb   G&#10;(a line of lyrics here is skipped)&#10;&#10;F   G   A   ^D-^C   Bb   A"></textarea>
-        <div class="src-row">
-          <label class="field-label" for="sheetSrc-btn" style="margin:0">Notes are written for</label>
-          <span class="srcpick"><button type="button" class="instbtn srcbtn" id="sheetSrc-btn" aria-haspopup="true" aria-expanded="false"><span class="sb-ic"></span><span class="sb-nm"></span><span class="caret">▾</span></button><div class="instgrid srcgrid" role="dialog" aria-label="Which instrument is this music written for?" hidden></div></span>
-          <select id="sheetSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option></select>
-          <span class="fine explain" data-for="sheetSrc"></span>
-        </div>
-        <p id="sheetInfo" class="msg"></p>
-        <p id="sheetPreview" class="import-preview"></p>
-        <div class="toolbar">
-          <button id="sheetGo" type="button" class="btn primary" disabled>Make a song</button>
-          <button id="sheetCancel" type="button" class="btn">Cancel</button>
         </div>
       </div>
       <div id="folderTools" class="toolbar" style="margin:0 0 12px" hidden>
@@ -492,7 +468,7 @@ details[open] > summary::before { transform: rotate(90deg); }
           <div id="libCats" class="seg" role="group" aria-label="Filter by type"></div>
         </div>
         <div id="libList" class="song-grid"></div>
-        <p class="fine">Tap a song to see and hear it. Press <strong>🎛 Remix</strong> to save your own copy you can change. These are classic and traditional tunes that are free to use. For other songs, copy the notes from a website and use <strong>📋 Paste a song</strong>.</p>
+        <p class="fine">Tap a song to see and hear it. Press <strong>🎛 Remix</strong> to save your own copy you can change. These are classic and traditional tunes that are free to use. For other songs, press <strong>＋ New song</strong> and paste the notes from a website.</p>
       </section>
       <details class="backup">
         <summary>Back up or move songs</summary>
@@ -508,33 +484,36 @@ details[open] > summary::before { transform: rotate(90deg); }
 
     <div id="songEditor" class="card" hidden>
       <div class="row-head"><h2 id="editorTitle">New song</h2></div>
+      <div class="name-row">
+        <div class="iconpick-wrap">
+          <button type="button" id="iconBtn" class="icon-btn" aria-haspopup="true" aria-expanded="false" title="Choose an icon" aria-label="Choose an icon"><span id="iconBtnFace"></span><span class="caret">▾</span></button>
+          <div id="iconPop" class="icon-pop" role="dialog" aria-label="Choose an icon" hidden><div id="iconPick" class="icon-pick"></div></div>
+        </div>
+        <input id="songName" type="text" placeholder="Song name" aria-label="Song name">
+      </div>
       <div class="form-row">
         <div>
-          <label class="field-label" for="songName">Name</label>
-          <input id="songName" type="text" placeholder="Song name">
-        </div>
-        <div>
-          <label class="field-label" for="songInstr">Played on</label>
-          <select id="songInstr"></select>
+          <label class="field-label" for="songSrc-btn">Instrument</label>
+          <span class="srcpick"><button type="button" class="instbtn srcbtn" id="songSrc-btn" aria-haspopup="true" aria-expanded="false"><span class="sb-ic"></span><span class="sb-nm"></span><span class="caret">▾</span></button><div class="instgrid srcgrid" role="dialog" aria-label="Choose the instrument" hidden></div></span>
+          <select id="songSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option></select>
         </div>
         <div>
           <label class="field-label" for="songFolder">Folder</label>
           <select id="songFolder"></select>
         </div>
       </div>
-      <div class="icon-field">
-        <span class="field-label" id="iconLab">Icon</span>
-        <div id="iconPick" class="icon-pick" role="group" aria-labelledby="iconLab"></div>
-      </div>
       <label class="field-label" for="songNotes">Notes</label>
-      <textarea id="songNotes" rows="6" placeholder="G A Bb | C5 D"></textarea>
-      <p class="fine" style="margin:4px 0 0">Start a line with # to add a section title, like <code># Verse</code>.</p>
-      <div class="src-row">
-        <label class="field-label" for="songSrc-btn" style="margin:0">Notes are written for</label>
-        <span class="srcpick"><button type="button" class="instbtn srcbtn" id="songSrc-btn" aria-haspopup="true" aria-expanded="false"><span class="sb-ic"></span><span class="sb-nm"></span><span class="caret">▾</span></button><div class="instgrid srcgrid" role="dialog" aria-label="Which instrument is this music written for?" hidden></div></span>
-          <select id="songSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option></select>
-        <span class="fine explain" data-for="songSrc"></span>
-      </div>
+      <textarea id="songNotes" rows="8" spellcheck="false" placeholder="Type notes like  G A Bb | C5 D&#10;&#10;…or paste a song's notes from a website, lyrics and all."></textarea>
+      <p id="notesInfo" class="fine" aria-live="polite"></p>
+      <details class="hint">
+        <summary>How to write notes</summary>
+        <ul>
+          <li>Write the notes as they appear in music for your instrument, separated by spaces: <code>G A Bb C#</code></li>
+          <li>Add an octave number for an exact note: <code>C5</code>. Add <code>|</code> for a bar line.</li>
+          <li>Start a line with <code>#</code> to name a part, like <code># Chorus</code>.</li>
+          <li>Pasting from a website? Lines of lyrics are skipped, <code>^C</code> means one octave up, and dashed notes like <code>D-C-Bb</code> stay together.</li>
+        </ul>
+      </details>
       <div class="toolbar">
         <button id="saveSong" type="button" class="btn primary">Save song</button>
         <button id="cancelSong" type="button" class="btn">Cancel</button>
@@ -1118,7 +1097,7 @@ details[open] > summary::before { transform: rotate(90deg); }
   }
   function renderSeq() {
     if (selState && selState.list === "mel" && !(selState.idx < melody.length)) selState = null;
-    seqEl.innerHTML = melody.some(isNote) ? chipsHTML(melody) : '<div class="empty-add"><span>Notes you sing will show up here.</span><button type="button" class="btn" data-ins="0">＋ Add a note by hand</button></div>';
+    seqEl.innerHTML = melody.some(isNote) ? chipsHTML(melody) : '<div class="empty-add"><span>Notes you sing will show up here.</span><button type="button" class="btn" data-ins="0">＋ Add a note by hand</button><button type="button" class="link" data-newsong>Already have the notes? Type or paste them into a new song →</button></div>';
   }
   let stageMidi = null;
   function renderStage(m) {
@@ -1338,7 +1317,6 @@ details[open] > summary::before { transform: rotate(90deg); }
   }
   // "Notes are written for": how far that kind of sheet music is written from the real sound
   const srcShift = id => parseInt($(id).value, 10) || 0;
-  const defaultSrc = () => (shiftNow() % 12) ? shiftNow() : 0; // matches the selected instrument
   // "Notes are written for": an instrument grid grouped by how each instrument's music is written.
   // shift = how many half steps the written note sits above the sound (the hidden <select> keeps the number)
   const SRC_GROUPS = [
@@ -1348,7 +1326,7 @@ details[open] > summary::before { transform: rotate(90deg); }
   ];
   const SRC_TILES = {};
   SRC_GROUPS.forEach(([, , tiles]) => tiles.forEach(([id, name, shift]) => { SRC_TILES[id] = { id, name, shift }; }));
-  const SRC_IDS = ["pasteSrc", "songSrc", "sheetSrc"], srcChoice = {};
+  const SRC_IDS = ["songSrc"], srcChoice = {};
   function syncSrcBtn(id) {
     const v = parseInt($(id).value, 10) || 0;
     let t = SRC_TILES[srcChoice[id]];
@@ -1385,18 +1363,6 @@ details[open] > summary::before { transform: rotate(90deg); }
     if (e.key !== "Escape") return;
     SRC_IDS.forEach(id => { if (!$(id + "-btn").nextElementSibling.hidden) { openSrcGrid(id, false); $(id + "-btn").focus(); } });
   });
-  ["pasteSrc", "songSrc"].forEach(id => $(id).addEventListener("change", updateLabels));
-  $("pasteGo").addEventListener("click", () => {
-    const ss = srcShift("pasteSrc");
-    const text = $("pasteBox").value;
-    const { items, bad } = looksLikeSheet(text) ? parseSheet(text) : parseNotes(text, (ss ? 67 : 67 - (isSax() ? shiftNow() : 0)));
-    const conv = items.map(x => convertItem(x, true, ss));
-    const count = conv.filter(isNote).length;
-    remember("mel"); selState = null; updateEditbar("mel"); melody.splice(0, melody.length, ...conv); renderSeq();
-    let msg = count ? "Added " + count + " note" + (count === 1 ? "" : "s") + " to Your melody." : "No notes found.";
-    if (bad.length) msg += " Couldn't read: " + bad.join(" ");
-    $("pasteMsg").textContent = msg;
-  });
 
   // ---------- Songs & folders ----------
   const SKEY = "htn-songs", FKEY = "htn-folders";
@@ -1407,7 +1373,6 @@ details[open] > summary::before { transform: rotate(90deg); }
     ["drums", "Drums"], ["voice", "Voice"], ["other", "Other"]
   ];
   const instrIcon = id => instIcon(id || "sax");
-  $("songInstr").innerHTML = INSTR.map(([id, n]) => '<option value="' + id + '">' + n + '</option>').join("");
   let songs = [], folders = [], openId = null, editingId = null, curFolder = null;
   let picking = false, picked = [];
   const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -1488,7 +1453,7 @@ details[open] > summary::before { transform: rotate(90deg); }
     if (!hits.length) {
       const raw = $("libSearch").value.trim();
       $("libList").innerHTML = '<div class="empty-songs lib-empty">' + (raw
-        ? 'No library song matches “' + esc(raw) + '”. You can <a href="https://www.google.com/search?q=' + encodeURIComponent(raw + " letter notes") + '" target="_blank" rel="noopener">look up its notes online ↗</a>, copy them, and use 📋 Paste a song.'
+        ? 'No library song matches “' + esc(raw) + '”. You can <a href="https://www.google.com/search?q=' + encodeURIComponent(raw + " letter notes") + '" target="_blank" rel="noopener">look up its notes online ↗</a>, then press ＋ New song and paste them in.'
         : "No songs in this group.") + '</div>';
       return;
     }
@@ -1544,11 +1509,16 @@ details[open] > summary::before { transform: rotate(90deg); }
   const songIcon = sg => sg.icon || instrIcon(sg.instr);
   let editorIcon = null;
   function renderIconPick() {
-    $("iconPick").innerHTML = '<button type="button" class="auto' + (!editorIcon ? " current" : "") + '" data-icon="" aria-pressed="' + !editorIcon + '" title="Use the instrument\'s icon"><span>' + instrIcon($("songInstr").value) + '</span>Auto</button>'
+    $("iconPick").innerHTML = '<button type="button" class="auto' + (!editorIcon ? " current" : "") + '" data-icon="" aria-pressed="' + !editorIcon + '" title="Use the instrument\'s icon"><span>' + instrIcon(editorInstr()) + '</span>Auto</button>'
       + ICONS.map(ic => '<button type="button" data-icon="' + ic + '" class="' + (editorIcon === ic ? "current" : "") + '" aria-pressed="' + (editorIcon === ic) + '" aria-label="Icon ' + ic + '">' + ic + '</button>').join("");
   }
-  $("iconPick").addEventListener("click", e => { const b = e.target.closest("[data-icon]"); if (!b) return; editorIcon = b.dataset.icon || null; renderIconPick(); });
-  $("songInstr").addEventListener("change", renderIconPick);
+  const editorInstr = () => { const t = srcChoice.songSrc || "piano"; return t === "tenor" || t === "alto" ? "sax" : t; };
+  function renderIconFace() { $("iconBtnFace").innerHTML = editorIcon || instrIcon(editorInstr()); }
+  function openIconPop(open) { $("iconPop").hidden = !open; $("iconBtn").setAttribute("aria-expanded", open); if (open) { renderIconPick(); const c = $("iconPick").querySelector(".current"); if (c) c.focus(); } }
+  $("iconBtn").addEventListener("click", e => { e.stopPropagation(); openIconPop($("iconPop").hidden); });
+  $("iconPick").addEventListener("click", e => { e.stopPropagation(); const b = e.target.closest("[data-icon]"); if (!b) return; editorIcon = b.dataset.icon || null; renderIconFace(); openIconPop(false); $("iconBtn").focus(); });
+  document.addEventListener("click", e => { if (!$("iconPop").hidden && !e.target.closest(".iconpick-wrap")) openIconPop(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("iconPop").hidden) { openIconPop(false); $("iconBtn").focus(); } });
   function renderFolderColors() {
     const f = folders.find(x => x.id === curFolder); if (!f) return;
     $("folderColors").innerHTML = '<span class="lab">🎨 Color</span><button type="button" class="swatch none' + (!f.color ? " current" : "") + '" data-color="" aria-label="Default color" title="Default"></button>'
@@ -1621,36 +1591,6 @@ details[open] > summary::before { transform: rotate(90deg); }
     const lines = text.split("\n").filter(l => l.trim());
     return lines.some(l => sheetLineNotes(l)) && lines.some(l => !sheetLineNotes(l) && /[a-z]{2}/i.test(l));
   }
-  let sheetResult = null;
-  function updateSheet() {
-    const text = $("sheetBox").value;
-    if (!text.trim()) { sheetResult = null; $("sheetInfo").textContent = ""; $("sheetPreview").textContent = ""; $("sheetGo").disabled = true; return; }
-    const ss = srcShift("sheetSrc"), r = parseSheet(text);
-    sheetResult = { items: r.items.map(x => convertItem(x, true, ss)), title: r.title };
-    const n = noteCount(sheetResult.items);
-    let info = n ? "Found " + n + " note" + (n === 1 ? "" : "s") + (r.parts > 1 ? " in " + r.parts + " parts" : "") + "." : "No note lines found yet.";
-    if (r.lyricLines) info += " Skipped " + r.lyricLines + " line" + (r.lyricLines === 1 ? "" : "s") + " of words.";
-    if (r.bad.length) info += " Couldn't read: " + r.bad.slice(0, 8).join(" ") + (r.bad.length > 8 ? " …" : "");
-    $("sheetInfo").textContent = info;
-    $("sheetPreview").textContent = n ? itemsToText(sheetResult.items) : "";
-    $("sheetGo").disabled = !n;
-  }
-  function openPastePanel(open) {
-    $("pastePanel").hidden = !open;
-    if (open) { $("sheetSrc").value = String(defaultSrc()); updateLabels(); updateSheet(); $("sheetBox").focus(); }
-  }
-  $("pasteSong").addEventListener("click", () => openPastePanel($("pastePanel").hidden));
-  $("sheetCancel").addEventListener("click", () => openPastePanel(false));
-  $("sheetBox").addEventListener("input", updateSheet);
-  $("sheetSrc").addEventListener("change", () => { updateLabels(); updateSheet(); });
-  $("sheetGo").addEventListener("click", () => {
-    if (!sheetResult || !noteCount(sheetResult.items)) return;
-    const { items, title } = sheetResult;
-    openPastePanel(false);
-    $("sheetBox").value = ""; updateSheet();
-    openEditor(null, items.slice(0, 3000));
-    $("songName").value = title;
-  });
 
   function showTab(which) {
     const hum = which === "hum";
@@ -1734,20 +1674,49 @@ details[open] > summary::before { transform: rotate(90deg); }
     const chTxt = m => { const ch = chordOf(m); if (!ch) return ""; return "{" + (ch.on ? "*" + (CHORDS[ch.type] || CHORDS.maj).sym : chordSymbol(m)) + "}"; };
     return items.map(m => m === "|" ? "|" : isSec(m) ? "\n# " + m.slice(1) + "\n" : displayLabel(m) + chTxt(m)).join(" ").replace(/ *\n */g, "\n").trim();
   }
-  // The song editor shows notes in the "frame" of the song: sax notes for sax songs (when a sax is selected), concert notes otherwise
-  let editorFrame = 0;
-  const frameFor = instr => (instr === inst().songInstr && shiftNow() % 12) ? shiftNow() : 0;
+  // The song editor shows and reads notes as written for the song's instrument (shift = written minus sounding)
+  let editorFrame = 0, lastRendered = "";
   function itemsToTextIn(items, sh) {
     if (sh === shiftNow()) return itemsToText(items);
     const nm = p => NAMES[((p % 12) + 12) % 12] + (Math.floor(p / 12) - 1);
-    const chTxt = m => { const ch = chordOf(m); if (!ch) return ""; return "{" + (ch.on ? "*" + (CHORDS[ch.type] || CHORDS.maj).sym : NAMES[ch.root] + (CHORDS[ch.type] || CHORDS.maj).sym) + "}"; };
-    return items.map(m => m === "|" ? "|" : isSec(m) ? "\n# " + m.slice(1) + "\n" : nm(pitchOf(m)) + chTxt(m)).join(" ").replace(/ *\n */g, "\n").trim();
+    const chTxt = m => { const ch = chordOf(m); if (!ch) return ""; return "{" + (ch.on ? "*" + (CHORDS[ch.type] || CHORDS.maj).sym : NAMES[(((ch.root + sh) % 12) + 12) % 12] + (CHORDS[ch.type] || CHORDS.maj).sym) + "}"; };
+    return items.map(m => m === "|" ? "|" : isSec(m) ? "\n# " + m.slice(1) + "\n" : nm(pitchOf(m) + sh) + chTxt(m)).join(" ").replace(/ *\n */g, "\n").trim();
   }
-  function editorItems() { // read the textarea using the chosen "written for", returning concert items
-    const ss = srcShift("songSrc");
-    const r = parseNotes($("songNotes").value, (ss ? 67 : 67 - (isSax() ? shiftNow() : 0)));
-    return { items: r.items.map(x => convertItem(x, true, ss)), bad: r.bad };
+  function readNotes(text, ss) { // concert items from typed notes, or from a song pasted off a website
+    const sheet = looksLikeSheet(text), r = sheet ? parseSheet(text) : parseNotes(text, 67);
+    return { items: r.items.map(x => convertItem(x, true, ss)), bad: r.bad, sheet, lyricLines: r.lyricLines || 0, title: r.title || "" };
   }
+  const editorItems = () => readNotes($("songNotes").value, editorFrame);
+  function updateNotesInfo() {
+    const text = $("songNotes").value;
+    if (!text.trim()) { $("notesInfo").textContent = ""; return; }
+    const r = editorItems(), n = noteCount(r.items);
+    let info = n + " note" + (n === 1 ? "" : "s");
+    if (r.lyricLines) info += " · skipped " + r.lyricLines + " line" + (r.lyricLines === 1 ? "" : "s") + " of words";
+    if (r.bad.length) info += " · couldn't read: " + r.bad.slice(0, 8).join(" ") + (r.bad.length > 8 ? " …" : "");
+    $("notesInfo").textContent = info;
+  }
+  function songTile(sg) { // which instrument tile a song belongs to
+    if (!sg) return SRC_TILES[instSel.value] ? instSel.value : "piano";
+    const i = sg.instr || "sax";
+    if (i === "sax") return sg.sax === "alto" || sg.sax === "tenor" ? sg.sax : (inst().kind === "sax" ? instSel.value : "tenor");
+    return SRC_TILES[i] ? i : "piano";
+  }
+  $("songNotes").addEventListener("input", updateNotesInfo);
+  $("songNotes").addEventListener("paste", () => setTimeout(() => {
+    if (!$("songName").value.trim()) { const r = editorItems(); if (r.title) $("songName").value = r.title; }
+    updateNotesInfo();
+  }));
+  // Switching the instrument: notes you haven't touched are rewritten for the new instrument (same sound);
+  // notes you typed stay as typed and are read as that instrument's music
+  $("songSrc").addEventListener("change", () => {
+    const next = SRC_TILES[srcChoice.songSrc] ? SRC_TILES[srcChoice.songSrc].shift : 0;
+    if (lastRendered && $("songNotes").value === lastRendered) {
+      $("songNotes").value = lastRendered = itemsToTextIn(readNotes(lastRendered, editorFrame).items, next);
+    }
+    editorFrame = next;
+    renderIconFace(); updateNotesInfo();
+  });
   function fillFolderSelect(sel, val) {
     sel.innerHTML = '<option value="">None</option>' + folders.map(f => '<option value="' + f.id + '">📁 ' + esc(f.name) + '</option>').join("");
     sel.value = val || "";
@@ -1757,21 +1726,22 @@ details[open] > summary::before { transform: rotate(90deg); }
     const sg = id ? songs.find(x => x.id === id) : null;
     $("editorTitle").textContent = sg ? "Edit song" : "New song";
     $("songName").value = sg ? sg.name : "";
-    $("songInstr").value = sg ? (sg.instr || "sax") : inst().songInstr;
+    const tile = songTile(sg);
+    srcChoice.songSrc = tile; editorFrame = SRC_TILES[tile].shift;
+    $("songSrc").value = String(editorFrame); syncSrcBtn("songSrc");
     fillFolderSelect($("songFolder"), sg ? sg.folder : curFolder);
     editorIcon = sg ? sg.icon || null : null;
-    renderIconPick();
-    editorFrame = frameFor($("songInstr").value);
-    $("songNotes").value = itemsToTextIn(sg ? sg.items : (presetItems || []), editorFrame);
-    $("songSrc").value = String(editorFrame); // the text below is written in this form
+    renderIconFace(); openIconPop(false);
+    $("songNotes").value = lastRendered = itemsToTextIn(sg ? sg.items : (presetItems || []), editorFrame);
     $("editorMsg").textContent = "";
+    updateNotesInfo();
     updateLabels();
     showTab("songs"); showPanel("editor");
     $("songName").focus();
   }
   function instForSong(sg) {
     const want = sg.instr || "sax";
-    if (want === "sax") return inst().kind === "sax" ? instSel.value : (sg.sax || "tenor");
+    if (want === "sax") return sg.sax || (inst().kind === "sax" ? instSel.value : "tenor");
     if (INSTS[want]) return want; // piano, guitar, recorder, ocarina
     return null; // other instruments: keep whatever is selected
   }
@@ -1859,6 +1829,7 @@ details[open] > summary::before { transform: rotate(90deg); }
 
   $("tab-hum").addEventListener("click", () => showTab("hum"));
   $("tab-songs").addEventListener("click", () => showTab("songs"));
+  document.addEventListener("click", e => { if (e.target.closest("[data-newsong]")) { picking = false; picked = []; openEditor(null); } });
   $("newSong").addEventListener("click", () => { picking = false; picked = []; openEditor(null); });
   $("saveMel").addEventListener("click", () => openEditor(null, melody.slice()));
   $("crumbRoot").addEventListener("click", () => { curFolder = null; showSongHome(); });
@@ -1946,7 +1917,6 @@ details[open] > summary::before { transform: rotate(90deg); }
     if (fromLib) $("library").scrollIntoView({ block: "start" });
   });
   $("editSong").addEventListener("click", () => openEditor(openId));
-  $("songInstr").addEventListener("change", updateLabels);
   $("unmergeSong").addEventListener("click", unmergeOpen);
   $("deleteSong").addEventListener("click", () => {
     const sg = songs.find(x => x.id === openId); if (!sg) return;
@@ -1959,16 +1929,16 @@ details[open] > summary::before { transform: rotate(90deg); }
     if (!name) { $("editorMsg").textContent = "Give the song a name first."; $("songName").focus(); return; }
     const { items: conv, bad } = editorItems();
     if (!noteCount(conv)) { $("editorMsg").textContent = "No notes found." + (bad.length ? " Couldn't read: " + bad.join(" ") : ""); return; }
-    const instr = $("songInstr").value, folder = $("songFolder").value || null;
+    const tile = srcChoice.songSrc, instr = editorInstr(), folder = $("songFolder").value || null;
     let id = editingId;
     if (id) {
       const sg = songs.find(x => x.id === id);
       const h = H("song", id); h.undo.push({ items: sg.items.slice(), sel: null }); h.redo = [];
       sg.name = name; sg.items = conv; sg.instr = instr; sg.folder = folder;
       if (editorIcon) sg.icon = editorIcon; else delete sg.icon;
-      if (instr === "sax" && isSax()) sg.sax = instSel.value;
+      if (instr === "sax") sg.sax = tile; else delete sg.sax;
     }
-    else { id = newId("s"); songs.push(Object.assign({ id, name, items: conv, instr, folder }, editorIcon ? { icon: editorIcon } : {}, instr === "sax" && isSax() ? { sax: instSel.value } : {})); }
+    else { id = newId("s"); songs.push(Object.assign({ id, name, items: conv, instr, folder }, editorIcon ? { icon: editorIcon } : {}, instr === "sax" ? { sax: tile } : {})); }
     const ok = storeSongs();
     editingId = null; openSong(id);
     if (!ok) alert("Couldn't save to this browser's storage. Use Export to keep a copy.");
@@ -2495,7 +2465,6 @@ details[open] > summary::before { transform: rotate(90deg); }
   $("saxType").addEventListener("change", pickInstrument);
   instSel.addEventListener("change", () => {
     syncInstUI();
-    $("pasteSrc").value = String(defaultSrc());
     save("htn-inst", instSel.value);
     stopPlayback(); updateLabels(); renderSeq(); updateEditbar("mel"); renderStage(stageMidi);
     if (openId && !$("songView").hidden) openSong(openId, true); // respect a manual switch while viewing
@@ -2521,7 +2490,6 @@ details[open] > summary::before { transform: rotate(90deg); }
   } catch (e) {}
   applySens(+$("sens").value);
   syncInstUI();
-  $("pasteSrc").value = String(defaultSrc());
   loadSongs(); updateLabels(); renderSeq(); renderStage(null);
 })();
 </script>
