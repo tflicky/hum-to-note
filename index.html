@@ -180,6 +180,13 @@ details[open] > summary::before { transform: rotate(90deg); }
 .ins:hover::before, .ins:focus-visible::before { background: var(--brass); transform: scale(1.25); }
 .ins.end { width: 40px; margin-left: 2px; }
 .ins.end::before { width: 28px; height: 28px; font-size: 1.1rem; }
+.mel-title { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; flex: 1 1 260px; min-width: 0; }
+#melName { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 1.1rem; font-weight: 800; color: var(--ink); background: transparent; border: 1.5px dashed var(--line); border-radius: 10px; padding: 6px 10px; }
+#melName:hover { border-color: var(--muted); }
+#melName:focus { border-style: solid; border-color: var(--brass); background: var(--panel); outline: none; }
+#melName::placeholder { color: var(--muted); font-weight: 600; }
+.mel-saved { font-size: .82rem; color: var(--good); font-weight: 600; }
+.mel-saved .link { color: var(--good); text-decoration: underline; padding: 0; }
 .mel-card.is-empty .editpanel, .mel-card.is-empty .legend, .mel-card.is-empty .song-tools, .mel-card.is-empty .viewpick { display: none; }
 .mel-card.is-empty .mel-layout { grid-template-columns: minmax(0, 1fr); }
 .mel-card.is-empty .seq { min-height: 0; padding: 26px 16px; }
@@ -235,6 +242,8 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 .menu-item.danger { color: var(--danger); }
 .menu-item[hidden] { display: none; }
 .tp-menu { display: flex; flex-direction: column; gap: 10px; padding: 12px; width: max-content; max-width: calc(100vw - 32px); }
+.tp-warn { margin: 0; max-width: 300px; font-size: .82rem; font-weight: 600; color: var(--danger); }
+.tp-menu .btn:disabled { opacity: .4; cursor: not-allowed; }
 .tp-row { display: flex; align-items: center; gap: 10px; }
 .tp-lab { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); width: 54px; }
 #songView.preview .song-tools .menu-wrap { display: none; }
@@ -367,8 +376,14 @@ body.touch-dragging { -webkit-user-select: none; user-select: none; }
 .lib-card .tag { display: inline-block; margin-top: 2px; }
 .lib-empty a { color: var(--brass); font-weight: 700; }
 /* Your-songs search, song icons, folder colors, library preview */
-.my-search { margin: 0 0 12px; }
-.my-search input { width: 100%; }
+.songs-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; }
+.songs-top .my-search { flex: 1 1 220px; margin: 0; }
+.songs-top .my-search input { width: 100%; font: inherit; color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+.songs-top #selectMode { margin-left: auto; }
+.songs-top .btn[hidden], .songs-top .my-search[hidden] { display: none; }
+.crumb-row { margin-bottom: 10px; }
+@media (max-width: 600px) { .songs-top { gap: 8px; } .songs-top .btn { padding: 8px 10px; font-size: .88rem; } .songs-top .my-search { order: 5; flex-basis: 100%; } }
+.crumb-row .crumbs { font-size: 1.15rem; }
 .song-card .in-folder-tag { display: block; font-size: .75rem; color: var(--muted); }
 .folder-card[style*="--fc"] { background: color-mix(in srgb, var(--fc) 26%, var(--panel)); border-color: color-mix(in srgb, var(--fc) 45%, transparent); }
 .ii { display: inline-block; width: 1em; height: 1em; vertical-align: -0.15em; flex: none; overflow: visible; }
@@ -478,12 +493,14 @@ details.hint li { margin: 3px 0; }
 
     <div class="card mel-card is-empty" id="melCard">
       <div class="row-head">
-        <h2>Your melody</h2>
+        <div class="mel-title">
+          <input id="melName" type="text" placeholder="Name this melody to save it…" aria-label="Melody name" autocomplete="off" maxlength="80">
+          <span id="melSaved" class="mel-saved" aria-live="polite"></span>
+        </div>
         <span class="head-right"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍 View ▾</button></span></span>
       </div>
       <div class="toolbar song-tools">
         <button id="playMel" type="button" class="btn primary">▶ Play</button>
-        <button id="saveMel" type="button" class="btn">💾 Save as song</button>
         <button id="undo" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
         <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">🎚 Key<span class="wide-only"> &amp; octave</span> ▾</button>
             <div class="menu tp-menu" role="group" aria-label="Move every note" hidden>
@@ -494,7 +511,7 @@ details.hint li { margin: 3px 0; }
         <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⋯ More</button>
           <div class="menu list-menu" hidden>
             <button id="copy" type="button" class="menu-item">📋 Copy notes</button>
-            <button id="clear" type="button" class="menu-item danger">🗑 Clear melody</button>
+            <button id="clear" type="button" class="menu-item">✨ New melody</button>
           </div></span>
       </div>
       <div class="mel-layout">
@@ -538,21 +555,21 @@ details.hint li { margin: 3px 0; }
   <!-- SONGS TAB -->
   <section id="view-songs" hidden>
     <div id="songHome">
-      <div class="row-head">
-        <h2 class="crumbs" id="crumbs"><button type="button" class="crumb" id="crumbRoot">Your songs</button><span id="crumbFolder"></span></h2>
-        <div class="toolbar" style="margin:0">
-          <button id="selectMode" type="button" class="btn">☑ Select</button>
-          <button id="newFolder" type="button" class="btn"><span id="newFolderIcon"></span> New folder</button>
-          <button id="newSong" type="button" class="btn primary">＋ New song</button>
+      <div class="songs-top">
+        <button id="newSong" type="button" class="btn primary">＋ New song</button>
+        <button id="newFolder" type="button" class="btn"><span id="newFolderIcon"></span> New folder</button>
+        <div id="mySearchWrap" class="my-search" hidden>
+          <input id="mySearch" type="search" placeholder="🔍 Search your songs…" aria-label="Search your songs" autocomplete="off">
         </div>
+        <button id="selectMode" type="button" class="btn">☑ Select</button>
+      </div>
+      <div class="crumb-row">
+        <h2 class="crumbs" id="crumbs"><button type="button" class="crumb" id="crumbRoot">Your songs</button><span id="crumbFolder"></span></h2>
       </div>
       <div id="folderTools" class="toolbar" style="margin:0 0 12px" hidden>
         <button id="renameFolder" type="button" class="btn">✏️ Rename folder</button>
         <div id="folderColors" class="colorbar" role="group" aria-label="Folder color"></div>
         <button id="deleteFolder" type="button" class="btn danger">Delete folder</button>
-      </div>
-      <div id="mySearchWrap" class="my-search lib-tools" hidden>
-        <input id="mySearch" type="search" placeholder="Search your songs…" aria-label="Search your songs" autocomplete="off">
       </div>
       <div id="folderList"></div>
       <div id="songList"></div>
@@ -1258,6 +1275,7 @@ details.hint li { margin: 3px 0; }
     refit(); preloadSoon();
     const has = melody.some(isNote);
     $("melCard").classList.toggle("is-empty", !has);
+    if (typeof scheduleMelSync === "function" && (melSongId || $("melName").value.trim())) scheduleMelSync();
     const canUndo = typeof histMel !== "undefined" && histMel.undo.length > 0;
     seqEl.innerHTML = has ? chipsHTML(melody) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>Your notes will appear here</strong><span>Press <b>Start listening</b> and sing “doo” for each note.</span>'
       + '<div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note by hand</button><button type="button" class="link" data-newsong>Type or paste a song instead →</button>'
@@ -1816,6 +1834,7 @@ details.hint li { margin: 3px 0; }
   function showTab(which) {
     const hum = which === "hum";
     if (hum && running && recTarget === "song") stop();
+    if (hum && typeof loadMelSong === "function") loadMelSong();
     $("view-hum").hidden = !hum; $("view-songs").hidden = hum;
     $("tab-hum").classList.toggle("active", hum); $("tab-songs").classList.toggle("active", !hum);
     $("tab-hum").setAttribute("aria-selected", hum); $("tab-songs").setAttribute("aria-selected", !hum);
@@ -1856,6 +1875,7 @@ details.hint li { margin: 3px 0; }
     $("folderTools").hidden = !curFolder || picking || searching;
     if (curFolder) renderFolderColors();
     $("newFolder").hidden = !!curFolder;
+    $("selectMode").hidden = !songs.length;
     if (searching) {
       // search everything: song names, the folder they're in, and folder names
       const hit = t => words.every(w => searchKey(t).includes(w));
@@ -2067,7 +2087,6 @@ details.hint li { margin: 3px 0; }
   });
   document.addEventListener("click", e => { if (e.target.closest("[data-newsong]")) { picking = false; picked = []; openEditor(null); } });
   $("newSong").addEventListener("click", () => { picking = false; picked = []; openEditor(null); });
-  $("saveMel").addEventListener("click", () => openEditor(null, melody.slice()));
   $("crumbRoot").addEventListener("click", () => { curFolder = null; showSongHome(); });
   $("newFolder").addEventListener("click", () => {
     const n = prompt("Folder name:"); if (!n || !n.trim()) return;
@@ -3036,7 +3055,50 @@ details.hint li { margin: 3px 0; }
     if (openId && !$("songView").hidden) openSong(openId, true); // respect a manual switch while viewing
   });
   toggle.addEventListener("click", () => { if (running && recTarget === "mel") { stop(); return; } if (running) stop(); start("mel"); });
-  $("clear").addEventListener("click", () => { if (melody.length && !confirm("Clear your melody?")) return; remember("mel"); selState = null; updateEditbar("mel"); melody.length = 0; renderSeq(); });
+  // ---------- Naming the Hum melody saves it as a song, and later changes keep saving ----------
+  let melSongId = null, melSyncTimer = null;
+  try { melSongId = localStorage.getItem("htn-melsong"); } catch (e) {}
+  const melSong = () => (melSongId && songs.find(x => x.id === melSongId)) || null;
+  function setMelSong(id) { melSongId = id; try { id ? localStorage.setItem("htn-melsong", id) : localStorage.removeItem("htn-melsong"); } catch (e) {} }
+  function showMelStatus() {
+    const sg = melSong(), name = $("melName").value.trim(), has = melody.some(isNote);
+    $("melSaved").innerHTML = sg ? '✓ Saved in Your songs · <button type="button" class="link" data-openmel>Open</button>'
+      : name && !has ? "Add some notes and it saves by itself" : "";
+  }
+  function syncMel() {
+    const name = $("melName").value.trim(), has = melody.some(isNote);
+    let sg = melSong();
+    if (!sg) {
+      if (melSongId) setMelSong(null); // the saved song was deleted
+      if (!name || !has) { showMelStatus(); return; }
+      sg = { id: newId("s"), name, items: [], instr: inst().songInstr, folder: null };
+      if (isSax()) sg.sax = instSel.value;
+      songs.push(sg); setMelSong(sg.id);
+      toast("Saved “" + name + "” to Your songs");
+    }
+    if (name) sg.name = name;
+    sg.items = JSON.parse(JSON.stringify(melody));
+    if (!storeSongs()) toast("Couldn't save to this browser's storage");
+    showMelStatus();
+  }
+  function scheduleMelSync() { clearTimeout(melSyncTimer); melSyncTimer = setTimeout(syncMel, 400); }
+  $("melName").addEventListener("input", scheduleMelSync);
+  $("melName").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(melSyncTimer); syncMel(); e.target.blur(); } });
+  document.addEventListener("click", e => { if (e.target.closest("[data-openmel]") && melSong()) openSong(melSongId, true); });
+  function loadMelSong() { // bring the melody back from its saved song (after a reload, or edits made in Songs)
+    const sg = melSong(); if (!sg) { if (melSongId) setMelSong(null); return; }
+    if (JSON.stringify(sg.items) !== JSON.stringify(melody)) { melody.splice(0, melody.length, ...JSON.parse(JSON.stringify(sg.items))); selState = null; renderSeq(); }
+    if ($("melName").value.trim() !== sg.name) $("melName").value = sg.name;
+    showMelStatus();
+  }
+  $("clear").addEventListener("click", () => {
+    const saved = !!melSong();
+    if (!saved && melody.some(isNote) && !confirm("Start a new melody? This one isn't saved. Give it a name first to keep it.")) return;
+    remember("mel"); selState = null; updateEditbar("mel");
+    setMelSong(null); $("melName").value = "";
+    melody.length = 0; renderSeq(); showMelStatus();
+    if (saved) toast("New melody · the last one is saved in Your songs");
+  });
   $("undo").addEventListener("click", () => undoRedo("mel", false));
   document.addEventListener("click", e => { if (e.target.closest("[data-undomel]")) undoRedo("mel", false); });
   $("undoSong").addEventListener("click", () => undoRedo("song", false));
@@ -3046,7 +3108,7 @@ details.hint li { margin: 3px 0; }
   }
   document.addEventListener("click", e => {
     const b = e.target.closest(".menubtn");
-    if (b) { const m = b.nextElementSibling, open = m.hidden; closeMenus(m); m.hidden = !open; b.setAttribute("aria-expanded", open); return; }
+    if (b) { const m = b.nextElementSibling, open = m.hidden; closeMenus(m); m.hidden = !open; b.setAttribute("aria-expanded", open); if (open && m.classList.contains("tp-menu")) updateShiftUI(m); return; }
     const item = e.target.closest(".list-menu .menu-item");
     if (item) { setTimeout(() => closeMenus(), 0); return; }
     if (!e.target.closest(".menu-wrap")) closeMenus();
@@ -3054,7 +3116,30 @@ details.hint li { margin: 3px 0; }
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenus(); });
   // Move the whole song (or the Hum melody) by half steps or octaves; chords move with it; Undo puts it back
   function shiftOctave(which, d) { shiftSong(which, 12 * d); }
+  // How many notes a shift would push past the instrument's range (0 = fine)
+  function shiftProblem(which, semis) {
+    const list = getList(which), lim = pitchLimits();
+    const out = k => list.filter(x => isNote(x) && (pitchOf(x) + k < lim.lo || pitchOf(x) + k > lim.hi)).length;
+    return Math.max(0, out(semis) - out(0));
+  }
+  const writtenName = w => NAMES[((w % 12) + 12) % 12] + (Math.floor(w / 12) - 1);
+  function updateShiftUI(menu) {
+    const which = menu.closest("#melCard") ? "mel" : "song", p = which === "mel" ? "mel" : "song";
+    if (which === "song" && !currentSong()) return;
+    const r = inst(), warn = [];
+    [["KeyUp", 1, "up a half step"], ["KeyDown", -1, "down a half step"], ["OctUp", 12, "up an octave"], ["OctDown", -12, "down an octave"]].forEach(([id, semis, label]) => {
+      const n = shiftProblem(which, semis), b = $(p + id);
+      b.disabled = n > 0;
+      b.title = n ? "Can't go " + label + ": " + n + " note" + (n === 1 ? "" : "s") + " would be out of range" : "Move every note " + label;
+      if (n && (Math.abs(semis) === 12 || !warn.length)) warn.push("Going " + label + " would put " + n + " note" + (n === 1 ? "" : "s") + " " + (semis > 0 ? "above the highest note (" + writtenName(r.hi) + ")" : "below the lowest note (" + writtenName(r.lo) + ")") + " " + (/^[aeiou]/i.test(r.name) ? "an " : "a ") + r.name + " can play.");
+    });
+    let w = menu.querySelector(".tp-warn");
+    if (!w) { w = document.createElement("p"); w.className = "tp-warn"; menu.appendChild(w); }
+    w.hidden = !warn.length; w.textContent = warn.length ? "⚠ " + [...new Set(warn)].slice(0, 2).join(" ") : "";
+  }
   function shiftSong(which, semis) {
+    const blocked = shiftProblem(which, semis);
+    if (blocked) { toast("⚠ That would put " + blocked + " note" + (blocked === 1 ? "" : "s") + " out of range for " + inst().name); return; }
     if (which === "song" && (!currentSong() || isPreview())) return;
     const list = getList(which); if (!list.some(isNote)) return;
     const lim = pitchLimits(), outside = () => list.filter(x => isNote(x) && (pitchOf(x) < lim.lo || pitchOf(x) > lim.hi)).length;
@@ -3072,6 +3157,7 @@ details.hint li { margin: 3px 0; }
     selState = null; rerender(which);
     if (sel !== null) select(which, sel, false);
     const what = Math.abs(semis) === 12 ? (d > 0 ? "Up" : "Down") + " an octave" : (d > 0 ? "Up" : "Down") + " a half step · first note " + was + " → " + displayLabel(list.find(isNote));
+    document.querySelectorAll(".tp-menu").forEach(m => { if (!m.hidden) updateShiftUI(m); });
     toast(what + (extra > 0 ? " · " + extra + " note" + (extra === 1 ? " is" : "s are") + " " + (d > 0 ? "too high" : "too low") + " for " + inst().name + ", so " + (extra === 1 ? "it shows" : "they show") + " in a nearer octave" : ""));
   }
   [["mel", "mel"], ["song", "song"]].forEach(([p, which]) => {
@@ -3097,7 +3183,7 @@ details.hint li { margin: 3px 0; }
   } catch (e) {}
   applySens(+$("sens").value);
   syncInstUI();
-  loadSongs(); updateLabels(); renderSeq(); renderStage(null); applyView();
+  loadSongs(); updateLabels(); renderSeq(); renderStage(null); applyView(); loadMelSong();
 })();
 </script>
 </body>
