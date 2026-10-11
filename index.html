@@ -188,7 +188,8 @@ details[open] > summary::before { transform: rotate(90deg); }
 .mel-saved { font-size: .82rem; color: var(--good); font-weight: 600; }
 .mel-saved .link { color: var(--good); text-decoration: underline; padding: 0; }
 .mel-card.is-empty .editpanel, .mel-card.is-empty .legend, .mel-card.is-empty .song-tools, .mel-card.is-empty .viewpick { display: none; }
-.mel-card.is-empty .mel-layout { grid-template-columns: minmax(0, 1fr); }
+.mel-card.is-empty .mel-layout, #songView .card.is-empty .mel-layout { grid-template-columns: minmax(0, 1fr); }
+#songView .card.is-empty .editpanel, #songView .card.is-empty .legend { display: none; }
 .mel-card.is-empty .seq { min-height: 0; padding: 26px 16px; }
 .mel-empty { text-align: center; gap: 6px !important; }
 .mel-empty .ea-ic { font-size: 1.8rem; line-height: 1; }
@@ -393,6 +394,19 @@ body.touch-dragging { -webkit-user-select: none; user-select: none; }
 .swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1.5px var(--line); cursor: pointer; padding: 0; }
 .swatch.current { box-shadow: 0 0 0 2.5px var(--ink); }
 .swatch.none { background: var(--brass-soft); }
+.song-title-edit { display: flex; align-items: center; gap: 6px; flex: 1 1 260px; min-width: 0; }
+#songView:not(.preview) #songViewTitle { display: none; }
+#songView.preview .song-title-edit { display: none; }
+.title-icon { min-height: 0; height: auto; padding: 4px 6px; border-color: transparent; background: transparent; }
+.title-icon:hover, .title-icon[aria-expanded="true"] { border-color: var(--line); background: var(--panel); }
+.title-input { flex: 1 1 auto; min-width: 0; font: inherit; font-size: 1.15rem; font-weight: 800; color: var(--ink); background: transparent; border: 1.5px solid transparent; border-radius: 10px; padding: 5px 8px; text-overflow: ellipsis; }
+.title-input:hover { border-color: var(--line); border-style: dashed; cursor: text; }
+.title-input:focus { outline: none; border-style: solid; border-color: var(--brass); background: var(--panel); }
+.menu-field { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-weight: 600; color: var(--ink); }
+.menu-field select { flex: 1; min-width: 0; }
+.type-panel { margin: 0 0 14px; padding: 12px; border: 1.5px solid var(--brass); border-radius: 14px; background: var(--bg); }
+.type-panel textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .95rem; }
+.type-panel .fine:empty { display: none; }
 .name-row { display: flex; gap: 10px; align-items: stretch; margin-bottom: 14px; }
 .name-row input { flex: 1; min-width: 0; font-size: 1.1rem; font-weight: 600; }
 .iconpick-wrap { position: relative; }
@@ -600,50 +614,16 @@ details.hint li { margin: 3px 0; }
       </details>
     </div>
 
-    <div id="songEditor" class="card" hidden>
-      <div class="row-head"><h2 id="editorTitle">New song</h2></div>
-      <div class="name-row">
-        <div class="iconpick-wrap">
-          <button type="button" id="iconBtn" class="icon-btn" aria-haspopup="true" aria-expanded="false" title="Choose an icon" aria-label="Choose an icon"><span id="iconBtnFace"></span><span class="caret">▾</span></button>
-          <div id="iconPop" class="icon-pop" role="dialog" aria-label="Choose an icon" hidden><div id="iconPick" class="icon-pick"></div></div>
-        </div>
-        <input id="songName" type="text" placeholder="Song name" aria-label="Song name">
-      </div>
-      <div class="form-row">
-        <div>
-          <label class="field-label" for="songSrc-btn">Instrument</label>
-          <span class="srcpick"><button type="button" class="instbtn srcbtn" id="songSrc-btn" aria-haspopup="true" aria-expanded="false"><span class="sb-ic"></span><span class="sb-nm"></span><span class="caret">▾</span></button><div class="instgrid srcgrid" role="dialog" aria-label="Choose the instrument" hidden></div></span>
-          <select id="songSrc" class="srcSel" hidden aria-hidden="true" tabindex="-1"><option value="0"></option><option value="-12"></option><option value="2"></option><option value="14"></option><option value="9"></option></select>
-        </div>
-        <div>
-          <label class="field-label" for="songFolder">Folder</label>
-          <select id="songFolder"></select>
-        </div>
-      </div>
-      <label class="field-label" for="songNotes">Notes</label>
-      <textarea id="songNotes" rows="8" spellcheck="false" placeholder="Type notes like  G A Bb | C5 D&#10;&#10;…or paste a song's notes from a website, lyrics and all."></textarea>
-      <p id="notesInfo" class="fine" aria-live="polite"></p>
-      <details class="hint">
-        <summary>How to write notes</summary>
-        <ul>
-          <li>Write the notes as they appear in music for your instrument, separated by spaces: <code>G A Bb C#</code></li>
-          <li>Add an octave number for an exact note: <code>C5</code>. Add <code>|</code> for a bar line.</li>
-          <li>Start a line with <code>#</code> to name a part, like <code># Chorus</code>.</li>
-          <li>Pasting from a website? Lines of lyrics are skipped, <code>^C</code> means one octave up, and dashed notes like <code>D-C-Bb</code> stay together.</li>
-        </ul>
-      </details>
-      <div class="toolbar">
-        <button id="saveSong" type="button" class="btn primary">Save song</button>
-        <button id="cancelSong" type="button" class="btn">Cancel</button>
-      </div>
-      <p id="editorMsg" class="msg"></p>
-    </div>
-
     <div id="songView" hidden>
       <button id="backSongs" type="button" class="link">← Back</button>
       <div class="card">
         <div class="row-head">
           <h2 id="songViewTitle"></h2>
+          <div class="song-title-edit">
+            <span class="iconpick-wrap"><button type="button" id="iconBtn" class="icon-btn title-icon" aria-haspopup="true" aria-expanded="false" title="Change the icon" aria-label="Change the icon"><span id="iconBtnFace"></span></button>
+              <div id="iconPop" class="icon-pop" role="dialog" aria-label="Choose an icon" hidden><div id="iconPick" class="icon-pick"></div></div></span>
+            <input id="songTitleInput" class="title-input" type="text" aria-label="Song name (click to rename)" title="Click to rename" maxlength="80" autocomplete="off">
+          </div>
           <span class="head-right"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍 View ▾</button></span></span>
         </div>
         <div class="toolbar song-tools">
@@ -658,7 +638,8 @@ details.hint li { margin: 3px 0; }
             </div></span>
           <span class="menu-wrap song-more"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⋯ More</button>
             <div class="menu list-menu" hidden>
-              <button id="editSong" type="button" class="menu-item">✏️ Edit notes as text</button>
+              <button id="typeNotes" type="button" class="menu-item">⌨️ Type or paste notes</button>
+              <label class="menu-field">📁 Folder <select id="songFolderSel" aria-label="Folder"></select></label>
               <button id="dupSong" type="button" class="menu-item" title="Make your own copy to change, named “… Remix”">🎛 Remix (make my own copy)</button>
               <button id="unmergeSong" type="button" class="menu-item" hidden>✂️ Unmerge into separate songs</button>
               <button id="deleteSong" type="button" class="menu-item danger">🗑 Delete song</button>
@@ -669,6 +650,24 @@ details.hint li { margin: 3px 0; }
           <div class="rb-text"><strong>New song: <span id="rbName"></span></strong><span>This is your own copy to change. <span id="rbOrigName"></span> stays just as it was.</span></div>
           <div class="rb-actions"><button id="rbRename" type="button" class="btn">✏️ Rename</button><button id="rbOrig" type="button" class="link">Open the original</button></div>
           <button id="rbClose" type="button" class="ep-close" aria-label="Hide this message">✕</button>
+        </div>
+        <div id="typePanel" class="type-panel" hidden>
+          <textarea id="typeBox" rows="4" spellcheck="false" placeholder="Type notes like  G A Bb | C5 D&#10;…or paste a song's notes from a website, lyrics and all."></textarea>
+          <p id="typeInfo" class="fine" aria-live="polite"></p>
+          <div class="toolbar" style="margin-top:8px">
+            <button id="typeAdd" type="button" class="btn primary" disabled>＋ Add to song</button>
+            <button id="typeReplace" type="button" class="btn" disabled>Replace all notes</button>
+            <button id="typeClose" type="button" class="btn">Close</button>
+          </div>
+          <details class="hint">
+            <summary>How to write notes</summary>
+            <ul>
+              <li>Write the notes as they appear in music for your instrument, separated by spaces: <code>G A Bb C#</code></li>
+              <li>Add an octave number for an exact note: <code>C5</code>. Add <code>|</code> for a bar line.</li>
+              <li>Start a line with <code>#</code> to name a part, like <code># Chorus</code>.</li>
+              <li>Pasting from a website? Lines of lyrics are skipped, <code>^C</code> means one octave up, and dashed notes like <code>D-C-Bb</code> stay together.</li>
+            </ul>
+          </details>
         </div>
         <div id="singBar" class="singbar" hidden>
           <span class="live-dot" aria-hidden="true"></span>
@@ -1278,7 +1277,7 @@ details.hint li { margin: 3px 0; }
     if (typeof scheduleMelSync === "function" && (melSongId || $("melName").value.trim())) scheduleMelSync();
     const canUndo = typeof histMel !== "undefined" && histMel.undo.length > 0;
     seqEl.innerHTML = has ? chipsHTML(melody) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>Your notes will appear here</strong><span>Press <b>Start listening</b> and sing “doo” for each note.</span>'
-      + '<div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note by hand</button><button type="button" class="link" data-newsong>Type or paste a song instead →</button>'
+      + '<div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note by hand</button><button type="button" class="link" data-newsong="type">Type or paste a song instead →</button>'
       + (canUndo ? '<button type="button" class="link" data-undomel>↩ Undo</button>' : '') + '</div></div>';
   }
   let stageMidi = null;
@@ -1545,7 +1544,7 @@ details.hint li { margin: 3px 0; }
   ];
   const SRC_TILES = {};
   SRC_GROUPS.forEach(([, , tiles]) => tiles.forEach(([id, name, shift]) => { SRC_TILES[id] = { id, name, shift }; }));
-  const SRC_IDS = ["songSrc"], srcChoice = {};
+  const SRC_IDS = [], srcChoice = {};
   function syncSrcBtn(id) {
     const v = parseInt($(id).value, 10) || 0;
     let t = SRC_TILES[srcChoice[id]];
@@ -1592,7 +1591,7 @@ details.hint li { margin: 3px 0; }
     ["drums", "Drums"], ["voice", "Voice"], ["other", "Other"]
   ];
   const instrIcon = id => instIcon(id || "sax");
-  let songs = [], folders = [], openId = null, editingId = null, curFolder = null;
+  let songs = [], folders = [], openId = null, curFolder = null;
   let picking = false, picked = [];
   const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   function loadSongs() {
@@ -1689,7 +1688,7 @@ details.hint li { margin: 3px 0; }
   function setPreviewMode(on) {
     $("songView").classList.toggle("preview", on);
     $("previewNote").hidden = !on;
-    ["undoSong", "editSong", "deleteSong", "singSong", "songOctDown", "songOctUp", "songKeyDown", "songKeyUp", "dupSong"].forEach(id => { $(id).hidden = on; });
+    ["undoSong", "typeNotes", "deleteSong", "singSong", "songOctDown", "songOctUp", "songKeyDown", "songKeyUp", "dupSong"].forEach(id => { $(id).hidden = on; });
     if (on) $("unmergeSong").hidden = true;
   }
   function previewLibrary(id) {
@@ -1751,11 +1750,14 @@ details.hint li { margin: 3px 0; }
     $("iconPick").innerHTML = '<button type="button" class="auto' + (!editorIcon ? " current" : "") + '" data-icon="" aria-pressed="' + !editorIcon + '" title="Use the instrument\'s icon"><span>' + instrIcon(editorInstr()) + '</span>Auto</button>'
       + ICONS.map(ic => '<button type="button" data-icon="' + ic + '" class="' + (editorIcon === ic ? "current" : "") + '" aria-pressed="' + (editorIcon === ic) + '" aria-label="Icon ' + ic + '">' + ic + '</button>').join("");
   }
-  const editorInstr = () => { const t = srcChoice.songSrc || "piano"; return t === "tenor" || t === "alto" ? "sax" : t; };
-  function renderIconFace() { $("iconBtnFace").innerHTML = editorIcon || instrIcon(editorInstr()); }
+  const editorInstr = () => { const sg = currentSong(); return (sg && sg.instr) || inst().songInstr; };
+  function renderIconFace() { const sg = currentSong(); editorIcon = sg && !isPreview() ? sg.icon || null : null; $("iconBtnFace").innerHTML = editorIcon || instrIcon(editorInstr()); }
   function openIconPop(open) { $("iconPop").hidden = !open; $("iconBtn").setAttribute("aria-expanded", open); if (open) { renderIconPick(); const c = $("iconPick").querySelector(".current"); if (c) c.focus(); } }
   $("iconBtn").addEventListener("click", e => { e.stopPropagation(); openIconPop($("iconPop").hidden); });
-  $("iconPick").addEventListener("click", e => { e.stopPropagation(); const b = e.target.closest("[data-icon]"); if (!b) return; editorIcon = b.dataset.icon || null; renderIconFace(); openIconPop(false); $("iconBtn").focus(); });
+  $("iconPick").addEventListener("click", e => { e.stopPropagation(); const b = e.target.closest("[data-icon]"); if (!b) return; const sg = currentSong(); if (!sg || isPreview()) return;
+    if (b.dataset.icon) sg.icon = b.dataset.icon; else delete sg.icon;
+    storeSongs(); renderIconFace(); $("songViewTitle").innerHTML = songIcon(sg) + " " + esc(sg.name);
+    openIconPop(false); $("iconBtn").focus(); });
   document.addEventListener("click", e => { if (!$("iconPop").hidden && !e.target.closest(".iconpick-wrap")) openIconPop(false); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("iconPop").hidden) { openIconPop(false); $("iconBtn").focus(); } });
   function renderFolderColors() {
@@ -1839,12 +1841,12 @@ details.hint li { margin: 3px 0; }
     $("tab-hum").classList.toggle("active", hum); $("tab-songs").classList.toggle("active", !hum);
     $("tab-hum").setAttribute("aria-selected", hum); $("tab-songs").setAttribute("aria-selected", !hum);
     closeViewPop(); refit();
-    if (!hum && $("songEditor").hidden && $("songView").hidden) showSongHome();
+    if (!hum && $("songView").hidden) showSongHome();
   }
   function showPanel(name) {
     if (selState && selState.list === "song") { selState = null; }
     if (running && recTarget === "song") stop();
-    $("songHome").hidden = name !== "home"; $("songEditor").hidden = name !== "editor"; $("songView").hidden = name !== "view";
+    $("songHome").hidden = name !== "home"; $("songView").hidden = name !== "view";
   }
   function songCard(sg, showFolder) {
     const k = picked.indexOf(sg.id);
@@ -1918,71 +1920,71 @@ details.hint li { margin: 3px 0; }
     const chTxt = m => { const ch = chordOf(m); if (!ch) return ""; return "{" + (ch.on ? "*" + (CHORDS[ch.type] || CHORDS.maj).sym : chordSymbol(m)) + "}"; };
     return items.map(m => m === "|" ? "|" : isSec(m) ? "\n# " + m.slice(1) + "\n" : displayLabel(m) + chTxt(m)).join(" ").replace(/ *\n */g, "\n").trim();
   }
-  // The song editor shows and reads notes as written for the song's instrument (shift = written minus sounding)
-  let editorFrame = 0, lastRendered = "";
-  function itemsToTextIn(items, sh) {
-    if (sh === shiftNow()) return itemsToText(items);
-    const nm = p => NAMES[((p % 12) + 12) % 12] + (Math.floor(p / 12) - 1);
-    const chTxt = m => { const ch = chordOf(m); if (!ch) return ""; return "{" + (ch.on ? "*" + (CHORDS[ch.type] || CHORDS.maj).sym : NAMES[(((ch.root + sh) % 12) + 12) % 12] + (CHORDS[ch.type] || CHORDS.maj).sym) + "}"; };
-    return items.map(m => m === "|" ? "|" : isSec(m) ? "\n# " + m.slice(1) + "\n" : nm(pitchOf(m) + sh) + chTxt(m)).join(" ").replace(/ *\n */g, "\n").trim();
-  }
   function readNotes(text, ss) { // concert items from typed notes, or from a song pasted off a website
     const sheet = looksLikeSheet(text), r = sheet ? parseSheet(text) : parseNotes(text, 67);
     return { items: r.items.map(x => convertItem(x, true, ss)), bad: r.bad, sheet, lyricLines: r.lyricLines || 0, title: r.title || "" };
   }
-  const editorItems = () => readNotes($("songNotes").value, editorFrame);
-  function updateNotesInfo() {
-    const text = $("songNotes").value;
-    if (!text.trim()) { $("notesInfo").textContent = ""; return; }
-    const r = editorItems(), n = noteCount(r.items);
-    let info = n + " note" + (n === 1 ? "" : "s");
-    if (r.lyricLines) info += " · skipped " + r.lyricLines + " line" + (r.lyricLines === 1 ? "" : "s") + " of words";
-    if (r.bad.length) info += " · couldn't read: " + r.bad.slice(0, 8).join(" ") + (r.bad.length > 8 ? " …" : "");
-    $("notesInfo").textContent = info;
-  }
-  function songTile(sg) { // which instrument tile a song belongs to
-    if (!sg) return SRC_TILES[instSel.value] ? instSel.value : "piano";
-    const i = sg.instr || "sax";
-    if (i === "sax") return sg.sax === "alto" || sg.sax === "tenor" ? sg.sax : (inst().kind === "sax" ? instSel.value : "tenor");
-    return SRC_TILES[i] ? i : "piano";
-  }
-  $("songNotes").addEventListener("input", updateNotesInfo);
-  $("songNotes").addEventListener("paste", () => setTimeout(() => {
-    if (!$("songName").value.trim()) { const r = editorItems(); if (r.title) $("songName").value = r.title; }
-    updateNotesInfo();
-  }));
-  // Switching the instrument: notes you haven't touched are rewritten for the new instrument (same sound);
-  // notes you typed stay as typed and are read as that instrument's music
-  $("songSrc").addEventListener("change", () => {
-    const next = SRC_TILES[srcChoice.songSrc] ? SRC_TILES[srcChoice.songSrc].shift : 0;
-    if (lastRendered && $("songNotes").value === lastRendered) {
-      $("songNotes").value = lastRendered = itemsToTextIn(readNotes(lastRendered, editorFrame).items, next);
-    }
-    editorFrame = next;
-    renderIconFace(); updateNotesInfo();
-  });
   function fillFolderSelect(sel, val) {
     sel.innerHTML = '<option value="">None</option>' + folders.map(f => '<option value="' + f.id + '">📁 ' + esc(f.name) + '</option>').join("");
     sel.value = val || "";
   }
-  function openEditor(id, presetItems) {
-    editingId = id;
-    const sg = id ? songs.find(x => x.id === id) : null;
-    $("editorTitle").textContent = sg ? "Edit song" : "New song";
-    $("songName").value = sg ? sg.name : "";
-    const tile = songTile(sg);
-    srcChoice.songSrc = tile; editorFrame = SRC_TILES[tile].shift;
-    $("songSrc").value = String(editorFrame); syncSrcBtn("songSrc");
-    fillFolderSelect($("songFolder"), sg ? sg.folder : curFolder);
-    editorIcon = sg ? sg.icon || null : null;
-    renderIconFace(); openIconPop(false);
-    $("songNotes").value = lastRendered = itemsToTextIn(sg ? sg.items : (presetItems || []), editorFrame);
-    $("editorMsg").textContent = "";
-    updateNotesInfo();
-    updateLabels();
-    showTab("songs"); showPanel("editor");
-    $("songName").focus();
+  // ---------- Editing a song in place ----------
+  let titleTimer = null;
+  function saveTitle() {
+    const sg = currentSong(), v = $("songTitleInput").value.trim();
+    if (!sg || isPreview() || !v || v === sg.name || $("songTitleInput").dataset.for !== sg.id) return;
+    sg.name = v; storeSongs();
+    $("songViewTitle").innerHTML = songIcon(sg) + " " + esc(sg.name);
+    if (!$("remixBanner").hidden) $("rbName").textContent = sg.name;
   }
+  $("songTitleInput").addEventListener("input", () => { clearTimeout(titleTimer); titleTimer = setTimeout(saveTitle, 300); });
+  $("songTitleInput").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); if (e.key === "Escape") { const sg = currentSong(); if (sg) e.target.value = sg.name; } e.target.blur(); } });
+  $("songTitleInput").addEventListener("blur", () => { clearTimeout(titleTimer); saveTitle(); const sg = currentSong(); if (sg && !$("songTitleInput").value.trim()) $("songTitleInput").value = sg.name; });
+  $("songFolderSel").addEventListener("change", e => {
+    const sg = currentSong(); if (!sg || isPreview()) return;
+    sg.folder = e.target.value || null; storeSongs();
+    $("backSongs").innerHTML = "← " + (sg.folder ? folderIcon(folderHex(folders.find(f => f.id === sg.folder))) + " " + esc(folderName(sg.folder)) : "Your songs");
+    toast(sg.folder ? "Moved to " + folderName(sg.folder) : "Moved out of the folder");
+  });
+  // Type or paste notes into the open song: added after the picked note (or at the end), or replacing everything
+  function typedNotes() { return readNotes($("typeBox").value, shiftNow()); }
+  function updateTypeInfo() {
+    const text = $("typeBox").value;
+    const r = text.trim() ? typedNotes() : null, n = r ? noteCount(r.items) : 0;
+    let info = "";
+    if (r) {
+      info = n + " note" + (n === 1 ? "" : "s");
+      if (r.lyricLines) info += " · skipped " + r.lyricLines + " line" + (r.lyricLines === 1 ? "" : "s") + " of words";
+      if (r.bad.length) info += " · couldn't read: " + r.bad.slice(0, 8).join(" ") + (r.bad.length > 8 ? " …" : "");
+    }
+    $("typeInfo").textContent = info;
+    $("typeAdd").disabled = $("typeReplace").disabled = !n;
+    $("typeReplace").hidden = !(currentSong() && currentSong().items.some(isNote));
+  }
+  function openTypePanel(open) {
+    $("typePanel").hidden = !open;
+    if (open) { updateTypeInfo(); $("typeBox").focus(); }
+  }
+  function applyTyped(replace) {
+    const sg = currentSong(); if (!sg || isPreview()) return;
+    const r = typedNotes(); if (!noteCount(r.items)) return;
+    remember("song");
+    if (replace) sg.items = r.items;
+    else {
+      const k = selState && selState.list === "song" ? selState.idx + 1 : sg.items.length;
+      sg.items.splice(k, 0, ...(sg.items.length && k === sg.items.length && sg.items[k - 1] !== "|" ? ["|"] : []), ...r.items);
+    }
+    if (/^New song( \d+)?$/.test(sg.name) && r.title) { sg.name = r.title; $("songTitleInput").value = r.title; $("songViewTitle").innerHTML = songIcon(sg) + " " + esc(sg.name); }
+    selState = null; storeSongs(); renderSongSeq();
+    $("typeBox").value = ""; openTypePanel(false);
+    toast((replace ? "Replaced with " : "Added ") + noteCount(r.items) + " note" + (noteCount(r.items) === 1 ? "" : "s"));
+  }
+  $("typeNotes").addEventListener("click", () => openTypePanel(true));
+  document.addEventListener("click", e => { if (e.target.closest("#songSeq [data-type]")) openTypePanel(true); else if (e.target.closest("#songSeq [data-sing]")) $("singSong").click(); });
+  $("typeBox").addEventListener("input", updateTypeInfo);
+  $("typeAdd").addEventListener("click", () => applyTyped(false));
+  $("typeReplace").addEventListener("click", () => applyTyped(true));
+  $("typeClose").addEventListener("click", () => openTypePanel(false));
   function instForSong(sg) {
     const want = sg.instr || "sax";
     if (want === "sax") return sg.sax || (inst().kind === "sax" ? instSel.value : "tenor");
@@ -1992,7 +1994,7 @@ details.hint li { margin: 3px 0; }
   function openSong(id, keepInstrument) {
     if (libPreview && id === libPreview.id) { showLibPreview(); return; }
     libPreview = null; setPreviewMode(false);
-    if (openId !== id) $("remixBanner").hidden = true;
+    if (openId !== id) { $("remixBanner").hidden = true; $("typePanel").hidden = true; }
     const sg = songs.find(x => x.id === id); if (!sg) { showSongHome(); return; }
     const target = keepInstrument ? null : instForSong(sg);
     if (target && target !== instSel.value && INSTS[target]) {
@@ -2004,6 +2006,10 @@ details.hint li { margin: 3px 0; }
     openId = id; showPanel("view"); closeViewPop();
     const fn = folderName(sg.folder);
     $("songViewTitle").innerHTML = songIcon(sg) + " " + esc(sg.name);
+    const ti = $("songTitleInput"); // refresh unless you are typing a new name for this same song
+    if (ti.dataset.for !== sg.id || document.activeElement !== ti) { ti.value = sg.name; ti.dataset.for = sg.id; }
+    renderIconFace(); openIconPop(false);
+    fillFolderSelect($("songFolderSel"), sg.folder);
     $("backSongs").innerHTML = "← " + (fn ? folderIcon(folderHex(folders.find(f => f.id === sg.folder))) + " " + esc(fn) : "Your songs");
     $("unmergeSong").hidden = splitSections(sg).length < 2;
     renderSongSeq();
@@ -2085,8 +2091,19 @@ details.hint li { margin: 3px 0; }
     stopPlayback(); curFolder = null; picking = false; picked = []; $("mySearch").value = "";
     showSongHome(); window.scrollTo({ top: 0 });
   });
-  document.addEventListener("click", e => { if (e.target.closest("[data-newsong]")) { picking = false; picked = []; openEditor(null); } });
-  $("newSong").addEventListener("click", () => { picking = false; picked = []; openEditor(null); });
+  function newSong(withTyping) {
+    picking = false; picked = [];
+    let name = "New song", n = 2;
+    while (songs.some(x => x.name === name)) name = "New song " + n++;
+    const sg = { id: newId("s"), name, items: [], instr: inst().songInstr, folder: curFolder || null };
+    if (isSax()) sg.sax = instSel.value;
+    songs.push(sg); storeSongs();
+    showTab("songs"); openSong(sg.id, true);
+    if (withTyping) openTypePanel(true);
+    const t = $("songTitleInput"); t.focus(); t.select();
+  }
+  document.addEventListener("click", e => { const b = e.target.closest("[data-newsong]"); if (b) newSong(b.dataset.newsong === "type"); });
+  $("newSong").addEventListener("click", () => newSong(false));
   $("crumbRoot").addEventListener("click", () => { curFolder = null; showSongHome(); });
   $("newFolder").addEventListener("click", () => {
     const n = prompt("Folder name:"); if (!n || !n.trim()) return;
@@ -2269,14 +2286,12 @@ details.hint li { margin: 3px 0; }
     toast("Moved " + (ids.length === 1 ? "“" + (songs.find(x => x.id === ids[0]) || {}).name + "”" : ids.length + " songs") + " to " + (fid ? folderName(fid) : "Your songs"));
   }
   $("folderList").addEventListener("click", onCardClick);
-  $("cancelSong").addEventListener("click", () => editingId ? openSong(editingId) : showSongHome());
   $("backSongs").addEventListener("click", () => {
     stopPlayback();
     const fromLib = isPreview(), sg = currentSong(); curFolder = !fromLib && sg && sg.folder && folders.some(f => f.id === sg.folder) ? sg.folder : null;
     showSongHome();
     if (fromLib) $("library").scrollIntoView({ block: "start" });
   });
-  $("editSong").addEventListener("click", () => openEditor(openId));
   $("dupSong").addEventListener("click", () => {
     const sg = currentSong(); if (!sg || isPreview()) return;
     const copy = JSON.parse(JSON.stringify(sg));
@@ -2299,12 +2314,7 @@ details.hint li { margin: 3px 0; }
   }
   $("songView").querySelector(".card").addEventListener("animationend", e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove("song-enter"); });
   $("rbClose").addEventListener("click", () => { $("remixBanner").hidden = true; });
-  $("rbRename").addEventListener("click", () => {
-    const sg = currentSong(); if (!sg || isPreview()) return;
-    const n = prompt("Name this song:", sg.name); if (!n || !n.trim()) return;
-    sg.name = n.trim(); storeSongs();
-    $("songViewTitle").innerHTML = songIcon(sg) + " " + esc(sg.name); $("rbName").textContent = sg.name;
-  });
+  $("rbRename").addEventListener("click", () => { const t = $("songTitleInput"); t.focus(); t.select(); });
   $("rbOrig").addEventListener("click", () => {
     if (!remixFrom) return;
     if (remixFrom.lib) previewLibrary(remixFrom.lib);
@@ -2317,26 +2327,6 @@ details.hint li { margin: 3px 0; }
     if (!confirm('Delete "' + sg.name + '"?')) return;
     curFolder = sg.folder && folders.some(f => f.id === sg.folder) ? sg.folder : null;
     songs = songs.filter(x => x.id !== openId); storeSongs(); showSongHome();
-  });
-  $("saveSong").addEventListener("click", () => {
-    const name = $("songName").value.trim();
-    if (!name) { $("editorMsg").textContent = "Give the song a name first."; $("songName").focus(); return; }
-    const { items: conv, bad } = editorItems();
-    if (!noteCount(conv)) { $("editorMsg").textContent = "No notes found." + (bad.length ? " Couldn't read: " + bad.join(" ") : ""); return; }
-    const tile = srcChoice.songSrc, instr = editorInstr(), folder = $("songFolder").value || null;
-    let id = editingId;
-    if (id) {
-      const sg = songs.find(x => x.id === id);
-      const h = H("song", id); h.undo.push({ items: sg.items.slice(), sel: null }); h.redo = [];
-      sg.name = name; sg.items = conv; sg.instr = instr; sg.folder = folder;
-      if (editorIcon) sg.icon = editorIcon; else delete sg.icon;
-      if (instr === "sax") sg.sax = tile; else delete sg.sax;
-    }
-    else { id = newId("s"); songs.push(Object.assign({ id, name, items: conv, instr, folder }, editorIcon ? { icon: editorIcon } : {}, instr === "sax" ? { sax: tile } : {})); }
-    const ok = storeSongs();
-    editingId = null; openSong(id);
-    if (!ok) alert("Couldn't save to this browser's storage. Use Export to keep a copy.");
-    if (bad.length) alert("Saved, but skipped: " + bad.join(" "));
   });
   $("exportSongs").addEventListener("click", () => {
     const blob = new Blob([JSON.stringify({ app: "hum-to-note", songs, folders }, null, 2)], { type: "application/json" });
@@ -2710,7 +2700,8 @@ details.hint li { margin: 3px 0; }
   window.addEventListener("resize", refit);
   function renderSongSeq() {
     const sg = currentSong(); if (!sg) return;
-    $("songSeq").innerHTML = sg.items.some(isNote) ? chipsHTML(sg.items) : '<div class="empty-add"><span>No notes yet.</span><button type="button" class="btn" data-ins="0">＋ Add a note</button></div>';
+    $("songView").querySelector(".card").classList.toggle("is-empty", !sg.items.some(isNote));
+    $("songSeq").innerHTML = sg.items.some(isNote) ? chipsHTML(sg.items) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>No notes yet</strong><span>Add notes any way you like:</span><div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note</button><button type="button" class="btn" data-sing>🎤 Sing them</button><button type="button" class="btn" data-type>⌨️ Type or paste</button></div></div>';
     updateEditbar("song");
     refit();
     preloadSoon();
@@ -3052,7 +3043,9 @@ details.hint li { margin: 3px 0; }
     syncInstUI();
     save("htn-inst", instSel.value);
     stopPlayback(); updateLabels(); renderSeq(); updateEditbar("mel"); renderStage(stageMidi);
-    if (openId && !$("songView").hidden) openSong(openId, true); // respect a manual switch while viewing
+    const cur = !$("songView").hidden && !isPreview() ? currentSong() : null;
+    if (cur) { cur.instr = inst().songInstr; if (isSax()) cur.sax = instSel.value; else delete cur.sax; storeSongs(); }
+    if (openId && !$("songView").hidden) openSong(openId, true); // the song now opens on this instrument
   });
   toggle.addEventListener("click", () => { if (running && recTarget === "mel") { stop(); return; } if (running) stop(); start("mel"); });
   // ---------- Naming the Hum melody saves it as a song, and later changes keep saving ----------
