@@ -900,25 +900,27 @@ details.hint li { margin: 3px 0; }
     sideBb: ["B♭", 97, 109, 20, 9, "Side B♭ key: lowest side key, right hand"],
     highFs: ["F♯", 97, 124, 20, 9, "High F♯ key: right hand, near the side keys"]
   };
-  // The small picture in a note: the main keys, plus a gold tag for each extra key this note needs
-  const SAX_TAG = { palmD: "Palm D", palmEb: "Palm E♭", palmF: "Palm F", sideE: "Side E", sideC: "Side C", sideBb: "Side B♭", highFs: "High F♯" };
-  const PINKY_TAG = { Gs: ["Pinky G♯", "L"], Cs: ["Pinky C♯", "L"], B: ["Pinky B", "L"], Bb: ["Pinky B♭", "L"], Eb: ["Pinky E♭", "R"], C: ["Pinky C", "R"] };
+  // The small picture in a note: the same drawing as the full horn, but only the groups of keys this note uses
+  // (palm keys, a pinky table, the side keys), cropped to fit. Tap the note for the whole horn.
+  const PINKY_KEYS = [
+    ["Gs", "G♯", 54, 36, 30, 12, "L"], ["Cs", "C♯", 48, 51, 20, 12, "L"], ["B", "B", 70, 51, 20, 12, "L"],
+    ["Bb", "B♭", 56, 66, 26, 12, "L"], ["Eb", "E♭", 54, 104, 30, 12, "R"], ["C", "C", 54, 119, 30, 12, "R"]
+  ];
   function fingSVGsmall(f) {
-    const sc = 0.95, on = k => f.more && f.more.has(k);
-    const tagsL = [], tagsR = [];
-    ["palmD", "palmEb", "palmF"].forEach(k => { if (on(k)) tagsL.push([SAX_TAG[k], SAX_KEYS[k][5]]); });
-    if (f.pinky && PINKY_TAG[f.pinky]) (PINKY_TAG[f.pinky][1] === "L" ? tagsL : tagsR).push([PINKY_TAG[f.pinky][0], PINKY_TAG[f.pinky][0] + " key"]);
-    ["sideE", "sideC", "sideBb", "highFs"].forEach(k => { if (on(k)) tagsR.push([SAX_TAG[k], SAX_KEYS[k][5]]); });
-    const W = tagsL.length || tagsR.length ? 84 : on("bis") ? 58 : 40;
-    let o = '<svg width="' + W * sc + '" height="' + 150 * sc + '" viewBox="0 0 ' + W + ' 150" aria-hidden="true">';
-    o += '<circle class="oct' + (f.oct ? ' on' : '') + '" cx="8" cy="11" r="5"/>';
-    o += '<line class="div" x1="6" x2="' + (W - 4) + '" y1="81" y2="81"/>';
-    [30, 48, 66, 96, 114, 132].forEach((y, i) => { o += '<circle class="k' + (f.keys[i] === "1" ? ' on' : '') + '" cx="20" cy="' + y + '" r="7"/>'; });
-    if (on("bis")) o += '<g><title>Bis key: the small key between your first two left-hand keys</title><circle class="bis on" cx="20" cy="39" r="2.8"/><text class="pt" x="40" y="42" style="text-anchor:start;fill:var(--brass);font-weight:800">bis</text></g>';
-    const tag = ([lab, tip], x, y) => '<g><title>' + tip + '</title><rect class="pk on" x="' + x + '" y="' + y + '" width="50" height="11" rx="4"/><text class="pt on" x="' + (x + 25) + '" y="' + (y + 8.5) + '">' + lab + '</text></g>';
-    tagsL.forEach((t, k) => { o += tag(t, 32, 22 + k * 14); });
-    tagsR.forEach((t, k) => { o += tag(t, 32, 88 + k * 14); });
-    return o + '</svg>';
+    const on = k => f.more && f.more.has(k);
+    const key = (k, lab, x, y, w, h, tip) => '<g><title>' + tip + '</title><rect class="pk' + (k ? ' on' : '') + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="4"/><text class="pt' + (k ? ' on' : '') + '" x="' + (x + w / 2) + '" y="' + (y + h / 2 + 3) + '">' + lab + '</text></g>';
+    const palm = ["palmD", "palmEb", "palmF"].some(on), side = ["sideE", "sideC", "sideBb", "highFs"].some(on);
+    const pk = PINKY_KEYS.find(p => p[0] === f.pinky), hand = pk ? pk[6] : null;
+    let body = '<circle class="oct' + (f.oct ? ' on' : '') + '" cx="30" cy="11" r="5"/>';
+    [30, 48, 66, 96, 114, 132].forEach((y, i) => { body += '<circle class="k' + (f.keys[i] === "1" ? ' on' : '') + '" cx="30" cy="' + y + '" r="7"/>'; });
+    if (on("bis")) body += '<g><title>Bis key: the small key between your first two left-hand keys</title><circle class="bis on" cx="30" cy="39" r="2.8"/></g>';
+    if (palm) ["palmD", "palmEb", "palmF"].forEach(k => { const [lab, x, y, w, h, tip] = SAX_KEYS[k]; body += key(on(k), lab, x, y, w, h, tip); });
+    if (hand) PINKY_KEYS.filter(p => p[6] === hand).forEach(([id, lab, x, y, w, h]) => { body += key(f.pinky === id, lab, x, y, w, h, lab + " key: " + (hand === "L" ? "left" : "right") + " pinky"); });
+    const pull = side && !hand ? -52 : 0; // with no pinky table in the way, the side keys sit right beside the right hand
+    if (side) ["sideE", "sideC", "sideBb", "highFs"].forEach(k => { const [lab, x, y, w, h, tip] = SAX_KEYS[k]; body += key(on(k), lab, x + pull, y, w, h, tip); });
+    const x0 = palm ? 0 : 16, x1 = side ? 120 + pull : hand ? 92 : 44, W = x1 - x0, sc = 0.95;
+    body += '<line class="div" x1="' + (x0 + 4) + '" x2="' + (x1 - 4) + '" y1="81" y2="81"/>';
+    return '<svg width="' + Math.round(W * sc) + '" height="' + Math.round(150 * sc) + '" viewBox="' + x0 + ' 0 ' + W + ' 150" aria-hidden="true">' + body + '</svg>';
   }
   function fingSVG(f, big) {
     if (!big) return fingSVGsmall(f);
@@ -3008,7 +3010,7 @@ details.hint li { margin: 3px 0; }
     trumpet: '<span><i style="background:var(--brass);border-radius:3px"></i>Press valve</span><span>Valve 1 is nearest your face. Notes with the same valves are changed with your lips and air.</span>',
     recorder: '<span><i style="background:var(--ink)"></i>Cover</span><span><i style="border:1.5px solid var(--ink)"></i>Open</span><span><i style="background:linear-gradient(var(--panel) 50%, var(--ink) 50%);border:1.5px solid var(--ink)"></i>Half / pinch</span><span>T = thumb hole on the back · top 3 left hand · bottom 4 right hand · Baroque fingering</span>',
     ocarina: '<span><i style="background:var(--ink)"></i>Cover</span><span><i style="border:1.5px solid var(--ink)"></i>Open</span><span><i style="background:linear-gradient(var(--panel) 50%, var(--ink) 50%);border:1.5px solid var(--ink)"></i>Half-cover</span><span>12-hole alto C ocarina · small holes are subholes · left hand on the left</span>',
-    sax: '<span><i style="background:var(--ink)"></i>Press</span><span><i style="border:1.5px solid var(--ink)"></i>Leave up</span><span><i style="background:var(--brass)"></i>Also press (thumb key, or the gold tag)</span><span>Top 3 left hand · bottom 3 right hand · tap a note to see the whole horn</span>',
+    sax: '<span><i style="background:var(--ink)"></i>Press</span><span><i style="border:1.5px solid var(--ink)"></i>Leave up</span><span><i style="background:var(--brass)"></i>Also press</span><span>Top 3 left hand · bottom 3 right hand · palm keys show on the left, side keys on the right · tap a note to see the whole horn</span>',
     piano: '<span>Each color is one octave:</span><span><i style="background:#2563EB;border-radius:2px"></i>C3 (low)</span><span><i style="background:#059669;border-radius:2px"></i>C4 (middle C)</span><span><i style="background:#7C3AED;border-radius:2px"></i>C5 (high)</span><span>White dot = key to play · faded keys = chord notes</span>',
     guitar: '<span><i style="background:var(--brass)"></i>Finger here</span><span><i style="border:1.5px solid var(--brass)"></i>Open string (no finger)</span><span>Strings low E → high E, left to right · thick line = nut · “5fr” = starting fret</span>'
   };
