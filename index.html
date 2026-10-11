@@ -115,6 +115,9 @@ details[open] > summary::before { transform: rotate(90deg); }
 .fing .div { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 3 3; }
 .fing .pk { fill: none; stroke: var(--muted); stroke-width: 1.2; }
 .fing .pk.on { fill: var(--brass); stroke: var(--brass); }
+.fing .bis { fill: var(--panel); stroke: var(--ink); stroke-width: 1.2; }
+.fing .bis.on { fill: var(--brass); stroke: var(--brass); }
+.fing svg g:hover .pk:not(.on), .fing svg g:hover .bis:not(.on) { stroke: var(--brass); }
 .fing .pt { font-size: 8px; font-weight: 600; fill: var(--muted); text-anchor: middle; font-family: inherit; }
 .fing .pt.on { fill: #fff; }
 .fing .pl { font-size: 7px; fill: var(--muted); text-anchor: middle; font-family: inherit; }
@@ -864,13 +867,13 @@ details.hint li { margin: 3px 0; }
   const BASE = {
     62:["111111",""], 63:["111111","E♭ key"], 64:["111110",""], 65:["111100",""],
     66:["111010",""], 67:["111000",""], 68:["111000","G♯ key"], 69:["110000",""],
-    70:["100000","Bis key (under L1)"], 71:["100000",""], 72:["010000",""], 73:["000000",""]
+    70:["100000","bis"], 71:["100000",""], 72:["010000",""], 73:["000000",""]
   };
   const SPECIAL = {
     58:[false,"111111",""], 59:[false,"111111",""], 60:[false,"111111",""], 61:[false,"111111",""],
-    86:[true,"000000","Palm D"], 87:[true,"000000","Palm D + E♭"],
-    88:[true,"000000","Palm D + E♭ + side E"], 89:[true,"000000","Palm D + E♭ + F + side E"],
-    90:[true,"000000","Palm D + E♭ + F + side E + high F♯"]
+    86:[true,"000000","palmD"], 87:[true,"000000","palmD palmEb"],
+    88:[true,"000000","palmD palmEb sideE"], 89:[true,"000000","palmD palmEb palmF sideE"],
+    90:[true,"000000","palmD palmEb palmF sideE highFs"]
   };
   const PINKY = { 58: "Bb", 59: "B", 60: "C", 61: "Cs", 63: "Eb", 68: "Gs", 75: "Eb", 80: "Gs" };
   function fitRange(w) { const r = inst(); while (w < r.lo) w += 12; while (w > r.hi) w -= 12; return w; }
@@ -879,25 +882,35 @@ details.hint li { margin: 3px 0; }
     if (SPECIAL[w]) f = { oct: SPECIAL[w][0], keys: SPECIAL[w][1], extra: SPECIAL[w][2] };
     else if (w >= 62 && w <= 73) f = { oct: false, keys: BASE[w][0], extra: BASE[w][1] };
     else if (w >= 74 && w <= 85) f = { oct: true, keys: BASE[w - 12][0], extra: BASE[w - 12][1] };
-    if (f) { f.pinky = PINKY[w] || null; if (f.pinky) f.extra = ""; }
+    if (f) { f.pinky = PINKY[w] || null; f.more = new Set((f.extra || "").split(" ").filter(k => k === "bis" || SAX_KEYS[k])); f.extra = ""; }
     return f;
   }
+  // Every key on the horn, where it really sits. Hover a key to see what it is.
+  const SAX_KEYS = {
+    palmD: ["D", 2, 24, 15, 9, "Palm D key: top of the three keys under your left palm"],
+    palmEb: ["E♭", 2, 35, 15, 9, "Palm E♭ key: middle palm key, left hand"],
+    palmF: ["F", 2, 46, 15, 9, "Palm F key: lowest palm key, left hand"],
+    sideE: ["E", 97, 87, 20, 9, "Side E key: top side key, pressed with the side of your right hand"],
+    sideC: ["C", 97, 98, 20, 9, "Side C key: middle side key, right hand"],
+    sideBb: ["B♭", 97, 109, 20, 9, "Side B♭ key: lowest side key, right hand"],
+    highFs: ["F♯", 97, 124, 20, 9, "High F♯ key: right hand, near the side keys"]
+  };
   function fingSVG(f, big) {
-    const sc = big ? 1.5 : 0.95;
-    let o = '<svg width="' + (100 * sc) + '" height="' + (150 * sc) + '" viewBox="0 0 100 150" aria-hidden="true">';
-    o += '<circle class="oct' + (f.oct ? ' on' : '') + '" cx="8" cy="11" r="5"/>';
-    o += '<line class="div" x1="8" x2="92" y1="81" y2="81"/>';
-    [30, 48, 66, 96, 114, 132].forEach((y, i) => { o += '<circle class="k' + (f.keys[i] === "1" ? ' on' : '') + '" cx="22" cy="' + y + '" r="7"/>'; });
+    const sc = big ? 1.5 : 0.85, on = k => f.more && f.more.has(k);
+    const key = (cls, k, lab, x, y, w, h, tip) => '<g><title>' + tip + '</title><rect class="' + cls + (k ? ' on' : '') + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="4"/><text class="pt' + (k ? ' on' : '') + '" x="' + (x + w / 2) + '" y="' + (y + h / 2 + 3) + '">' + lab + '</text></g>';
+    let o = '<svg width="' + (120 * sc) + '" height="' + (150 * sc) + '" viewBox="0 0 120 150" aria-hidden="true">';
+    o += '<g><title>Octave key: under your left thumb</title><circle class="oct' + (f.oct ? ' on' : '') + '" cx="30" cy="11" r="5"/></g><text class="pl" x="50" y="14">thumb</text>';
+    o += '<text class="pl" x="9" y="62">palm</text><text class="pl" x="107" y="83">side</text>';
+    o += '<line class="div" x1="22" x2="92" y1="81" y2="81"/>';
+    [30, 48, 66, 96, 114, 132].forEach((y, i) => { o += '<circle class="k' + (f.keys[i] === "1" ? ' on' : '') + '" cx="30" cy="' + y + '" r="7"/>'; });
+    o += '<g><title>Bis key: the small key between your first two left-hand keys. Press it with your left index finger along with the top key.</title><circle class="bis' + (on("bis") ? ' on' : '') + '" cx="30" cy="39" r="2.8"/></g>';
+    Object.keys(SAX_KEYS).forEach(k => { const [lab, x, y, w, h, tip] = SAX_KEYS[k]; o += key("pk", on(k), lab, x, y, w, h, tip); });
     const P = [
-      ["Gs", "G♯", 50, 36, 30, 12], ["Cs", "C♯", 44, 51, 20, 12], ["B", "B", 66, 51, 20, 12],
-      ["Bb", "B♭", 52, 66, 26, 12], ["Eb", "E♭", 50, 104, 30, 12], ["C", "C", 50, 119, 30, 12]
+      ["Gs", "G♯", 54, 36, 30, 12, "left"], ["Cs", "C♯", 48, 51, 20, 12, "left"], ["B", "B", 70, 51, 20, 12, "left"],
+      ["Bb", "B♭", 56, 66, 26, 12, "left"], ["Eb", "E♭", 54, 104, 30, 12, "right"], ["C", "C", 54, 119, 30, 12, "right"]
     ];
-    o += '<text class="pl" x="65" y="31">left pinky</text><text class="pl" x="65" y="99">right pinky</text>';
-    P.forEach(([id, lab, x, y, w, h]) => {
-      const on = f.pinky === id;
-      o += '<rect class="pk' + (on ? ' on' : '') + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="4"/>';
-      o += '<text class="pt' + (on ? ' on' : '') + '" x="' + (x + w / 2) + '" y="' + (y + h / 2 + 3) + '">' + lab + '</text>';
-    });
+    o += '<text class="pl" x="69" y="31">left pinky</text><text class="pl" x="69" y="99">right pinky</text>';
+    P.forEach(([id, lab, x, y, w, h, hand]) => { o += key("pk", f.pinky === id, lab, x, y, w, h, lab + " key: " + hand + " pinky"); });
     return o + '</svg>';
   }
   // ---------- Piano: three octaves of keys, each octave in its own color ----------
@@ -1075,10 +1088,11 @@ details.hint li { margin: 3px 0; }
     return '<div class="fing">' + o + '</svg><span class="x">' + txt + '</span></div>';
   }
   // ---------- Woodwinds drawn as a column of keys, with extra keys as labelled pills ----------
-  function columnHTML(big, top, left, right, pills, tip) {
-    // top: [label, on] small keys above; left/right: 3 booleans each; pills: [label, on][]
-    const sc = big ? 1.5 : 1;
-    let o = '<svg width="' + 100 * sc + '" height="' + 150 * sc + '" viewBox="0 0 100 150" aria-hidden="true">';
+  function columnHTML(big, top, left, right, pills, tip, keys) {
+    // top: [label, on] small keys above; left/right: 3 booleans each; pills: [label, on][]; keys: extra keys drawn in place
+    const sc = big ? 1.5 : 1, H = keys ? 156 : 150;
+    let o = '<svg width="' + 100 * sc + '" height="' + H * sc + '" viewBox="0 0 100 ' + H + '" aria-hidden="true">';
+    (keys || []).forEach(([lab, on, x, y, w, h, t]) => { o += '<g><title>' + t + '</title><rect class="pk' + (on ? ' on' : '') + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="4"/><text class="pt' + (on ? ' on' : '') + '" x="' + (x + w / 2) + '" y="' + (y + h / 2 + 3) + '">' + lab + '</text></g>'; });
     top.forEach(([lab, on], k) => {
       o += '<circle class="oct' + (on ? ' on' : '') + '" cx="' + (8 + k * 14) + '" cy="11" r="5"/><text class="pl" x="' + (8 + k * 14) + '" y="24">' + lab + '</text>';
     });
@@ -1101,7 +1115,9 @@ details.hint li { margin: 3px 0; }
     const thumb = f[0] === "T", L = f.slice(1, 4).split("").map(c => c === "1"), gs = f.includes("G.");
     const R = f.split(".")[1].slice(0, 3).split("").map(c => c === "1");
     const eb = /E/.test(f.split(".")[1] || ""), foot = f.split(".")[2] || "";
-    return { top: [["T", thumb]], L, R, pills: [["G♯ key (left pinky)", gs], ["E♭ key (right pinky)", eb], ["Low C♯ key", foot === "Cs"], ["Low C key", foot === "C"]],
+    return { top: [["T", thumb]], L, R, pills: [],
+      keys: [["G♯", gs, 52, 62, 22, 10, "G♯ key: left pinky, beside your third left-hand key"], ["E♭", eb, 52, 128, 22, 10, "E♭ key: right pinky"],
+        ["C♯", foot === "Cs", 26, 144, 20, 10, "Low C♯ key: on the foot joint, right pinky"], ["C", foot === "C", 50, 144, 20, 10, "Low C key: on the foot joint, right pinky"]],
       tip: w >= 74 ? "Second octave: blow a little faster" : "" };
   }
   // Clarinet (Boehm), written notes E3–C6: R register key, T thumb hole, L1-3, R1-3, plus side/pinky keys
@@ -1150,7 +1166,7 @@ details.hint li { margin: 3px 0; }
     if (k === "trumpet") return { label, html: trumpetHTML(w, big) };
     if (k === "flute") {
       const f = fluteHTML(w);
-      return { label, html: f ? columnHTML(big, f.top, f.L, f.R, f.pills, f.tip) : '<div class="fing"><span class="x">Out of range</span></div>' };
+      return { label, html: f ? columnHTML(big, f.top, f.L, f.R, f.pills, f.tip, f.keys) : '<div class="fing"><span class="x">Out of range</span></div>' };
     }
     if (k === "clarinet") {
       const c = CLAR[w];
@@ -2960,12 +2976,12 @@ details.hint li { margin: 3px 0; }
     bass: '<span><i style="background:var(--brass)"></i>Finger here</span><span><i style="border:1.5px solid var(--brass)"></i>Open string</span><span>Strings E A D G, low to high, left to right · “5fr” = starting fret</span>',
     violin: '<span><i style="background:var(--brass)"></i>Finger (number = which finger)</span><span><i style="border:1.5px solid var(--brass)"></i>Open string</span><span>Strings G D A E, left to right · first position · dashed lines = beginner finger tapes</span>',
     cello: '<span><i style="background:var(--brass)"></i>Finger (number = which finger)</span><span><i style="border:1.5px solid var(--brass)"></i>Open string</span><span>Strings C G D A, left to right · first position</span>',
-    flute: '<span><i style="background:var(--ink)"></i>Press</span><span><i style="border:1.5px solid var(--ink)"></i>Leave up</span><span>T = left thumb key · top 3 left hand · bottom 3 right hand · extra keys listed underneath</span>',
+    flute: '<span><i style="background:var(--ink)"></i>Press</span><span><i style="border:1.5px solid var(--ink)"></i>Leave up</span><span>T = left thumb key · top 3 left hand · bottom 3 right hand · gold = also press (pinky or foot key) · hover a key to see what it is</span>',
     clarinet: '<span><i style="background:var(--ink)"></i>Cover / press</span><span><i style="border:1.5px solid var(--ink)"></i>Leave open</span><span>R = register key · T = thumb hole · top 3 left hand · bottom 3 right hand · extra keys listed underneath</span>',
     trumpet: '<span><i style="background:var(--brass);border-radius:3px"></i>Press valve</span><span>Valve 1 is nearest your face. Notes with the same valves are changed with your lips and air.</span>',
     recorder: '<span><i style="background:var(--ink)"></i>Cover</span><span><i style="border:1.5px solid var(--ink)"></i>Open</span><span><i style="background:linear-gradient(var(--panel) 50%, var(--ink) 50%);border:1.5px solid var(--ink)"></i>Half / pinch</span><span>T = thumb hole on the back · top 3 left hand · bottom 4 right hand · Baroque fingering</span>',
     ocarina: '<span><i style="background:var(--ink)"></i>Cover</span><span><i style="border:1.5px solid var(--ink)"></i>Open</span><span><i style="background:linear-gradient(var(--panel) 50%, var(--ink) 50%);border:1.5px solid var(--ink)"></i>Half-cover</span><span>12-hole alto C ocarina · small holes are subholes · left hand on the left</span>',
-    sax: '<span><i style="background:var(--brass)"></i>Octave key (thumb)</span><span><i style="background:var(--ink)"></i>Press</span><span><i style="border:1.5px solid var(--ink)"></i>Leave up</span><span>Top 3 left hand · bottom 3 right hand</span>',
+    sax: '<span><i style="background:var(--ink)"></i>Press</span><span><i style="border:1.5px solid var(--ink)"></i>Leave up</span><span><i style="background:var(--brass)"></i>Also press (thumb, palm, side, pinky or bis key)</span><span>Top 3 left hand · bottom 3 right hand · hover a key to see what it is</span>',
     piano: '<span>Each color is one octave:</span><span><i style="background:#2563EB;border-radius:2px"></i>C3 (low)</span><span><i style="background:#059669;border-radius:2px"></i>C4 (middle C)</span><span><i style="background:#7C3AED;border-radius:2px"></i>C5 (high)</span><span>White dot = key to play · faded keys = chord notes</span>',
     guitar: '<span><i style="background:var(--brass)"></i>Finger here</span><span><i style="border:1.5px solid var(--brass)"></i>Open string (no finger)</span><span>Strings low E → high E, left to right · thick line = nut · “5fr” = starting fret</span>'
   };
