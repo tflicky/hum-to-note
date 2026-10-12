@@ -3684,7 +3684,7 @@ details.hint li { margin: 3px 0; }
     if (next < 0 || next >= chips.length) { toast(next < 0 ? "That's the first note" : "That's the last note"); e.preventDefault(); return; }
     e.preventDefault();
     chips.forEach(c => c.classList.remove("listen-at"));
-    const c = chips[next]; c.classList.add("listen-at");
+    const c = chips[next]; c.classList.add("listen-at"); c.focus({ preventScroll: true }); // the focus ring follows too, so the note you clicked first does not stay outlined
     c.scrollIntoView({ block: "nearest", inline: "nearest" });
     playChips([c], null);
   });
