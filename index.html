@@ -262,6 +262,13 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 .tp-row { display: flex; align-items: center; gap: 10px; }
 .tp-lab { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); width: 54px; }
 #songView.preview .song-tools .menu-wrap { display: none; }
+#editModeBtn.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+#songView.preview #editModeBtn { display: none; }
+/* reading mode: tapping a note just plays it; editing tools appear in Edit mode */
+#songView:not(.editing) .editpanel, #songView:not(.editing) .seq .ins, #songView:not(.editing) #singSong, #songView:not(.editing) #undoSong,
+#songView:not(.editing) .song-tools .menu-wrap:not(.song-more), #songView:not(.editing) #typeNotes { display: none !important; }
+#songView:not(.editing) .mel-layout { grid-template-columns: minmax(0, 1fr); }
+#songView.editing .seq { box-shadow: 0 0 0 2px var(--brass) inset; }
 @media (max-width: 600px) {
   .toolbar .btn { padding: 8px 11px; font-size: .9rem; }
   .wide-only { display: none; }
@@ -463,6 +470,7 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .ghost-count { position: absolute; top: -8px; right: -8px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: var(--brass); color: #fff; font-weight: 800; font-size: .8rem; display: grid; place-items: center; }
 body.touch-dragging { -webkit-user-select: none; user-select: none; }
 .song-card.drag-src { opacity: .45; }
+.song-card.boxing { outline: 3px dashed var(--brass); outline-offset: 2px; }
 .drop-ready { outline: 2px dashed var(--brass); outline-offset: 3px; }
 .drop-hover { outline: 3px solid var(--brass) !important; outline-offset: 3px; transform: scale(1.03); transition: transform .1s; }
 #crumbRoot.drop-ready { border-radius: 6px; padding: 0 6px; }
@@ -757,6 +765,7 @@ details.hint li { margin: 3px 0; }
       <div id="selectBar" class="selectbar" hidden>
         <span id="selCount">Tap songs to select them</span>
         <button id="mergeSel" type="button" class="btn primary" disabled>🔗 Merge</button>
+        <button id="deleteSel" type="button" class="btn danger" disabled>🗑 Delete</button>
         <label class="instpick">Move to <select id="moveSel"></select></label>
         <button id="cancelSel" type="button" class="btn">Done</button>
       </div>
@@ -797,6 +806,7 @@ details.hint li { margin: 3px 0; }
         </div>
         <div class="toolbar song-tools">
           <button id="playSong" type="button" class="btn primary">▶ Play</button>
+          <button id="editModeBtn" type="button" class="btn" aria-pressed="false">✏️ Edit</button>
           <button id="practiceSong" type="button" class="btn">🎯 Practice</button>
           <button id="singSong" type="button" class="btn">🎤 Sing more</button>
           <button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
@@ -1973,7 +1983,7 @@ details.hint li { margin: 3px 0; }
   function setPreviewMode(on) {
     $("songView").classList.toggle("preview", on);
     $("previewNote").hidden = !on;
-    ["undoSong", "typeNotes", "deleteSong", "singSong", "practiceSong", "songOctDown", "songOctUp", "songKeyDown", "songKeyUp", "dupSong"].forEach(id => { $(id).hidden = on; });
+    ["undoSong", "typeNotes", "deleteSong", "singSong", "practiceSong", "editModeBtn", "songOctDown", "songOctUp", "songKeyDown", "songKeyUp", "dupSong"].forEach(id => { $(id).hidden = on; });
     if (on) $("unmergeSong").hidden = true;
   }
   function previewLibrary(id) {
@@ -2018,7 +2028,7 @@ details.hint li { margin: 3px 0; }
     songs.push(sg);
     if (!storeSongs()) alert("Couldn't save to this browser's storage. Use Export to keep a copy.");
     const from = { lib: libPreview.libId, name: libPreview.name };
-    openSong(sg.id, true);
+    openSong(sg.id, true); setSongEditing(true, false);
     announceRemix(sg, from);
   });
   $("libSearch").addEventListener("input", renderLibrary);
@@ -2196,6 +2206,7 @@ details.hint li { margin: 3px 0; }
     $("selectBar").hidden = !picking;
     $("selectMode").textContent = picking ? "☑ Selecting…" : "☑ Select";
     $("selCount").textContent = picked.length ? picked.length + " selected" : "Tap songs to select them";
+    $("deleteSel").disabled = !picked.length;
     $("mergeSel").disabled = picked.length < 2;
     $("mergeSel").title = picked.length < 2 ? "Select 2 or more songs to merge" : "Merge in the order you picked them";
     $("moveSel").disabled = !picked.length;
@@ -2268,7 +2279,10 @@ details.hint li { margin: 3px 0; }
     toast((replace ? "Replaced with " : "Added ") + noteCount(r.items) + " note" + (noteCount(r.items) === 1 ? "" : "s"));
   }
   $("typeNotes").addEventListener("click", () => openTypePanel(true));
-  document.addEventListener("click", e => { if (e.target.closest("#songSeq [data-type]")) openTypePanel(true); else if (e.target.closest("#songSeq [data-sing]")) $("singSong").click(); });
+  document.addEventListener("click", e => {
+    if (e.target.closest("#songSeq [data-type], #songSeq [data-sing], #songSeq [data-ins]") && !songEditing && !isPreview()) setSongEditing(true, false);
+    if (e.target.closest("#songSeq [data-type]")) openTypePanel(true); else if (e.target.closest("#songSeq [data-sing]")) $("singSong").click();
+  }, true);
   $("typeBox").addEventListener("input", updateTypeInfo);
   $("typeAdd").addEventListener("click", () => applyTyped(false));
   $("typeReplace").addEventListener("click", () => applyTyped(true));
@@ -2291,7 +2305,9 @@ details.hint li { margin: 3px 0; }
       stopPlayback(); updateLabels(); renderSeq(); renderStage(stageMidi);
       toast("Switched to " + INSTS[target].name.charAt(0).toUpperCase() + INSTS[target].name.slice(1));
     }
+    const wasOpen = openId === id;
     openId = id; showPanel("view"); closeViewPop();
+    if (!wasOpen) setSongEditing(!sg.items.some(isNote) || songEditPref, false);
     const fn = folderName(sg.folder);
     $("songViewTitle").innerHTML = songIcon(sg) + " " + esc(sg.name);
     const ti = $("songTitleInput"); // refresh unless you are typing a new name for this same song
@@ -2386,7 +2402,7 @@ details.hint li { margin: 3px 0; }
     const sg = { id: newId("s"), name, items: [], instr: inst().songInstr, folder: curFolder || null };
     if (isSax()) sg.sax = instSel.value;
     songs.push(sg); storeSongs();
-    showTab("songs"); openSong(sg.id, true);
+    showTab("songs"); openSong(sg.id, true); setSongEditing(true, false);
     if (withTyping) openTypePanel(true);
     const t = $("songTitleInput"); t.focus(); t.select();
   }
@@ -2412,10 +2428,54 @@ details.hint li { margin: 3px 0; }
   $("cancelSel").addEventListener("click", () => setPicking(false));
   $("mergeSel").addEventListener("click", mergePicked);
   $("moveSel").addEventListener("change", e => { if (e.target.value) moveTo(e.target.value); });
+  // Songs open for reading; Edit mode turns on the edit panel, selection and the editing buttons
+  var songEditing = false;
+  function songLocked() { return isPreview() || !songEditing; }
+  let songEditPref = false;
+  try { songEditPref = localStorage.getItem("htn-songedit") === "1"; } catch (e) {}
+  function setSongEditing(on, remember) {
+    songEditing = !!on;
+    if (remember) { songEditPref = songEditing; try { localStorage.setItem("htn-songedit", songEditing ? "1" : "0"); } catch (e) {} }
+    $("songView").classList.toggle("editing", songEditing);
+    $("editModeBtn").classList.toggle("on", songEditing); $("editModeBtn").setAttribute("aria-pressed", songEditing);
+    $("editModeBtn").textContent = songEditing ? "✓ Done" : "✏️ Edit";
+    if (!songEditing && selState && selState.list === "song") deselect();
+    refit();
+  }
+  $("editModeBtn").addEventListener("click", () => { setSongEditing(!songEditing, true); toast(songEditing ? "Edit mode: tap notes to change them" : "Done editing"); });
+  let pickAnchor = null;
+  const visibleSongIds = () => [...document.querySelectorAll("#songList .song-card[data-id]")].map(c => c.dataset.id);
+  function pickSongs(ids, add) {
+    picking = true;
+    if (!add) picked = [];
+    ids.forEach(id => { if (!picked.includes(id)) picked.push(id); });
+    showSongHome();
+  }
+  function deletePicked() {
+    if (!picked.length) return;
+    const n = picked.length;
+    if (!confirm("Delete " + n + " song" + (n === 1 ? "" : "s") + "? This can't be undone.")) return;
+    picked.forEach(id => forgetPractice(id));
+    songs = songs.filter(x => !picked.includes(x.id)); storeSongs();
+    picking = false; picked = []; showSongHome();
+    toast("Deleted " + n + " song" + (n === 1 ? "" : "s"));
+  }
+  $("deleteSel").addEventListener("click", deletePicked);
   function onCardClick(e) {
     const fc = e.target.closest(".folder-card");
     if (fc) { curFolder = fc.dataset.folder; picked = picked.filter(id => songs.some(s2 => s2.id === id)); showSongHome(); return; }
     const b = e.target.closest(".song-card[data-id]"); if (!b) return;
+    const id0 = b.dataset.id;
+    if (e.shiftKey && pickAnchor) { // Shift+click: everything between the last picked song and this one
+      const vis = visibleSongIds(), a = vis.indexOf(pickAnchor), z = vis.indexOf(id0);
+      if (a >= 0 && z >= 0) { pickSongs(vis.slice(Math.min(a, z), Math.max(a, z) + 1), e.ctrlKey || e.metaKey); return; }
+    }
+    if (e.ctrlKey || e.metaKey) { // Ctrl+click: add or remove without opening
+      picking = true; pickAnchor = id0;
+      const k = picked.indexOf(id0); if (k >= 0) picked.splice(k, 1); else picked.push(id0);
+      showSongHome(); return;
+    }
+    if (picking) pickAnchor = id0;
     if (picking) {
       const id = b.dataset.id, k = picked.indexOf(id);
       if (k >= 0) picked.splice(k, 1); else picked.push(id);
@@ -2586,7 +2646,7 @@ details.hint li { margin: 3px 0; }
     copy.id = newId("s"); copy.name = remixName(sg.name);
     songs.splice(songs.indexOf(sg) + 1, 0, copy);
     if (!storeSongs()) alert("Couldn't save to this browser's storage. Use Export to keep a copy.");
-    openSong(copy.id, true);
+    openSong(copy.id, true); setSongEditing(true, false);
     announceRemix(copy, { song: sg.id, name: sg.name });
   });
   // Opening a fresh remix: slide the new song in and say plainly that it is a separate copy
@@ -3140,7 +3200,7 @@ details.hint li { margin: 3px 0; }
   }
   function tidyBars(list) { for (let k = list.length - 1; k >= 0; k--) if (list[k] === "|" && (k === 0 || k === list.length - 1 || list[k - 1] === "|")) list.splice(k, 1); }
   function multiAct(which, a) {
-    if (which === "song" && (!currentSong() || isPreview())) return;
+    if (which === "song" && (!currentSong() || songLocked())) return;
     const list = getList(which), idxs = selIdxs(which);
     const clone = x => JSON.parse(JSON.stringify(x));
     if (a === "mpaste") {
@@ -3348,12 +3408,12 @@ details.hint li { margin: 3px 0; }
   // Click a note: select it and hear it
   document.addEventListener("click", e => {
     const ins = e.target.closest("[data-ins]");
-    if (ins && ins.closest(".seq")) { if (ins.closest(".seq").dataset.list === "song" && isPreview()) return; insertAt(ins.closest(".seq").dataset.list, +ins.dataset.ins); return; }
+    if (ins && ins.closest(".seq")) { if (ins.closest(".seq").dataset.list === "song" && songLocked()) return; insertAt(ins.closest(".seq").dataset.list, +ins.dataset.ins); return; }
     const c = e.target.closest(".chip[data-i]");
     if (c && c.closest("#prNotes")) { playChips([c], null); return; }
     if (c) {
       const which = c.closest(".seq").dataset.list, i = +c.dataset.i;
-      if (which === "song" && isPreview()) { playChips([c], null); return; }
+      if (which === "song" && songLocked()) { playChips([c], null); return; }
       const same = selState && selState.list === which;
       if ((e.ctrlKey || e.metaKey) && same) { // add or remove this note
         const set = new Set(selIdxs(which)), had = set.has(i);
@@ -3367,15 +3427,60 @@ details.hint li { margin: 3px 0; }
       select(which, i, true); return;
     }
     if (!e.target.isConnected) return; // the clicked button was redrawn by its own action
+    if (boxJustEnded) return; // the click that ends a box drag shouldn't clear what the box selected
     if (selState && !e.target.closest(".editpanel") && !e.target.closest(".seq") && !e.target.closest("#playMel,#playSong,.menu-wrap")) deselect();
   });
-  let boxSel = null;
+  let boxSel = null, boxJustEnded = false, cardBox = null;
+  const onSongsHome = () => !$("view-songs").hidden && !$("songHome").hidden;
+  document.addEventListener("pointerdown", e => {
+    if (e.button !== 0 || e.pointerType === "touch" || !onSongsHome()) return;
+    if (e.target.closest(".song-card, button, a, input, select, label, summary, .library, .selectbar, .backup, .tabs, .instpick, .menu, dialog")) return;
+    if (!e.target.closest("#view-songs, main")) return;
+    cardBox = { x0: e.clientX, y0: e.clientY, add: e.ctrlKey || e.metaKey, base: picking ? picked.slice() : [], moved: false, el: null, hits: [] };
+    e.preventDefault();
+  });
+  document.addEventListener("pointermove", e => {
+    if (!cardBox) return;
+    const b = cardBox, x1 = Math.min(b.x0, e.clientX), y1 = Math.min(b.y0, e.clientY), x2 = Math.max(b.x0, e.clientX), y2 = Math.max(b.y0, e.clientY);
+    if (!b.moved && x2 - x1 < 5 && y2 - y1 < 5) return;
+    if (!b.moved) { b.moved = true; b.el = document.createElement("div"); b.el.className = "sel-box"; document.body.appendChild(b.el); document.body.classList.add("box-selecting"); }
+    Object.assign(b.el.style, { left: x1 + "px", top: y1 + "px", width: (x2 - x1) + "px", height: (y2 - y1) + "px" });
+    b.hits = [];
+    document.querySelectorAll("#songList .song-card[data-id]").forEach(c => {
+      const r = c.getBoundingClientRect(), hit = r.left < x2 && r.right > x1 && r.top < y2 && r.bottom > y1;
+      c.classList.toggle("boxing", hit); if (hit) b.hits.push(c.dataset.id);
+    });
+  });
+  document.addEventListener("pointerup", () => {
+    if (!cardBox) return;
+    const b = cardBox; cardBox = null;
+    document.body.classList.remove("box-selecting"); if (b.el) b.el.remove();
+    document.querySelectorAll("#songList .song-card.boxing").forEach(c => c.classList.remove("boxing"));
+    if (!b.moved) return;
+    boxJustEnded = true; setTimeout(() => { boxJustEnded = false; }, 0);
+    if (b.hits.length) { pickAnchor = b.hits[b.hits.length - 1]; pickSongs(b.add ? b.base.concat(b.hits) : b.hits, false); }
+    else if (!b.add && picking) { picking = false; picked = []; showSongHome(); }
+  });
+  document.addEventListener("keydown", e => {
+    if (!onSongsHome()) return;
+    const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT")) return;
+    const ctrl = e.ctrlKey || e.metaKey;
+    if (ctrl && e.key.toLowerCase() === "a") { const vis = visibleSongIds(); if (vis.length) { e.preventDefault(); pickSongs(vis, false); } return; }
+    if ((e.key === "Delete" || e.key === "Backspace") && picking && picked.length) { e.preventDefault(); deletePicked(); return; }
+    if (e.key === "Escape" && picking) { e.preventDefault(); picking = false; picked = []; showSongHome(); }
+  });
   document.addEventListener("pointerdown", e => {
     if (e.button !== 0 || e.pointerType === "touch") return;
-    const seq = e.target.closest(".seq[data-list]");
-    if (!seq || e.target.closest(".chip, button, a")) return;
+    if (e.target.closest(".chip, button, a, input, textarea, select, label, summary, .editpanel, .menu, .viewpop, .type-panel, .remix-banner, .stage, .tabs, .instpick, dialog")) return;
+    // start inside the notes area, or anywhere on the card / page around it
+    let seq = e.target.closest(".seq[data-list]");
+    if (!seq) {
+      if (!$("view-hum").hidden && e.target.closest("#view-hum")) seq = $("seq");
+      else if (!$("view-songs").hidden && !$("songView").hidden && e.target.closest("#view-songs, main, body")) seq = $("songSeq");
+    }
+    if (!seq) return;
     const which = seq.dataset.list;
-    if (which === "song" && (isPreview() || !currentSong())) return;
+    if (which === "song" && (songLocked() || !currentSong())) return;
     boxSel = { which, seq, x0: e.clientX, y0: e.clientY, add: e.ctrlKey || e.metaKey, base: (e.ctrlKey || e.metaKey) ? selIdxs(which) : [], moved: false, el: null };
     e.preventDefault();
   });
@@ -3397,7 +3502,8 @@ details.hint li { margin: 3px 0; }
     document.body.classList.remove("box-selecting");
     if (b.el) b.el.remove();
     b.seq.querySelectorAll(".chip.boxing").forEach(c => c.classList.remove("boxing"));
-    if (!b.moved) { if (!b.add && selState && selState.list === b.which) deselect(); return; } // a plain click on empty space clears
+    if (!b.moved) { if (!b.add && selState && selState.list === b.which && b.seq.contains(e.target)) deselect(); return; } // a plain click on empty space clears
+    boxJustEnded = true; setTimeout(() => { boxJustEnded = false; }, 0);
     const all = b.add ? b.base.concat(b.hits || []) : (b.hits || []);
     if (all.length) selectMany(b.which, all, Math.max(...all)); else if (!b.add) deselect();
   });
@@ -3408,7 +3514,7 @@ details.hint li { margin: 3px 0; }
     const ctrl = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
     if (ctrl && !e.altKey && ["a", "c", "x", "v", "d"].includes(k)) {
       const which = selState ? selState.list : context();
-      if (!which || (which === "song" && isPreview())) return;
+      if (!which || (which === "song" && songLocked())) return;
       if (["c", "x", "d"].includes(k) && !selState) return; // nothing picked: leave normal copy alone
       if (k === "v" && !noteClip) return;
       e.preventDefault();
@@ -3431,7 +3537,7 @@ details.hint li { margin: 3px 0; }
     }
     if (!selState) { // nothing picked yet: ← / → start at the last / first note
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-      const which = context(); if (!which || (which === "song" && isPreview())) return;
+      const which = context(); if (!which || (which === "song" && songLocked())) return;
       const list = getList(which), idxs = list.map((x, i) => isNote(x) ? i : -1).filter(i => i >= 0);
       if (!idxs.length) return;
       e.preventDefault(); select(which, e.key === "ArrowRight" ? idxs[0] : idxs[idxs.length - 1], true); return;
