@@ -76,6 +76,10 @@ select:focus-visible, input:focus-visible, textarea:focus-visible, button:focus-
 .meta { color: var(--muted); font-size: .9rem; min-height: 1.2em; }
 .stage-fing:empty { display: none; }
 .stage .btn.big { margin-top: 16px; }
+.stage-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 10px; }
+.stage-btns [hidden] { display: none; }
+.sofar { font-size: 1.05rem; margin: 0; }
+#view-hum .ins { display: none !important; }
 
 details > summary { cursor: pointer; list-style: none; font-weight: 600; color: var(--muted); }
 details > summary::-webkit-details-marker { display: none; }
@@ -195,10 +199,6 @@ body.v-floatpanel.v-panelpos .editpanel.active { left: var(--pnl-x); top: var(--
 .ins.end { width: 40px; margin-left: 2px; }
 .ins.end::before { width: 28px; height: 28px; font-size: 1.1rem; }
 .mel-title { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; flex: 1 1 260px; min-width: 0; }
-#melName { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 1.1rem; font-weight: 800; color: var(--ink); background: transparent; border: 1.5px dashed var(--line); border-radius: 10px; padding: 6px 10px; }
-#melName:hover { border-color: var(--muted); }
-#melName:focus { border-style: solid; border-color: var(--brass); background: var(--panel); outline: none; }
-#melName::placeholder { color: var(--muted); font-weight: 600; }
 .mel-saved { font-size: .82rem; color: var(--good); font-weight: 600; }
 .mel-saved .link { color: var(--good); text-decoration: underline; padding: 0; }
 .mel-card.is-empty .editpanel, .mel-card.is-empty .legend, .mel-card.is-empty .song-tools, .mel-card.is-empty .viewpick { display: none; }
@@ -431,6 +431,12 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .song-tools { margin: 0 0 14px; }
 .singbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -4px 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); }
 .singbar .fine { margin: 0; }
+.singbar { gap: 10px 18px; }
+.sing-now { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 160px; }
+.sing-name { display: inline-flex; align-items: center; gap: 8px; }
+.sing-now .meter { width: 160px; }
+.sing-trace { flex: 1 1 220px; max-width: 360px; height: 90px; }
+.sing-side { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; flex: 1 1 200px; }
 .singbar .check[hidden] { display: none; }
 .live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
@@ -672,7 +678,10 @@ details.hint li { margin: 3px 0; }
         </div>
         <div id="stageFing" class="stage-fing"></div>
       </div>
-      <button id="toggle" type="button" class="btn big primary">🎤 Start listening</button>
+      <div class="stage-btns">
+        <button id="toggle" type="button" class="btn big primary">🎤 Start humming</button>
+        <button id="undoLast" type="button" class="btn big" hidden disabled title="Remove the last note you sang (Backspace)">↩ Undo last note</button>
+      </div>
 
       <details class="settings">
         <summary>⚙ Settings</summary>
@@ -687,62 +696,12 @@ details.hint li { margin: 3px 0; }
     </div>
 
     <div class="card mel-card is-empty" id="melCard">
-      <div class="row-head">
-        <div class="mel-title">
-          <input id="melName" type="text" placeholder="Name this melody to save it…" aria-label="Melody name" autocomplete="off" maxlength="80">
-          <span id="melSaved" class="mel-saved" aria-live="polite"></span>
-        </div>
-        <span class="head-right"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍 View ▾</button></span></span>
-      </div>
-      <div class="toolbar song-tools">
-        <button id="playMel" type="button" class="btn primary">▶ Play</button>
-        <button id="undo" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
-        <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">🎚 Key<span class="wide-only"> &amp; octave</span> ▾</button>
-            <div class="menu tp-menu" role="group" aria-label="Move every note" hidden>
-              <div class="tp-row"><span class="tp-lab">Key</span><span class="octpair"><button id="melKeyDown" type="button" class="btn" title="Move every note down a half step">▼ Half step</button><button id="melKeyUp" type="button" class="btn" title="Move every note up a half step">▲ Half step</button></span></div>
-              <div class="tp-row"><span class="tp-lab">Octave</span><span class="octpair"><button id="melOctDown" type="button" class="btn" title="Move every note down an octave">▼ Lower</button><button id="melOctUp" type="button" class="btn" title="Move every note up an octave">▲ Higher</button></span></div>
-              <p class="fine" style="margin:0">Moves every note, chords too. ↩ Undo puts it back.</p>
-            </div></span>
-        <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⋯ More</button>
-          <div class="menu list-menu" hidden>
-            <button id="copy" type="button" class="menu-item">📋 Copy notes</button>
-            <button id="clear" type="button" class="menu-item">✨ New melody</button>
-          </div></span>
-      </div>
+      <div class="row-head"><h2 class="sofar">Notes so far <span id="humCount" class="fine"></span></h2></div>
       <div class="mel-layout">
         <div class="mel-main">
           <div id="seq" class="seq" data-list="mel"></div>
           <p class="legend"></p>
         </div>
-        <aside class="editpanel" aria-label="Edit note">
-          <div class="ep-empty">
-            <strong>Edit your notes</strong>
-            <p>Tap any note to hear it and change it: pick a new note, move it, add notes around it, or give it a chord.</p>
-          </div>
-          <div class="ep-body" hidden>
-            <div class="ep-head" title="Drag here to move this panel"><span class="ep-grip" aria-hidden="true">⠿</span><button type="button" class="eb-label" title="Play this note"></button><span class="ep-head-btns"><button type="button" class="ep-dock" aria-label="Put the panel back beside the notes" title="Put the panel back beside the notes">⇲</button><button type="button" data-act="done" class="ep-close" aria-label="Close" title="Close (Esc)">✕</button></span></div>
-            <div class="ep-fing" aria-hidden="true"></div>
-            <div class="ep-sec"><span class="ep-t">Change to</span><div class="ep-notes"><button type="button" data-act="set" data-pc="0">C</button><button type="button" data-act="set" data-pc="1">C♯</button><button type="button" data-act="set" data-pc="2">D</button><button type="button" data-act="set" data-pc="3">E♭</button><button type="button" data-act="set" data-pc="4">E</button><button type="button" data-act="set" data-pc="5">F</button><button type="button" data-act="set" data-pc="6">F♯</button><button type="button" data-act="set" data-pc="7">G</button><button type="button" data-act="set" data-pc="8">A♭</button><button type="button" data-act="set" data-pc="9">A</button><button type="button" data-act="set" data-pc="10">B♭</button><button type="button" data-act="set" data-pc="11">B</button></div></div>
-            <div class="ep-sec"><span class="ep-t">Pitch</span>
-              <div class="ep-grid">
-                <button type="button" data-act="down" title="Half step lower (↓)">▼ Lower</button>
-                <button type="button" data-act="up" title="Half step higher (↑)">▲ Higher</button>
-                <button type="button" data-act="octdown" title="Octave lower (Shift+↓)">Octave ▼</button>
-                <button type="button" data-act="octup" title="Octave higher (Shift+↑)">Octave ▲</button>
-              </div>
-            </div>
-            <div class="ep-sec"><span class="ep-t">Move or add</span>
-              <div class="ep-grid">
-                <button type="button" data-act="left" title="Move left (Alt+←)">◀ Move</button>
-                <button type="button" data-act="right" title="Move right (Alt+→)">Move ▶</button>
-                <button type="button" data-act="insbefore" title="Add a note before this one">＋ Before</button>
-                <button type="button" data-act="insafter" title="Add a note after this one">＋ After</button>
-              </div>
-            </div>
-            <button type="button" data-act="del" class="ep-del" title="Remove (Delete)">🗑 Remove note</button>
-            <p class="ep-keys">← → next note · Shift+← → select more · ↑ ↓ pitch · Alt+← → move · Del remove</p>
-          </div>
-        </aside>
       </div>
     </div>
 
@@ -815,7 +774,7 @@ details.hint li { margin: 3px 0; }
           <button id="playSong" type="button" class="btn primary">▶ Play</button>
           <button id="editModeBtn" type="button" class="btn" aria-pressed="false">✏️ Edit</button>
           <button id="practiceSong" type="button" class="btn">🎯 Practice</button>
-          <button id="singSong" type="button" class="btn">🎤 Sing more</button>
+          <button id="singSong" type="button" class="btn" title="Hum more notes into this song">🎤 Keep humming</button>
           <button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
           <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">🎚 Key<span class="wide-only"> &amp; octave</span> ▾</button>
             <div class="menu tp-menu" role="group" aria-label="Move every note" hidden>
@@ -859,10 +818,17 @@ details.hint li { margin: 3px 0; }
           </details>
         </div>
         <div id="singBar" class="singbar" hidden>
-          <span class="live-dot" aria-hidden="true"></span>
-          <span id="songLive" class="song-live">Listening…</span>
+          <div class="sing-now">
+            <span class="sing-name"><span class="live-dot" aria-hidden="true"></span><span id="songLive" class="song-live">Listening…</span></span>
+            <div class="meter" aria-hidden="true"><div id="songNeedle" class="needle"></div></div>
+            <span id="songTune" class="fine"></span>
+          </div>
+          <canvas id="songTrace" class="trace sing-trace" aria-hidden="true"></canvas>
+          <div class="sing-side">
           <span class="fine" id="singWhere"></span>
+          <button id="undoSung" type="button" class="btn" disabled title="Remove the last note you sang (Backspace)">↩ Undo last note</button>
           <label class="check" id="carryChordRow" title="If the note before has a chord, each note you sing gets that same chord"><input type="checkbox" id="carryChord"> Give each new note the chord of the note before it</label>
+          </div>
         </div>
         <div id="previewNote" class="preview-note" hidden>
           <span>📚 From the song library. Tap a note to hear it. <span id="previewFit"></span></span>
@@ -1569,11 +1535,10 @@ details.hint li { margin: 3px 0; }
     refit(); preloadSoon();
     const has = melody.some(isNote);
     $("melCard").classList.toggle("is-empty", !has);
-    if (typeof scheduleMelSync === "function" && (melSongId || $("melName").value.trim())) scheduleMelSync();
-    const canUndo = typeof histMel !== "undefined" && histMel.undo.length > 0;
-    seqEl.innerHTML = has ? chipsHTML(melody) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>Your notes will appear here</strong><span>Press <b>Start listening</b> and sing “doo” for each note.</span>'
-      + '<div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note by hand</button><button type="button" class="link" data-newsong="type">Type or paste a song instead →</button>'
-      + (canUndo ? '<button type="button" class="link" data-undomel>↩ Undo</button>' : '') + '</div></div>';
+    const n = melody.filter(isNote).length;
+    $("humCount").textContent = n ? "· " + n + " note" + (n === 1 ? "" : "s") : "";
+    seqEl.innerHTML = has ? chipsHTML(melody) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>Your notes will appear here</strong><span>Press <b>Start humming</b> and sing “doo” for each note. When you stop, they become a song you can edit.</span>'
+      + '<div class="ea-actions"><button type="button" class="link" data-newsong="type">Type or paste a song instead →</button></div></div>';
   }
   let stageMidi = null;
   function renderStage(m) {
@@ -1592,7 +1557,22 @@ details.hint li { margin: 3px 0; }
     return vals.length >= 2 ? modeNote(vals) : null;
   }
   // Where sung notes go: "mel" (the Hum tab) or "song" (Sing more on an open song, from recPos on)
-  let recTarget = "mel", recPos = 0;
+  let recTarget = "mel", recPos = 0, sungCount = 0;
+  // ↩ Undo last note while humming: takes back the most recent note you sang (only notes from this time)
+  function undoLastSung() {
+    if (!running || !sungCount) return;
+    const which = recTarget, list = getList(which);
+    const k = which === "mel" ? list.length - 1 : recPos - 1;
+    if (k < 0 || !isNote(list[k])) return;
+    remember(which); list.splice(k, 1); sungCount--;
+    if (which === "song") recPos = k;
+    segIdx = -1; // the note you're holding now can't change the one before it
+    rerender(which); updateUndoSung();
+  }
+  function updateUndoSung() {
+    $("undoLast").hidden = !(running && recTarget === "mel");
+    $("undoLast").disabled = !sungCount; $("undoSung").disabled = !sungCount;
+  }
   function carriedChord(list, k) { // the chord on the closest earlier note, to keep it going
     if (!$("carryChord").checked) return null;
     for (let j = k - 1; j >= 0; j--) { const ch = chordOf(list[j]); if (ch) return Object.assign({}, ch); }
@@ -1610,7 +1590,7 @@ details.hint li { margin: 3px 0; }
         const k = which === "mel" ? list.length : Math.min(recPos, list.length);
         const ch = which === "song" ? carriedChord(list, k) : null;
         list.splice(k, 0, ch ? { m: n, ch } : n);
-        segIdx = k; segLogged = true;
+        segIdx = k; segLogged = true; sungCount++; updateUndoSung();
         if (which === "song") recPos = k + 1;
         rerender(which);
         if (which === "song") { const c = $("songSeq").querySelector('.chip[data-i="' + k + '"]'); if (c) c.scrollIntoView({ block: "nearest" }); }
@@ -1646,6 +1626,7 @@ details.hint li { margin: 3px 0; }
         noteEl.classList.add("idle"); metaEl.textContent = "Listening…";
         if (recTarget === "song") $("songLive").textContent = "Listening…";
         needle.style.left = "50%"; needle.classList.remove("intune");
+        $("songNeedle").style.left = "50%"; $("songNeedle").classList.remove("intune"); $("songTune").textContent = "";
       }
       trace(now, null);
       return;
@@ -1676,13 +1657,17 @@ details.hint li { margin: 3px 0; }
     metaEl.textContent = Math.abs(cents) <= 10 ? "In tune" : (cents < 0 ? "A little flat" : "A little sharp");
     needle.style.left = (50 + Math.max(-50, Math.min(50, cents))) + "%";
     needle.classList.toggle("intune", Math.abs(cents) <= 10);
+    if (recTarget === "song") {
+      $("songNeedle").style.left = needle.style.left; $("songNeedle").classList.toggle("intune", Math.abs(cents) <= 10);
+      $("songTune").textContent = metaEl.textContent;
+    }
   }
   // ---------- Live pitch trace ----------
   const traceBuf = [];
   function trace(now, v) {
     traceBuf.push({ t: now, v });
     while (traceBuf.length && now - traceBuf[0].t > 4000) traceBuf.shift();
-    const cv = $("trace"); if (!cv || cv.hidden) return;
+    const cv = recTarget === "song" ? $("songTrace") : $("trace"); if (!cv || cv.hidden || !cv.clientWidth) return;
     const dpr = window.devicePixelRatio || 1, Wc = cv.clientWidth, Hc = cv.clientHeight;
     if (cv.width !== Math.round(Wc * dpr)) { cv.width = Math.round(Wc * dpr); cv.height = Math.round(Hc * dpr); }
     const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, Wc, Hc);
@@ -1713,7 +1698,8 @@ details.hint li { margin: 3px 0; }
       $("singWhere").textContent = recPos >= list.length ? "New notes go at the end." : "New notes go after the note you picked.";
       $("singBar").hidden = false; $("songLive").textContent = "Listening…";
       $("carryChordRow").hidden = !list.some(x => isNote(x) && chordOf(x)); // only useful when the song has chords
-      $("singSong").textContent = "■ Stop singing"; $("singSong").classList.add("live");
+      $("singSong").textContent = "■ Stop humming"; $("singSong").classList.add("live");
+      $("songTune").textContent = ""; $("songNeedle").style.left = "50%";
     }
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
@@ -1733,8 +1719,8 @@ details.hint li { margin: 3px 0; }
     src.connect(hp); hp.connect(lp); lp.connect(analyser);
     traceBuf.length = 0; $("trace").hidden = false;
     noiseFloor = 0.002; quietFor = 0; lastOnset = -1e9; envPeak = envValley = 0; endSeg(); listenStart = performance.now(); envHist = [];
-    running = true;
-    if (recTarget === "mel") { toggle.textContent = "■ Stop listening"; toggle.classList.add("live"); toggle.classList.remove("primary"); }
+    running = true; sungCount = 0; updateUndoSung();
+    if (recTarget === "mel") { toggle.textContent = "■ Stop & edit song"; toggle.classList.add("live"); toggle.classList.remove("primary"); }
     metaEl.textContent = "Listening…";
     frame();
   }
@@ -1743,14 +1729,21 @@ details.hint li { margin: 3px 0; }
     if (stream) stream.getTracks().forEach(t => t.stop());
     if (ctx) ctx.close();
     running = false; inNote = false; segNote = null; hist = [];
-    toggle.textContent = "🎤 Start listening"; toggle.classList.remove("live"); toggle.classList.add("primary");
+    toggle.textContent = "🎤 Start humming"; toggle.classList.remove("live"); toggle.classList.add("primary");
+    sungCount = 0; updateUndoSung();
     noteEl.classList.add("idle"); noteEl.textContent = "♪";
     $("trace").hidden = true; endSeg();
     metaEl.textContent = "Say “doo” once for each note: doo, doo, doo";
     needle.style.left = "50%"; renderStage(null);
     stopSongUI();
   }
-  function stopSongUI() { $("singBar").hidden = true; $("singSong").textContent = "🎤 Sing more"; $("singSong").classList.remove("live"); }
+  function stopSongUI() { $("singBar").hidden = true; $("singSong").textContent = "🎤 Keep humming"; $("singSong").classList.remove("live"); }
+  $("undoLast").addEventListener("click", undoLastSung);
+  $("undoSung").addEventListener("click", undoLastSung);
+  document.addEventListener("keydown", e => { // Backspace while humming = undo the last note
+    if (!running || !sungCount || (e.key !== "Backspace" && e.key !== "Delete") || isTyping(e.target) || selState) return;
+    e.preventDefault(); e.stopImmediatePropagation(); undoLastSung();
+  });
   $("singSong").addEventListener("click", () => {
     if (running && recTarget === "song") { stop(); return; }
     if (running) stop();
@@ -2141,7 +2134,7 @@ details.hint li { margin: 3px 0; }
 
   function showTab(which) {
     if (which !== "songs" && running && recTarget === "song") stop();
-    if (which === "hum" && typeof loadMelSong === "function") loadMelSong();
+    if (which !== "hum" && running && recTarget === "mel") { stop(); finishHum(false); } // leaving mid-hum keeps the notes as a song
     if (which !== "practice" && typeof metro !== "undefined" && metro.on) stopMetro();
     ["hum", "songs", "practice"].forEach(t => {
       $("view-" + t).hidden = t !== which;
@@ -2483,6 +2476,7 @@ details.hint li { margin: 3px 0; }
   // Songs open for reading; Edit mode turns on the edit panel, selection and the editing buttons
   var songEditing = false;
   function songLocked() { return isPreview() || !songEditing; }
+  function listLocked(which) { return which === "mel" || (which === "song" && songLocked()); } // notes you can only listen to
   let songEditPref = false;
   try { songEditPref = localStorage.getItem("htn-songedit") === "1"; } catch (e) {}
   function setSongEditing(on, remember) {
@@ -2954,7 +2948,7 @@ details.hint li { margin: 3px 0; }
     playTimers.forEach(clearTimeout); playTimers = [];
     if (master) { try { master.disconnect(); } catch (e) {} master = null; }
     document.querySelectorAll(".chip.playing").forEach(c => c.classList.remove("playing"));
-    $("playMel").textContent = "▶ Play"; $("playSong").textContent = "▶ Play";
+    $("playSong").textContent = "▶ Play";
     playingBtn = null; muteUntil = 0; playPos = null; playingSeq = false;
   }
   let playPos = null, playingSeq = false; // note currently sounding while a melody plays
@@ -3141,7 +3135,7 @@ details.hint li { margin: 3px 0; }
   function renderSongSeq() {
     const sg = currentSong(); if (!sg) return;
     $("songView").querySelector(".card").classList.toggle("is-empty", !sg.items.some(isNote));
-    $("songSeq").innerHTML = sg.items.some(isNote) ? chipsHTML(sg.items) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>No notes yet</strong><span>Add notes any way you like:</span><div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note</button><button type="button" class="btn" data-sing>🎤 Sing them</button><button type="button" class="btn" data-type>⌨️ Type or paste</button></div></div>';
+    $("songSeq").innerHTML = sg.items.some(isNote) ? chipsHTML(sg.items) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>No notes yet</strong><span>Add notes any way you like:</span><div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note</button><button type="button" class="btn" data-sing>🎤 Hum them</button><button type="button" class="btn" data-type>⌨️ Type or paste</button></div></div>';
     updateEditbar("song");
     refit();
     preloadSoon();
@@ -3162,6 +3156,7 @@ details.hint li { margin: 3px 0; }
   }
   function updateEditbar(which) {
     const bar = seqFor(which).closest(".mel-layout").querySelector(".editpanel");
+    if (!bar) return;
     let active = !!(selState && selState.list === which);
     const list = getList(which), i = active ? selState.idx : -1, m = list[i];
     if (active && !isNote(m)) { selState = null; active = false; }
@@ -3252,7 +3247,7 @@ details.hint li { margin: 3px 0; }
   }
   function tidyBars(list) { for (let k = list.length - 1; k >= 0; k--) if (list[k] === "|" && (k === 0 || k === list.length - 1 || list[k - 1] === "|")) list.splice(k, 1); }
   function multiAct(which, a) {
-    if (which === "song" && (!currentSong() || songLocked())) return;
+    if (listLocked(which) || (which === "song" && !currentSong())) return;
     const list = getList(which), idxs = selIdxs(which);
     const clone = x => JSON.parse(JSON.stringify(x));
     if (a === "mpaste") {
@@ -3394,7 +3389,7 @@ details.hint li { margin: 3px 0; }
       if (k >= 0) start = k + 1; // the selected note was just heard, so continue with the next one
       if (start >= chips.length) { toast("That's the last note"); return; }
     }
-    playChips(chips.slice(start), which === "mel" ? $("playMel") : $("playSong"), which);
+    playChips(chips.slice(start), which === "mel" ? null : $("playSong"), which);
   });
   document.addEventListener("keyup", e => {
     if ((e.key === " " || e.code === "Space") && spaceHandled) { e.preventDefault(); spaceHandled = false; }
@@ -3460,12 +3455,12 @@ details.hint li { margin: 3px 0; }
   // Click a note: select it and hear it
   document.addEventListener("click", e => {
     const ins = e.target.closest("[data-ins]");
-    if (ins && ins.closest(".seq")) { if (ins.closest(".seq").dataset.list === "song" && songLocked()) return; insertAt(ins.closest(".seq").dataset.list, +ins.dataset.ins); return; }
+    if (ins && ins.closest(".seq")) { if (listLocked(ins.closest(".seq").dataset.list)) return; insertAt(ins.closest(".seq").dataset.list, +ins.dataset.ins); return; }
     const c = e.target.closest(".chip[data-i]");
     if (c && c.closest("#prNotes")) { playChips([c], null); return; }
     if (c) {
       const which = c.closest(".seq").dataset.list, i = +c.dataset.i;
-      if (which === "song" && songLocked()) { playChips([c], null); return; }
+      if (listLocked(which)) { playChips([c], null); return; }
       const same = selState && selState.list === which;
       if ((e.ctrlKey || e.metaKey) && same) { // add or remove this note
         const set = new Set(selIdxs(which)), had = set.has(i);
@@ -3532,7 +3527,7 @@ details.hint li { margin: 3px 0; }
     }
     if (!seq) return;
     const which = seq.dataset.list;
-    if (which === "song" && (songLocked() || !currentSong())) return;
+    if (listLocked(which) || (which === "song" && !currentSong())) return;
     boxSel = { which, seq, x0: e.clientX, y0: e.clientY, add: e.ctrlKey || e.metaKey, base: (e.ctrlKey || e.metaKey) ? selIdxs(which) : [], moved: false, el: null };
     e.preventDefault();
   });
@@ -3564,6 +3559,7 @@ details.hint li { margin: 3px 0; }
     const pr = $("prNotes");
     if (!$("view-practice").hidden && pr.offsetParent !== null && pr.querySelector(".chip[data-play]")) return pr;
     if (context() === "song" && songLocked()) return $("songSeq");
+    if (context() === "mel" && melody.some(isNote)) return $("seq");
     return null;
   }
   document.addEventListener("keydown", e => {
@@ -3598,7 +3594,7 @@ details.hint li { margin: 3px 0; }
     const ctrl = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
     if (ctrl && !e.altKey && ["a", "c", "x", "v", "d"].includes(k)) {
       const which = selState ? selState.list : context();
-      if (!which || (which === "song" && songLocked())) return;
+      if (!which || listLocked(which)) return;
       if (["c", "x", "d"].includes(k) && !selState) return; // nothing picked: leave normal copy alone
       if (k === "v" && !noteClip) return;
       e.preventDefault();
@@ -3621,7 +3617,7 @@ details.hint li { margin: 3px 0; }
     }
     if (!selState) { // nothing picked yet: ← / → start at the last / first note
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-      const which = context(); if (!which || (which === "song" && songLocked())) return;
+      const which = context(); if (!which || listLocked(which)) return;
       const list = getList(which), idxs = list.map((x, i) => isNote(x) ? i : -1).filter(i => i >= 0);
       if (!idxs.length) return;
       e.preventDefault(); select(which, e.key === "ArrowRight" ? idxs[0] : idxs[idxs.length - 1], true); return;
@@ -3637,7 +3633,6 @@ details.hint li { margin: 3px 0; }
     const chips = [...$(seqId).querySelectorAll(".chip[data-play]")];
     if (chips.length) playChips(chips, btn, seqId === "seq" ? "mel" : "song");
   }
-  $("playMel").addEventListener("click", () => playAllIn("seq", $("playMel")));
   $("playSong").addEventListener("click", () => playAllIn("songSeq", $("playSong")));
 
   // ---------- Labels ----------
@@ -3733,53 +3728,29 @@ details.hint li { margin: 3px 0; }
     if (cur) { cur.instr = inst().songInstr; if (isSax()) cur.sax = instSel.value; else delete cur.sax; storeSongs(); }
     if (openId && !$("songView").hidden) openSong(openId, true); // the song now opens on this instrument
   });
-  toggle.addEventListener("click", () => { if (running && recTarget === "mel") { stop(); return; } if (running) stop(); start("mel"); });
-  // ---------- Naming the Hum melody saves it as a song, and later changes keep saving ----------
-  let melSongId = null, melSyncTimer = null;
-  try { melSongId = localStorage.getItem("htn-melsong"); } catch (e) {}
-  const melSong = () => (melSongId && songs.find(x => x.id === melSongId)) || null;
-  function setMelSong(id) { melSongId = id; try { id ? localStorage.setItem("htn-melsong", id) : localStorage.removeItem("htn-melsong"); } catch (e) {} }
-  function showMelStatus() {
-    const sg = melSong(), name = $("melName").value.trim(), has = melody.some(isNote);
-    $("melSaved").innerHTML = sg ? '✓ Saved in Your songs · <button type="button" class="link" data-openmel>Open</button>'
-      : name && !has ? "Add some notes and it saves by itself" : "";
-  }
-  function syncMel() {
-    const name = $("melName").value.trim(), has = melody.some(isNote);
-    let sg = melSong();
-    if (!sg) {
-      if (melSongId) setMelSong(null); // the saved song was deleted
-      if (!name || !has) { showMelStatus(); return; }
-      sg = { id: newId("s"), name, items: [], instr: inst().songInstr, folder: null };
-      if (isSax()) sg.sax = instSel.value;
-      songs.push(sg); setMelSong(sg.id);
-      toast("Saved “" + name + "” to Your songs");
-    }
-    if (name) sg.name = name;
-    sg.items = JSON.parse(JSON.stringify(melody));
+  // Hum records; ■ Stop turns what you hummed into a new song and opens it, ready to name and edit
+  function finishHum(open) {
+    if (!melody.some(isNote)) { melody.length = 0; renderSeq(); return null; }
+    const d = new Date();
+    const name = "Hum " + d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    const sg = { id: newId("s"), name, items: JSON.parse(JSON.stringify(melody)), instr: inst().songInstr, folder: null };
+    if (isSax()) sg.sax = instSel.value;
+    songs.push(sg);
     if (!storeSongs()) toast("Couldn't save to this browser's storage");
-    showMelStatus();
+    melody.length = 0; histMel.undo.length = 0; histMel.redo.length = 0; renderSeq();
+    if (open) {
+      curFolder = null; showTab("songs"); openSong(sg.id, true); setSongEditing(true, false);
+      const t = $("songTitleInput"); t.focus(); t.select();
+      toast("Saved as a new song. Name it, fix notes, or 🎤 Keep humming");
+    } else toast("Saved “" + name + "” to Your songs");
+    return sg;
   }
-  function scheduleMelSync() { clearTimeout(melSyncTimer); melSyncTimer = setTimeout(syncMel, 400); }
-  $("melName").addEventListener("input", scheduleMelSync);
-  $("melName").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(melSyncTimer); syncMel(); e.target.blur(); } });
-  document.addEventListener("click", e => { if (e.target.closest("[data-openmel]") && melSong()) openSong(melSongId, true); });
-  function loadMelSong() { // bring the melody back from its saved song (after a reload, or edits made in Songs)
-    const sg = melSong(); if (!sg) { if (melSongId) setMelSong(null); return; }
-    if (JSON.stringify(sg.items) !== JSON.stringify(melody)) { melody.splice(0, melody.length, ...JSON.parse(JSON.stringify(sg.items))); selState = null; renderSeq(); }
-    if ($("melName").value.trim() !== sg.name) $("melName").value = sg.name;
-    showMelStatus();
-  }
-  $("clear").addEventListener("click", () => {
-    const saved = !!melSong();
-    if (!saved && melody.some(isNote) && !confirm("Start a new melody? This one isn't saved. Give it a name first to keep it.")) return;
-    remember("mel"); selState = null; updateEditbar("mel");
-    setMelSong(null); $("melName").value = "";
-    melody.length = 0; renderSeq(); showMelStatus();
-    if (saved) toast("New melody · the last one is saved in Your songs");
+  toggle.addEventListener("click", () => {
+    if (running && recTarget === "mel") { stop(); if (!finishHum(true)) toast("No notes heard yet. Try again and sing “doo” for each note"); return; }
+    if (running) stop();
+    stopPlayback(); start("mel");
   });
-  $("undo").addEventListener("click", () => undoRedo("mel", false));
-  document.addEventListener("click", e => { if (e.target.closest("[data-undomel]")) undoRedo("mel", false); });
+  try { localStorage.removeItem("htn-melsong"); } catch (e) {} // the old Hum melody already lives in Your songs
   $("undoSong").addEventListener("click", () => undoRedo("song", false));
   // Small menus (🎚 Key & octave, ⋯ More): one open at a time; list menus close after a choice
   function closeMenus(except) {
@@ -3839,17 +3810,11 @@ details.hint li { margin: 3px 0; }
     document.querySelectorAll(".tp-menu").forEach(m => { if (!m.hidden) updateShiftUI(m); });
     toast(what + (extra > 0 ? " · " + extra + " note" + (extra === 1 ? " is" : "s are") + " " + (d > 0 ? "too high" : "too low") + " for " + inst().name + ", so " + (extra === 1 ? "it shows" : "they show") + " in a nearer octave" : ""));
   }
-  [["mel", "mel"], ["song", "song"]].forEach(([p, which]) => {
+  [["song", "song"]].forEach(([p, which]) => {
     $(p + "OctDown").addEventListener("click", () => shiftOctave(which, -1));
     $(p + "OctUp").addEventListener("click", () => shiftOctave(which, 1));
     $(p + "KeyDown").addEventListener("click", () => shiftSong(which, -1));
     $(p + "KeyUp").addEventListener("click", () => shiftSong(which, 1));
-  });
-  $("copy").addEventListener("click", async () => {
-    const btn = $("copy");
-    try { await navigator.clipboard.writeText(itemsToText(melody)); btn.textContent = "✓ Copied"; }
-    catch (e) { btn.textContent = "Copy failed"; }
-    setTimeout(() => btn.textContent = "📋 Copy notes", 1500);
   });
   try {
     let iv = localStorage.getItem("htn-inst");
@@ -4280,7 +4245,7 @@ details.hint li { margin: 3px 0; }
     pr.d.steps = {}; pr.d.history = []; pr.d.started = Date.now(); pr.streak = 0; pr.undo = null;
     pr.key = prSteps(pr.d)[0]; savePractice(); renderPractice(); toast("Progress reset");
   });
-  loadSongs(); updateLabels(); renderSeq(); renderStage(null); applyView(); loadMelSong();
+  loadSongs(); updateLabels(); renderSeq(); renderStage(null); applyView();
 })();
 </script>
 </body>
