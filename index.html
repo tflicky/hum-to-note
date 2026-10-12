@@ -271,6 +271,13 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 .ep-fing { display: flex; justify-content: center; margin: 0 0 12px; padding: 8px 4px; background: var(--panel); border-radius: 12px; }
 .ep-fing .fing svg { max-width: 100%; height: auto; }
 .ep-fing .fing .x { max-width: none; }
+.editpanel.multi .ep-body > :not(.ep-head):not(.ep-multi) { display: none; }
+.editpanel:not(.multi) .ep-multi { display: none; }
+.ep-multi .ep-wide { width: 100%; margin-bottom: 12px; }
+.chip.selected { outline: 3px solid var(--ink); outline-offset: 1px; }
+.chip.boxing { outline: 3px dashed var(--brass); outline-offset: 1px; }
+.sel-box { position: fixed; z-index: 60; border: 1.5px solid var(--brass); background: color-mix(in srgb, var(--brass) 18%, transparent); border-radius: 4px; pointer-events: none; }
+body.box-selecting { user-select: none; -webkit-user-select: none; cursor: crosshair; }
 .ep-keys { margin: 10px 0 0; font-size: .72rem; color: var(--muted); text-align: center; }
 details.ep-chord > summary { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 9px; background: var(--panel); color: var(--ink); }
 details.ep-chord > summary .ep-t { margin: 0; }
@@ -717,7 +724,7 @@ details.hint li { margin: 3px 0; }
               </div>
             </div>
             <button type="button" data-act="del" class="ep-del" title="Remove (Delete)">🗑 Remove note</button>
-            <p class="ep-keys">← → next note · ↑ ↓ pitch · Alt+← → move · Del remove</p>
+            <p class="ep-keys">← → next note · Shift+← → select more · ↑ ↓ pitch · Alt+← → move · Del remove</p>
           </div>
         </aside>
       </div>
@@ -873,7 +880,7 @@ details.hint li { margin: 3px 0; }
               </div>
             </div>
             <button type="button" data-act="del" class="ep-del" title="Remove (Delete)">🗑 Remove note</button>
-            <p class="ep-keys">← → next note · ↑ ↓ pitch · Alt+← → move · Del remove</p>
+            <p class="ep-keys">← → next note · Shift+← → select more · ↑ ↓ pitch · Alt+← → move · Del remove</p>
           </div>
         </aside>
         </div>
@@ -1532,7 +1539,7 @@ details.hint li { margin: 3px 0; }
       if (isSec(m)) return '<div class="sec-title">' + esc(m.slice(1)) + '</div>';
       const slot = "";
       const snd = soundingMidi(m);
-      const sel = selState && selState.idx === i && list === getList(selState.list) ? " selected" : "";
+      const sel = selState && list === getList(selState.list) && (selState.idx === i || (selState.multi && selState.multi.has(i))) ? " selected" : "";
       const h = fingHTML(m, false), ch = chordOf(m);
       const pill = ch ? '<span class="chordpill' + (ch.on ? ' on' : '') + '" title="' + (ch.on ? 'Played as a chord' : 'Supporting chord') + '">' + (ch.on ? '♫ ' : '+ ') + chordSymbol(m) + '</span>' : '';
       return slot + '<button type="button" class="chip' + (ch ? ' has-chord' : '') + sel + '" data-i="' + i + '" data-play="' + snd + '" data-chord="' + chordTonesMidi(m).join(",") + '" aria-label="' + h.label + (ch ? ' with ' + chordSymbol(m) + ' chord' : '') + '">' + pill + h.label + h.html + '</button>';
@@ -3048,7 +3055,17 @@ details.hint li { margin: 3px 0; }
     if (active && !isNote(m)) { selState = null; active = false; }
     bar.classList.toggle("active", active);
     bar.querySelector(".ep-empty").hidden = active; bar.querySelector(".ep-body").hidden = !active;
+    const group = active && selState.multi && selState.multi.size > 1;
+    bar.classList.toggle("multi", !!group);
     if (!active) return;
+    if (group) { // several notes picked: the panel shows what you can do to all of them
+      const idxs = selIdxs(which), n = idxs.length;
+      bar.querySelector(".eb-label").textContent = n + " notes";
+      bar.querySelector(".ep-mdel").textContent = "🗑 Delete " + n + " notes";
+      [["mup", 1], ["mdown", -1], ["moctup", 12], ["moctdown", -12]].forEach(([a, d]) => { bar.querySelector('[data-act="' + a + '"]').disabled = groupOutOfRange(which, idxs, d) > 0; });
+      bar.querySelector('[data-act="mpaste"]').disabled = !noteClip;
+      return;
+    }
     const w = fitRange(pitchOf(m) + shiftNow());
     bar.querySelectorAll('[data-act="set"]').forEach(b => {
       const pc = +b.dataset.pc;
@@ -3092,9 +3109,86 @@ details.hint li { margin: 3px 0; }
     rerender(which);
     select(which, k, true);
   }
+  // ---------- Selecting several notes (like files on a desktop) ----------
+  let noteClip = null; // copied notes
+  function selIdxs(which) {
+    if (!selState || selState.list !== which) return [];
+    const list = getList(which), set = selState.multi && selState.multi.size ? selState.multi : new Set([selState.idx]);
+    return [...set].filter(i => isNote(list[i])).sort((a, b) => a - b);
+  }
+  function noteIdxs(which) { return getList(which).map((x, i) => isNote(x) ? i : -1).filter(i => i >= 0); }
+  function paintSel(which) {
+    const set = new Set(selIdxs(which));
+    seqFor(which).querySelectorAll(".chip[data-i]").forEach(c => c.classList.toggle("selected", set.has(+c.dataset.i)));
+  }
+  function selectMany(which, idxs, focus, keepAnchor) {
+    idxs = [...new Set(idxs)].sort((a, b) => a - b);
+    if (!idxs.length) { deselect(); return; }
+    if (idxs.length === 1) { const a = keepAnchor && selState ? selState.anchor : undefined; select(which, idxs[0], false); if (a !== undefined) selState.anchor = a; return; }
+    const anchor = keepAnchor && selState && selState.list === which ? selState.anchor : focus;
+    const other = which === "mel" ? "song" : "mel";
+    selState = { list: which, idx: focus, anchor, multi: new Set(idxs) };
+    paintSel(which);
+    if (!seqFor(other).hidden) seqFor(other).querySelectorAll(".chip.selected").forEach(c => c.classList.remove("selected"));
+    updateEditbar(which); updateEditbar(other);
+  }
+  function rangeBetween(which, a, b) { const lo = Math.min(a, b), hi = Math.max(a, b); return noteIdxs(which).filter(i => i >= lo && i <= hi); }
+  function groupOutOfRange(which, idxs, semis) {
+    const list = getList(which), lim = pitchLimits();
+    const out = k => idxs.filter(i => pitchOf(list[i]) + k < lim.lo || pitchOf(list[i]) + k > lim.hi).length;
+    return Math.max(0, out(semis) - out(0));
+  }
+  function tidyBars(list) { for (let k = list.length - 1; k >= 0; k--) if (list[k] === "|" && (k === 0 || k === list.length - 1 || list[k - 1] === "|")) list.splice(k, 1); }
+  function multiAct(which, a) {
+    if (which === "song" && (!currentSong() || isPreview())) return;
+    const list = getList(which), idxs = selIdxs(which);
+    const clone = x => JSON.parse(JSON.stringify(x));
+    if (a === "mpaste") {
+      if (!noteClip || !noteClip.length) return;
+      const at = idxs.length ? idxs[idxs.length - 1] + 1 : list.length;
+      remember(which); list.splice(at, 0, ...clone(noteClip)); rerender(which);
+      selectMany(which, noteClip.map((_, k) => at + k), at + noteClip.length - 1);
+      toast("Pasted " + noteClip.length + " note" + (noteClip.length === 1 ? "" : "s")); return;
+    }
+    if (!idxs.length) return;
+    if (a === "mplay") { playChips(idxs.map(i => seqFor(which).querySelector('.chip[data-i="' + i + '"]')).filter(Boolean), null); return; }
+    if (a === "mcopy" || a === "mcut") {
+      noteClip = idxs.map(i => clone(list[i]));
+      try { navigator.clipboard && navigator.clipboard.writeText(itemsToText(noteClip)); } catch (e) {}
+      if (a === "mcopy") { toast("Copied " + idxs.length + " note" + (idxs.length === 1 ? "" : "s")); updateEditbar(which); return; }
+    }
+    if (a === "mdel" || a === "mcut") {
+      remember(which);
+      idxs.slice().reverse().forEach(i => list.splice(i, 1)); tidyBars(list);
+      selState = null; rerender(which); updateEditbar(which);
+      toast((a === "mcut" ? "Cut " : "Deleted ") + idxs.length + " note" + (idxs.length === 1 ? "" : "s")); return;
+    }
+    if (a === "mdup") {
+      const at = idxs[idxs.length - 1] + 1, copy = idxs.map(i => clone(list[i]));
+      remember(which); list.splice(at, 0, ...copy); rerender(which);
+      selectMany(which, copy.map((_, k) => at + k), at + copy.length - 1);
+      toast("Duplicated " + copy.length + " note" + (copy.length === 1 ? "" : "s")); return;
+    }
+    const semis = { mup: 1, mdown: -1, moctup: 12, moctdown: -12 }[a];
+    if (semis) {
+      const bad = groupOutOfRange(which, idxs, semis);
+      if (bad) { toast("⚠ That would put " + bad + " note" + (bad === 1 ? "" : "s") + " out of range for " + inst().name); return; }
+      remember(which);
+      idxs.forEach(i => {
+        let x = withPitch(list[i], pitchOf(list[i]) + semis);
+        const ch = chordOf(x);
+        if (ch && !ch.on && semis % 12) x = withChord(x, Object.assign({}, ch, { root: (((ch.root + semis) % 12) + 12) % 12 }));
+        list[i] = x;
+      });
+      const keep = { focus: selState.idx, anchor: selState.anchor };
+      rerender(which);
+      selectMany(which, idxs, keep.focus); if (selState) selState.anchor = keep.anchor;
+      const first = seqFor(which).querySelector('.chip[data-i="' + idxs[0] + '"]'); if (first) playChips([first], null);
+    }
+  }
   function select(which, idx, play) {
     const other = which === "mel" ? "song" : "mel";
-    selState = { list: which, idx };
+    selState = { list: which, idx, anchor: idx };
     seqFor(which).querySelectorAll(".chip").forEach(c => c.classList.toggle("selected", +c.dataset.i === idx));
     if (!seqFor(other).hidden) seqFor(other).querySelectorAll(".chip.selected").forEach(c => c.classList.remove("selected"));
     updateEditbar(which); updateEditbar(other);
@@ -3200,6 +3294,13 @@ details.hint li { margin: 3px 0; }
     + '<div class="ep-type"><span class="ep-t2">Chord type</span><div class="ep-types">' + ["maj", "m", "7", "maj7", "m7", "dim", "aug", "sus2", "sus4"].map(k => '<button type="button" data-act="ctype" data-type="' + k + '">' + CHORDS[k].name + '</button>').join("") + '</div></div>'
     + '</details>';
   document.querySelectorAll(".editpanel .ep-del").forEach(d => d.insertAdjacentHTML("beforebegin", CHORD_UI));
+  const MULTI_UI = '<div class="ep-multi">'
+    + '<button type="button" data-act="mplay" class="ep-wide">▶ Play them</button>'
+    + '<div class="ep-sec"><span class="ep-t">Move pitch</span><div class="ep-grid"><button type="button" data-act="mdown" title="Half step lower (↓)">▼ Lower</button><button type="button" data-act="mup" title="Half step higher (↑)">▲ Higher</button><button type="button" data-act="moctdown" title="Octave lower (Shift+↓)">Octave ▼</button><button type="button" data-act="moctup" title="Octave higher (Shift+↑)">Octave ▲</button></div></div>'
+    + '<div class="ep-sec"><span class="ep-t">Edit</span><div class="ep-grid"><button type="button" data-act="mcopy" title="Ctrl+C">⧉ Copy</button><button type="button" data-act="mcut" title="Ctrl+X">✂ Cut</button><button type="button" data-act="mdup" title="Ctrl+D">＋ Duplicate</button><button type="button" data-act="mpaste" title="Ctrl+V">📋 Paste after</button></div></div>'
+    + '<button type="button" data-act="mdel" class="ep-del ep-mdel">🗑 Delete notes</button>'
+    + '<p class="ep-keys">Ctrl+click: add or remove · Shift+click: select a range · drag a box on empty space · Ctrl+A: all · Esc: clear</p></div>';
+  document.querySelectorAll(".editpanel .ep-head").forEach(h => h.insertAdjacentHTML("afterend", MULTI_UI));
   function chordSuggestions(x) {
     const np = ((soundingMidi(x) % 12) + 12) % 12, out = [];
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].forEach(r => ["maj", "m"].forEach(t => { if (CHORDS[t].iv.includes((np - r + 12) % 12)) out.push({ root: r, type: t }); }));
@@ -3229,6 +3330,7 @@ details.hint li { margin: 3px 0; }
   }
   function playSelected(which) {
     if (!selState || selState.list !== which) return;
+    if (selState.multi && selState.multi.size > 1) { multiAct(which, "mplay"); return; }
     const chip = seqFor(which).querySelector('.chip[data-i="' + selState.idx + '"]');
     if (chip) playChips([chip], null);
   }
@@ -3237,6 +3339,7 @@ details.hint li { margin: 3px 0; }
     const b = e.target.closest("button[data-act]"); if (!b || b.disabled) return;
     const which = bar.closest(".mel-layout").querySelector(".seq").dataset.list;
     const a = b.dataset.act;
+    if (/^m(play|up|down|octup|octdown|copy|cut|dup|paste|del)$/.test(a)) { multiAct(which, a); return; }
     act(which, a === "set" ? "set:" + b.dataset.pc
       : a === "croot" ? "croot:" + b.dataset.pc
       : a === "ctype" ? "ctype:" + b.dataset.type
@@ -3248,14 +3351,84 @@ details.hint li { margin: 3px 0; }
     if (ins && ins.closest(".seq")) { if (ins.closest(".seq").dataset.list === "song" && isPreview()) return; insertAt(ins.closest(".seq").dataset.list, +ins.dataset.ins); return; }
     const c = e.target.closest(".chip[data-i]");
     if (c && c.closest("#prNotes")) { playChips([c], null); return; }
-    if (c) { const which = c.closest(".seq").dataset.list; if (which === "song" && isPreview()) { playChips([c], null); return; } select(which, +c.dataset.i, true); return; }
+    if (c) {
+      const which = c.closest(".seq").dataset.list, i = +c.dataset.i;
+      if (which === "song" && isPreview()) { playChips([c], null); return; }
+      const same = selState && selState.list === which;
+      if ((e.ctrlKey || e.metaKey) && same) { // add or remove this note
+        const set = new Set(selIdxs(which)), had = set.has(i);
+        if (had) set.delete(i); else set.add(i);
+        if (!set.size) { deselect(); return; }
+        selectMany(which, [...set], had ? [...set][set.size - 1] : i, true);
+        if (!had) playChips([c], null);
+        return;
+      }
+      if (e.shiftKey && same) { selectMany(which, rangeBetween(which, selState.anchor != null ? selState.anchor : selState.idx, i), i, true); return; }
+      select(which, i, true); return;
+    }
     if (!e.target.isConnected) return; // the clicked button was redrawn by its own action
     if (selState && !e.target.closest(".editpanel") && !e.target.closest(".seq") && !e.target.closest("#playMel,#playSong,.menu-wrap")) deselect();
+  });
+  let boxSel = null;
+  document.addEventListener("pointerdown", e => {
+    if (e.button !== 0 || e.pointerType === "touch") return;
+    const seq = e.target.closest(".seq[data-list]");
+    if (!seq || e.target.closest(".chip, button, a")) return;
+    const which = seq.dataset.list;
+    if (which === "song" && (isPreview() || !currentSong())) return;
+    boxSel = { which, seq, x0: e.clientX, y0: e.clientY, add: e.ctrlKey || e.metaKey, base: (e.ctrlKey || e.metaKey) ? selIdxs(which) : [], moved: false, el: null };
+    e.preventDefault();
+  });
+  document.addEventListener("pointermove", e => {
+    if (!boxSel) return;
+    const b = boxSel, x1 = Math.min(b.x0, e.clientX), y1 = Math.min(b.y0, e.clientY), x2 = Math.max(b.x0, e.clientX), y2 = Math.max(b.y0, e.clientY);
+    if (!b.moved && x2 - x1 < 5 && y2 - y1 < 5) return;
+    if (!b.moved) { b.moved = true; b.el = document.createElement("div"); b.el.className = "sel-box"; document.body.appendChild(b.el); document.body.classList.add("box-selecting"); }
+    Object.assign(b.el.style, { left: x1 + "px", top: y1 + "px", width: (x2 - x1) + "px", height: (y2 - y1) + "px" });
+    b.hits = [];
+    b.seq.querySelectorAll(".chip[data-i]").forEach(c => {
+      const r = c.getBoundingClientRect(), hit = r.left < x2 && r.right > x1 && r.top < y2 && r.bottom > y1;
+      c.classList.toggle("boxing", hit); if (hit) b.hits.push(+c.dataset.i);
+    });
+  });
+  document.addEventListener("pointerup", e => {
+    if (!boxSel) return;
+    const b = boxSel; boxSel = null;
+    document.body.classList.remove("box-selecting");
+    if (b.el) b.el.remove();
+    b.seq.querySelectorAll(".chip.boxing").forEach(c => c.classList.remove("boxing"));
+    if (!b.moved) { if (!b.add && selState && selState.list === b.which) deselect(); return; } // a plain click on empty space clears
+    const all = b.add ? b.base.concat(b.hits || []) : (b.hits || []);
+    if (all.length) selectMany(b.which, all, Math.max(...all)); else if (!b.add) deselect();
   });
   // Keyboard: arrows move/adjust the selected note
   document.addEventListener("keydown", e => {
     const t = e.target;
     if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT" || t.tagName === "SELECT")) return;
+    const ctrl = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+    if (ctrl && !e.altKey && ["a", "c", "x", "v", "d"].includes(k)) {
+      const which = selState ? selState.list : context();
+      if (!which || (which === "song" && isPreview())) return;
+      if (["c", "x", "d"].includes(k) && !selState) return; // nothing picked: leave normal copy alone
+      if (k === "v" && !noteClip) return;
+      e.preventDefault();
+      if (k === "a") { const all = noteIdxs(which); if (all.length) selectMany(which, all, all[all.length - 1]); return; }
+      multiAct(which, { c: "mcopy", x: "mcut", v: "mpaste", d: "mdup" }[k]); return;
+    }
+    if (selState && e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) { // grow / shrink the selection
+      const which = selState.list, all = noteIdxs(which), pos = all.indexOf(selState.idx), next = all[pos + (e.key === "ArrowRight" ? 1 : -1)];
+      if (next === undefined) return;
+      e.preventDefault();
+      selectMany(which, rangeBetween(which, selState.anchor != null ? selState.anchor : selState.idx, next), next, true);
+      const c = seqFor(which).querySelector('.chip[data-i="' + next + '"]'); if (c) { c.scrollIntoView({ block: "nearest" }); playChips([c], null); }
+      return;
+    }
+    if (selState && selState.multi && selState.multi.size > 1) {
+      const map = { ArrowUp: e.shiftKey ? "moctup" : "mup", ArrowDown: e.shiftKey ? "moctdown" : "mdown", Delete: "mdel", Backspace: "mdel" };
+      if (map[e.key]) { e.preventDefault(); multiAct(selState.list, map[e.key]); return; }
+      if (e.key === "Escape") { e.preventDefault(); deselect(); return; }
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); const w = selState.list, f = selState.idx; select(w, f, false); act(w, e.key === "ArrowRight" ? "next" : "prev"); return; }
+    }
     if (!selState) { // nothing picked yet: ← / → start at the last / first note
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       const which = context(); if (!which || (which === "song" && isPreview())) return;
