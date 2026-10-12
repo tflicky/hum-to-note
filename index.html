@@ -266,6 +266,17 @@ details.ep-chord > summary .ep-t { margin: 0; }
 details.ep-chord > summary .ep-chsum { margin-left: auto; font-weight: 800; font-size: .9rem; }
 details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass); }
 /* Practice mode */
+.pr-nav { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 14px; }
+.pr-home-h { font-size: 1.05rem; margin: 22px 0 10px; }
+.pr-card { align-items: flex-start; }
+.pc-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.pc-bar { display: block; height: 8px; border-radius: 4px; background: var(--bg); overflow: hidden; margin: 2px 0; }
+.pc-bar i { display: block; height: 100%; background: var(--good); border-radius: 4px; }
+.pr-card.big { width: 100%; padding: 18px 20px; border-color: var(--brass); background: var(--brass-soft); }
+.pr-card.big .emo { font-size: 2.4rem; }
+.pr-card.big .nm { font-size: 1.3rem; }
+.pc-kicker { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--brass); }
+.pc-next { font-weight: 700; color: var(--ink); }
 .pr-overall { display: flex; align-items: center; gap: 10px; font-size: .9rem; font-weight: 700; color: var(--muted); }
 .pr-bar { width: 140px; height: 10px; border-radius: 5px; background: var(--bg); overflow: hidden; }
 .pr-bar i { display: block; height: 100%; width: 0; background: var(--good); border-radius: 5px; transition: width .3s; }
@@ -274,7 +285,7 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .pr-step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }
 .pr-step-head h3 { margin: 0; font-size: 1.3rem; }
 .pr-notes { max-height: 300px; overflow-y: auto; }
-.pr-notes .chip { pointer-events: none; }
+.pr-notes .chip { cursor: pointer; }
 .pr-notes .ins { display: none; }
 .pr-streak { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 16px 0 12px; font-weight: 700; }
 .pr-dots { display: inline-flex; gap: 8px; }
@@ -519,6 +530,7 @@ details.hint li { margin: 3px 0; }
     <nav class="tabs" role="tablist">
       <button class="tab active" id="tab-hum" role="tab" aria-selected="true" type="button">Hum</button>
       <button class="tab" id="tab-songs" role="tab" aria-selected="false" type="button">Songs</button>
+      <button class="tab" id="tab-practice" role="tab" aria-selected="false" type="button">Practice</button>
     </nav>
     <div class="instpick">
       <span class="instlab">Instrument</span>
@@ -799,8 +811,17 @@ details.hint li { margin: 3px 0; }
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- PRACTICE TAB -->
+  <section id="view-practice" hidden>
+    <div id="practiceHome">
+      <div id="prContinue"></div>
+      <div id="prPracticed"></div>
+      <div id="prOthers"></div>
+    </div>
     <div id="songPractice" hidden>
-      <button id="practiceBack" type="button" class="link">← Back to the song</button>
+      <div class="pr-nav"><button id="practiceHomeBtn" type="button" class="link">← All practice</button><button id="practiceBack" type="button" class="link">Open this song in Songs →</button></div>
       <div class="card practice">
         <div class="row-head">
           <h2 id="prTitle">🎯 Practice</h2>
@@ -2007,21 +2028,21 @@ details.hint li { margin: 3px 0; }
   }
 
   function showTab(which) {
-    const hum = which === "hum";
-    if (hum && running && recTarget === "song") stop();
-    if (hum && typeof loadMelSong === "function") loadMelSong();
-    $("view-hum").hidden = !hum; $("view-songs").hidden = hum;
-    $("tab-hum").classList.toggle("active", hum); $("tab-songs").classList.toggle("active", !hum);
-    $("tab-hum").setAttribute("aria-selected", hum); $("tab-songs").setAttribute("aria-selected", !hum);
+    if (which !== "songs" && running && recTarget === "song") stop();
+    if (which === "hum" && typeof loadMelSong === "function") loadMelSong();
+    if (which !== "practice" && typeof metro !== "undefined" && metro.on) stopMetro();
+    ["hum", "songs", "practice"].forEach(t => {
+      $("view-" + t).hidden = t !== which;
+      $("tab-" + t).classList.toggle("active", t === which); $("tab-" + t).setAttribute("aria-selected", t === which);
+    });
     closeViewPop(); refit();
-    if (!hum && $("songView").hidden && $("songPractice").hidden) showSongHome();
-    if (hum && typeof metro !== "undefined" && metro.on) stopMetro();
+    if (which === "songs" && $("songView").hidden) showSongHome();
+    if (which === "practice" && $("songPractice").hidden) showPracticeHome();
   }
   function showPanel(name) {
     if (selState && selState.list === "song") { selState = null; }
     if (running && recTarget === "song") stop();
-    if (name !== "practice" && typeof metro !== "undefined" && metro.on) stopMetro();
-    $("songHome").hidden = name !== "home"; $("songView").hidden = name !== "view"; $("songPractice").hidden = name !== "practice";
+    $("songHome").hidden = name !== "home"; $("songView").hidden = name !== "view";
   }
   function songCard(sg, showFolder) {
     const k = picked.indexOf(sg.id);
@@ -2800,7 +2821,7 @@ details.hint li { margin: 3px 0; }
   }
   function context() {
     if (!$("view-hum").hidden) return "mel";
-    if (!$("songView").hidden && openId) return "song";
+    if (!$("view-songs").hidden && !$("songView").hidden && openId) return "song";
     return null;
   }
   let toastTimer = null;
@@ -3103,6 +3124,7 @@ details.hint li { margin: 3px 0; }
     const ins = e.target.closest("[data-ins]");
     if (ins && ins.closest(".seq")) { if (ins.closest(".seq").dataset.list === "song" && isPreview()) return; insertAt(ins.closest(".seq").dataset.list, +ins.dataset.ins); return; }
     const c = e.target.closest(".chip[data-i]");
+    if (c && c.closest("#prNotes")) { playChips([c], null); return; }
     if (c) { const which = c.closest(".seq").dataset.list; if (which === "song" && isPreview()) { playChips([c], null); return; } select(which, +c.dataset.i, true); return; }
     if (!e.target.isConnected) return; // the clicked button was redrawn by its own action
     if (selState && !e.target.closest(".editpanel") && !e.target.closest(".seq") && !e.target.closest("#playMel,#playSong,.menu-wrap")) deselect();
@@ -3469,7 +3491,8 @@ details.hint li { margin: 3px 0; }
     savePractice();
     pr = { sg, d, key: null, streak: 0, streakBpm: 0, undo: null };
     pr.key = nextStep(d) || prSteps(d)[0];
-    showPanel("practice");
+    $("practiceHome").hidden = true; $("songPractice").hidden = false;
+    showTab("practice");
     $("prTitle").textContent = "🎯 " + sg.name;
     $("prBanner").hidden = !msgs.length; $("prBanner").textContent = msgs.join(" ");
     $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false;
@@ -3633,7 +3656,41 @@ details.hint li { margin: 3px 0; }
   }
 
   $("practiceSong").addEventListener("click", () => { const sg = currentSong(); if (sg && !isPreview()) openPractice(sg.id); });
-  $("practiceBack").addEventListener("click", () => { const id = pr && pr.sg.id; pr = null; if (id) openSong(id, true); else showSongHome(); });
+  $("practiceBack").addEventListener("click", () => { const id = pr && pr.sg.id; showTab("songs"); if (id) openSong(id, true); });
+  $("practiceHomeBtn").addEventListener("click", showPracticeHome);
+  // Practice tab: tapping it again (or "All practice") shows the list; coming from another tab resumes where you were
+  $("tab-practice").addEventListener("click", () => {
+    const already = !$("view-practice").hidden;
+    showTab("practice");
+    if (already || !pr || !songs.some(x => x.id === pr.sg.id)) showPracticeHome();
+    else { renderPractice(); }
+  });
+  const lastPracticed = d => d.history.length ? d.history[d.history.length - 1].t : (d.started || 0);
+  function practiceCard(sg, d, big) {
+    const keys = prSteps(d), done = keys.filter(k => passed(d, k)).length, pct = Math.round(done / keys.length * 100), nx = nextStep(d);
+    const meta = done + " of " + keys.length + " steps" + (d.history.length ? " · last practiced " + fmtDay(lastPracticed(d)) : "");
+    return '<button type="button" class="song-card pr-card' + (big ? " big" : "") + '" data-practice="' + sg.id + '"><span class="emo" aria-hidden="true">' + songIcon(sg) + '</span>'
+      + '<span class="pc-body">' + (big ? '<span class="pc-kicker">▶ Continue where you left off</span>' : '') + '<span class="nm">' + esc(sg.name) + '</span>'
+      + '<span class="pc-bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span><span class="ct">' + meta + '</span>'
+      + (big && nx ? '<span class="pc-next">Next: ' + stepName(d, nx) + '</span>' : big && done === keys.length ? '<span class="pc-next">Every step passed 🎉 Try it faster!</span>' : '') + '</span></button>';
+  }
+  function showPracticeHome() {
+    if (typeof metro !== "undefined" && metro.on) stopMetro();
+    $("songPractice").hidden = true; $("practiceHome").hidden = false;
+    const withNotes = songs.filter(sg => sg.items.some(isNote));
+    const started = withNotes.filter(sg => practice[sg.id]).map(sg => ({ sg, d: practice[sg.id] })).sort((x, y) => lastPracticed(y.d) - lastPracticed(x.d));
+    const fresh = withNotes.filter(sg => !practice[sg.id]);
+    $("prContinue").innerHTML = started.length ? practiceCard(started[0].sg, started[0].d, true) : "";
+    $("prPracticed").innerHTML = started.length > 1 ? '<h2 class="pr-home-h">Your practice</h2><div class="song-grid">' + started.slice(1).map(e => practiceCard(e.sg, e.d)).join("") + '</div>' : "";
+    $("prOthers").innerHTML = !withNotes.length
+      ? '<div class="empty-songs">No songs to practice yet. Make one in <button type="button" class="link" data-gosongs>Songs</button>, or remix one from the song library.</div>'
+      : fresh.length ? '<h2 class="pr-home-h">' + (started.length ? "Start practicing another song" : "Pick a song to practice") + '</h2><div class="song-grid">'
+        + fresh.map(sg => '<button type="button" class="song-card" data-practice="' + sg.id + '"><span class="emo" aria-hidden="true">' + songIcon(sg) + '</span><span><span class="nm">' + esc(sg.name) + '</span><span class="ct">' + noteCount(sg.items) + ' notes</span></span></button>').join("") + '</div>' : "";
+  }
+  $("practiceHome").addEventListener("click", e => {
+    const b = e.target.closest("[data-practice]"); if (b) { openPractice(b.dataset.practice); return; }
+    if (e.target.closest("[data-gosongs]")) { showTab("songs"); showSongHome(); }
+  });
   $("prStepList").addEventListener("click", e => { const b = e.target.closest("[data-step]"); if (b) pickStep(b.dataset.step); });
   $("prStreak").addEventListener("click", e => { const b = e.target.closest("[data-step]"); if (b) pickStep(b.dataset.step); });
   $("prClean").addEventListener("click", () => tapResult(true));
