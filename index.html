@@ -204,6 +204,7 @@ details[open] > summary::before { transform: rotate(90deg); }
 .viewbtn { padding: 5px 10px; font-size: .85rem; }
 .viewpop { position: absolute; z-index: 60; width: min(320px, calc(100vw - 24px)); background: var(--panel); border: 1.5px solid var(--line); border-radius: 16px; padding: 14px; box-shadow: 0 12px 36px rgba(0,0,0,.18); display: flex; flex-direction: column; gap: 10px; }
 .viewpop[hidden] { display: none; }
+#viewPop[data-ctx="practice"] .vp-song, #viewPop:not([data-ctx="practice"]) .vp-pr { display: none; }
 .vp-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .vp-lab { font-size: .85rem; font-weight: 700; color: var(--muted); min-width: 70px; }
 .vp-row input[type=range] { flex: 1; accent-color: var(--brass); }
@@ -334,8 +335,8 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .pr-notes.names-only .chip .fing, .pr-notes.names-only .chip .chordpill { display: none; }
 .pr-notes.names-only .chip { padding: 10px 12px; font-size: 1.15rem; min-width: 52px; }
 .pr-notes-hint { margin: 6px 0 0; }
-.pr-notes.names-only .sec-title { flex-basis: auto; align-self: center; margin: 0 2px 0 8px; padding: 2px 8px; border: none; border-radius: 999px; background: var(--brass-soft); font-size: .75rem; }
-.pr-notes.names-only .sec-title:first-child { margin-left: 0; }
+.pr-notes .sec-title { flex-basis: auto; align-self: center; margin: 0 2px 0 8px; padding: 2px 8px; border: none; border-radius: 999px; background: var(--brass-soft); font-size: .75rem; }
+.pr-notes .sec-title:first-child { margin-left: 0; }
 .pr-notes .chip { cursor: pointer; }
 .pr-notes .ins { display: none; }
 .pr-streak { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 16px 0 12px; font-weight: 700; }
@@ -884,7 +885,7 @@ details.hint li { margin: 3px 0; }
       <div class="card practice">
         <div class="row-head">
           <h2 id="prTitle">🎯 Practice</h2>
-          <div class="pr-overall"><span id="prStreakBadge" class="pr-streak-badge" title="Days practiced in a row"></span><span id="prOverallText"></span><span class="pr-bar" aria-hidden="true"><i id="prBarFill"></i></span></div>
+          <div class="pr-overall"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍 View ▾</button></span><span id="prStreakBadge" class="pr-streak-badge" title="Days practiced in a row"></span><span id="prOverallText"></span><span class="pr-bar" aria-hidden="true"><i id="prBarFill"></i></span></div>
         </div>
         <p id="prBanner" class="pr-banner" role="status" hidden></p>
         <div id="prMainWrap" class="pr-layout">
@@ -941,12 +942,14 @@ details.hint li { margin: 3px 0; }
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <div id="viewPop" class="viewpop" role="dialog" aria-label="View options" hidden>
   <div class="vp-row"><label class="vp-lab" for="vZoom">Note size</label><input id="vZoom" type="range" min="30" max="160" step="5"><output id="vZoomOut"></output></div>
-  <label class="check"><input type="checkbox" id="vFit"> Fit the whole song on the screen</label>
+  <label class="check vp-song"><input type="checkbox" id="vFit"> Fit the whole song on the screen</label>
+  <label class="check vp-pr"><input type="checkbox" id="vPrFit"> Shrink notes so they fit above the buttons</label>
   <div class="vp-row"><span class="vp-lab">Spacing</span><div id="vGap" class="seg"><button type="button" data-gap="tight">Tight</button><button type="button" data-gap="normal">Normal</button><button type="button" data-gap="roomy">Roomy</button></div></div>
   <label class="check"><input type="checkbox" id="vFing"> Show fingering pictures</label>
   <label class="check"><input type="checkbox" id="vTitles"> Show part titles and bar lines</label>
-  <label class="check"><input type="checkbox" id="vPanel"> Keep the edit panel beside the notes</label>
-  <p class="fine" style="margin:2px 0 0">With the panel off, it pops up only when you tap a note.</p>
+  <label class="check vp-song"><input type="checkbox" id="vPanel"> Keep the edit panel beside the notes</label>
+  <p class="fine vp-song" style="margin:2px 0 0">With the panel off, it pops up only when you tap a note.</p>
+  <p class="fine vp-pr" style="margin:2px 0 0">Turn it off to see every note at full size and scroll the page instead.</p>
   <button type="button" id="vReset" class="link">Reset view</button>
 </div>
 <dialog id="mergeDlg" class="dlg" aria-labelledby="mergeTitle">
@@ -2913,7 +2916,7 @@ details.hint li { margin: 3px 0; }
     undoRedo(which, k === "y" || e.shiftKey);
   });
   // ---------- View options (saved in this browser) ----------
-  const VIEW_DEFAULT = { zoom: 100, fit: false, gap: "normal", fing: true, titles: true, panel: true };
+  const VIEW_DEFAULT = { zoom: 100, fit: false, gap: "normal", fing: true, titles: true, panel: true, prFit: true };
   let VIEW = Object.assign({}, VIEW_DEFAULT);
   try { Object.assign(VIEW, JSON.parse(localStorage.getItem("htn-view") || "{}")); } catch (e) {}
   const saveView = () => { try { localStorage.setItem("htn-view", JSON.stringify(VIEW)); } catch (e) {} };
@@ -2938,18 +2941,19 @@ details.hint li { margin: 3px 0; }
     const b = document.body.classList;
     b.toggle("v-tight", VIEW.gap === "tight"); b.toggle("v-roomy", VIEW.gap === "roomy");
     b.toggle("v-nofing", !VIEW.fing); b.toggle("v-notitles", !VIEW.titles); b.toggle("v-floatpanel", !VIEW.panel);
-    $("vFit").checked = VIEW.fit; $("vFing").checked = VIEW.fing; $("vTitles").checked = VIEW.titles; $("vPanel").checked = VIEW.panel;
+    $("vFit").checked = VIEW.fit; $("vPrFit").checked = VIEW.prFit !== false; $("vFing").checked = VIEW.fing; $("vTitles").checked = VIEW.titles; $("vPanel").checked = VIEW.panel;
     $("vGap").querySelectorAll("button").forEach(x => x.classList.toggle("active", x.dataset.gap === VIEW.gap));
     if (VIEW.fit) fitNow(scroll);
     else { document.documentElement.style.setProperty("--chip-zoom", VIEW.zoom / 100); $("vZoom").value = VIEW.zoom; $("vZoomOut").textContent = VIEW.zoom + "%"; }
     if (!VIEW.fit) ["seq", "songSeq"].forEach(id => $(id).style.removeProperty("--chip-zoom")); // drop sizes left over from fitting
-    if (typeof pr !== "undefined" && pr) fitPracticeNotes();
+    if (typeof pr !== "undefined" && pr) { fitPracticeNotes(); if ($("viewPop").dataset.ctx === "practice") { $("vZoom").value = VIEW.zoom; $("vZoomOut").textContent = VIEW.zoom + "%"; } }
   }
   function setView(patch, scroll) { Object.assign(VIEW, patch); saveView(); applyView(scroll); }
   function openViewPop(btn) {
     const pop = $("viewPop");
     if (!pop.hidden && pop.parentElement === btn.parentElement) { closeViewPop(); return; }
     btn.parentElement.appendChild(pop);
+    pop.dataset.ctx = btn.closest("#songPractice") ? "practice" : "song";
     pop.style.right = "0"; pop.style.top = "calc(100% + 8px)";
     pop.hidden = false; document.querySelectorAll(".viewbtn").forEach(x => x.setAttribute("aria-expanded", x === btn));
     applyView();
@@ -2961,8 +2965,9 @@ details.hint li { margin: 3px 0; }
     if (!$("viewPop").hidden && !e.target.closest("#viewPop")) closeViewPop();
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("viewPop").hidden) closeViewPop(); });
-  $("vZoom").addEventListener("input", e => setView({ zoom: +e.target.value, fit: false }));
+  $("vZoom").addEventListener("input", e => setView($("viewPop").dataset.ctx === "practice" ? { zoom: +e.target.value } : { zoom: +e.target.value, fit: false }));
   $("vFit").addEventListener("change", e => setView({ fit: e.target.checked }, true));
+  $("vPrFit").addEventListener("change", e => setView({ prFit: e.target.checked }));
   $("vGap").addEventListener("click", e => { const b = e.target.closest("[data-gap]"); if (b) setView({ gap: b.dataset.gap }); });
   $("vFing").addEventListener("change", e => setView({ fing: e.target.checked }));
   $("vTitles").addEventListener("change", e => setView({ titles: e.target.checked }));
@@ -3621,10 +3626,14 @@ details.hint li { margin: 3px 0; }
   // Shrink the notes until every one of them fits in the space above the buttons
   function fitPracticeNotes() {
     const el = $("prNotes"); if (!pr || el.offsetParent === null) return;
+    if (VIEW.prFit === false) { // no box: every note at the chosen size, the page scrolls
+      el.style.maxHeight = "none"; el.classList.remove("names-only"); el.style.setProperty("--chip-zoom", (VIEW.zoom || 100) / 100);
+      $("prNotesHint").hidden = true; return;
+    }
     // room left on screen (with the page scrolled to the top) once the buttons and metronome below are counted
     const phone = window.innerWidth <= 760, r = el.getBoundingClientRect();
-    const below = document.querySelector(".pr-controls .pr-metro").getBoundingClientRect().bottom - r.bottom;
-    const avail = Math.max(phone ? 110 : 200, Math.floor(window.innerHeight - (r.top + window.scrollY) - below - 40));
+    const below = $("prClean").getBoundingClientRect().bottom - r.bottom; // just the Clean / Mistake buttons need to stay in view
+    const avail = Math.max(phone ? 140 : 240, Math.floor(window.innerHeight - (r.top + window.scrollY) - below - 20));
     el.style.maxHeight = avail + "px";
     const MIN = 0.6, top = Math.max(MIN, (VIEW.zoom || 100) / 100);
     const fits = z => { el.style.setProperty("--chip-zoom", z); return el.scrollHeight <= avail; };
@@ -3635,11 +3644,16 @@ details.hint li { margin: 3px 0; }
     if (!ok && !prFingForced) { el.classList.add("names-only"); names = true; ok = fit(); }
     if (!ok) fits(MIN);
     $("prNotesHint").hidden = !names && !prFingForced;
-    $("prNotesHint").innerHTML = names ? 'Showing note names so the whole step fits · <button type="button" class="link" data-prfing="1">Show fingerings</button>'
-      : 'Fingerings shown (scroll to see every note) · <button type="button" class="link" data-prfing="0">Fit with note names</button>';
+    const box = !ok ? ' · <button type="button" class="link" data-prnofit>Show every note without the box</button>' : '';
+    $("prNotesHint").hidden = !names && !prFingForced && ok;
+    $("prNotesHint").innerHTML = (names ? 'Showing note names so the whole step fits · <button type="button" class="link" data-prfing="1">Show fingerings</button>'
+      : prFingForced ? 'Fingerings shown · <button type="button" class="link" data-prfing="0">Fit with note names</button>' : 'Scroll inside the box to see every note') + box;
   }
   let prFingForced = false;
-  document.addEventListener("click", e => { const b = e.target.closest("[data-prfing]"); if (b) { prFingForced = b.dataset.prfing === "1"; fitPracticeNotes(); } });
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-prfing]"); if (b) { prFingForced = b.dataset.prfing === "1"; fitPracticeNotes(); return; }
+    if (e.target.closest("[data-prnofit]")) { setView({ prFit: false }); toast("Showing every note · turn the box back on in 🔍 View"); }
+  });
   window.addEventListener("resize", () => { clearTimeout(window.__prFit); window.__prFit = setTimeout(fitPracticeNotes, 80); });
   function renderHistory() {
     const { d } = pr, days = {};
