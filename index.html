@@ -436,6 +436,7 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .sing-name { display: inline-flex; align-items: center; gap: 8px; }
 .sing-now .meter { width: 160px; }
 .sing-trace { flex: 1 1 220px; max-width: 360px; height: 90px; }
+.sing-btns { display: flex; flex-wrap: wrap; gap: 8px; }
 .sing-side { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; flex: 1 1 200px; }
 .singbar .check[hidden] { display: none; }
 .live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); animation: pulse 1.2s infinite; }
@@ -681,6 +682,7 @@ details.hint li { margin: 3px 0; }
       <div class="stage-btns">
         <button id="toggle" type="button" class="btn big primary">🎤 Start humming</button>
         <button id="undoLast" type="button" class="btn big" hidden disabled title="Remove the last note you sang (Backspace)">↩ Undo last note</button>
+        <button id="cancelHum" type="button" class="btn big" hidden title="Stop and throw away everything from this hum">✕ Cancel</button>
       </div>
 
       <details class="settings">
@@ -774,7 +776,7 @@ details.hint li { margin: 3px 0; }
           <button id="playSong" type="button" class="btn primary">▶ Play</button>
           <button id="editModeBtn" type="button" class="btn" aria-pressed="false">✏️ Edit</button>
           <button id="practiceSong" type="button" class="btn">🎯 Practice</button>
-          <button id="singSong" type="button" class="btn" title="Hum more notes into this song">🎤 Keep humming</button>
+          <button id="singSong" type="button" class="btn" title="Hum more notes into this song">🎤 Hum</button>
           <button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
           <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">🎚 Key<span class="wide-only"> &amp; octave</span> ▾</button>
             <div class="menu tp-menu" role="group" aria-label="Move every note" hidden>
@@ -826,7 +828,7 @@ details.hint li { margin: 3px 0; }
           <canvas id="songTrace" class="trace sing-trace" aria-hidden="true"></canvas>
           <div class="sing-side">
           <span class="fine" id="singWhere"></span>
-          <button id="undoSung" type="button" class="btn" disabled title="Remove the last note you sang (Backspace)">↩ Undo last note</button>
+          <span class="sing-btns"><button id="undoSung" type="button" class="btn" disabled title="Remove the last note you sang (Backspace)">↩ Undo last note</button><button id="cancelSung" type="button" class="btn" title="Stop and remove every note from this hum">✕ Cancel this hum</button></span>
           <label class="check" id="carryChordRow" title="If the note before has a chord, each note you sing gets that same chord"><input type="checkbox" id="carryChord"> Give each new note the chord of the note before it</label>
           </div>
         </div>
@@ -1557,7 +1559,17 @@ details.hint li { margin: 3px 0; }
     return vals.length >= 2 ? modeNote(vals) : null;
   }
   // Where sung notes go: "mel" (the Hum tab) or "song" (Sing more on an open song, from recPos on)
-  let recTarget = "mel", recPos = 0, sungCount = 0;
+  let recTarget = "mel", recPos = 0, sungCount = 0, humSnap = null;
+  // ✕ Cancel: stop and throw away every note from this hum (on a song, it goes back to how it was)
+  function cancelHum() {
+    if (!running) return;
+    const which = recTarget, had = sungCount;
+    stop();
+    if (which === "mel") { melody.length = 0; histMel.undo.length = 0; histMel.redo.length = 0; renderSeq(); toast("Hum canceled. Nothing was saved"); return; }
+    const sg = currentSong(); if (!sg || !had || humSnap === null) { toast("Hum canceled"); return; }
+    remember("song"); sg.items = JSON.parse(humSnap); rerender("song");
+    toast("Hum canceled. The song is back how it was (↩ Undo brings the notes back)");
+  }
   // ↩ Undo last note while humming: takes back the most recent note you sang (only notes from this time)
   function undoLastSung() {
     if (!running || !sungCount) return;
@@ -1570,7 +1582,7 @@ details.hint li { margin: 3px 0; }
     rerender(which); updateUndoSung();
   }
   function updateUndoSung() {
-    $("undoLast").hidden = !(running && recTarget === "mel");
+    $("undoLast").hidden = $("cancelHum").hidden = !(running && recTarget === "mel");
     $("undoLast").disabled = !sungCount; $("undoSung").disabled = !sungCount;
   }
   function carriedChord(list, k) { // the chord on the closest earlier note, to keep it going
@@ -1719,6 +1731,7 @@ details.hint li { margin: 3px 0; }
     src.connect(hp); hp.connect(lp); lp.connect(analyser);
     traceBuf.length = 0; $("trace").hidden = false;
     noiseFloor = 0.002; quietFor = 0; lastOnset = -1e9; envPeak = envValley = 0; endSeg(); listenStart = performance.now(); envHist = [];
+    humSnap = JSON.stringify(getList(recTarget)); // to put things back if you cancel
     running = true; sungCount = 0; updateUndoSung();
     if (recTarget === "mel") { toggle.textContent = "■ Stop & edit song"; toggle.classList.add("live"); toggle.classList.remove("primary"); }
     metaEl.textContent = "Listening…";
@@ -1737,9 +1750,11 @@ details.hint li { margin: 3px 0; }
     needle.style.left = "50%"; renderStage(null);
     stopSongUI();
   }
-  function stopSongUI() { $("singBar").hidden = true; $("singSong").textContent = "🎤 Keep humming"; $("singSong").classList.remove("live"); }
+  function stopSongUI() { $("singBar").hidden = true; $("singSong").textContent = "🎤 Hum"; $("singSong").classList.remove("live"); }
   $("undoLast").addEventListener("click", undoLastSung);
   $("undoSung").addEventListener("click", undoLastSung);
+  $("cancelHum").addEventListener("click", cancelHum);
+  $("cancelSung").addEventListener("click", cancelHum);
   document.addEventListener("keydown", e => { // Backspace while humming = undo the last note
     if (!running || !sungCount || (e.key !== "Backspace" && e.key !== "Delete") || isTyping(e.target) || selState) return;
     e.preventDefault(); e.stopImmediatePropagation(); undoLastSung();
@@ -2136,6 +2151,7 @@ details.hint li { margin: 3px 0; }
     if (which !== "songs" && running && recTarget === "song") stop();
     if (which !== "hum" && running && recTarget === "mel") { stop(); finishHum(false); } // leaving mid-hum keeps the notes as a song
     if (which !== "practice" && typeof metro !== "undefined" && metro.on) stopMetro();
+    if (which !== "songs" && dropUntouchedDraft()) showSongHome();
     ["hum", "songs", "practice"].forEach(t => {
       $("view-" + t).hidden = t !== which;
       $("tab-" + t).classList.toggle("active", t === which); $("tab-" + t).setAttribute("aria-selected", t === which);
@@ -2167,6 +2183,7 @@ details.hint li { margin: 3px 0; }
     return '<button type="button" class="song-card folder-card" data-folder="' + f.id + '"' + (hex ? ' style="--fc:' + hex + '"' : '') + '><span class="emo" aria-hidden="true">' + folderIcon(hex) + '</span><span><span class="nm">' + esc(f.name) + '</span><span class="ct">' + n + (n === 1 ? ' song' : ' songs') + '</span></span></button>';
   }
   function showSongHome() {
+    dropUntouchedDraft();
     openId = null; libPreview = null; setPreviewMode(false); showPanel("home");
     if (curFolder && !folders.some(f => f.id === curFolder)) curFolder = null;
     const q = searchKey($("mySearch").value).trim(), words = q.split(/\s+/).filter(Boolean);
@@ -2301,6 +2318,7 @@ details.hint li { margin: 3px 0; }
     return null; // other instruments: keep whatever is selected
   }
   function openSong(id, keepInstrument) {
+    if (draft && draft.id !== id) dropUntouchedDraft();
     if (libPreview && id === libPreview.id) { showLibPreview(); return; }
     libPreview = null; setPreviewMode(false);
     if (openId !== id) { $("remixBanner").hidden = true; $("typePanel").hidden = true; }
@@ -2422,6 +2440,20 @@ details.hint li { margin: 3px 0; }
     const sg = currentSong(); if (!sg) return;
     navigator.share({ title: sg.name, text: songAsText(sg) }).catch(() => {});
   });
+  // A song made with ＋ New song that you leave without adding notes or changing anything is removed
+  let draft = null;
+  function draftSnap(sg) { return JSON.stringify([sg.name, sg.items, sg.icon || null, sg.folder || null, sg.instr]); }
+  function dropUntouchedDraft() {
+    if (!draft) return false;
+    const d = draft; draft = null;
+    const sg = songs.find(x => x.id === d.id);
+    if (!sg || sg.items.some(isNote) || draftSnap(sg) !== d.snap) return false;
+    songs = songs.filter(x => x !== sg); storeSongs();
+    if (openId === sg.id) openId = null;
+    toast("Removed the empty new song");
+    return true;
+  }
+  window.addEventListener("pagehide", dropUntouchedDraft);
   function newSong(withTyping) {
     picking = false; picked = [];
     let name = "New song", n = 2;
@@ -2430,6 +2462,7 @@ details.hint li { margin: 3px 0; }
     if (isSax()) sg.sax = instSel.value;
     songs.push(sg); storeSongs();
     showTab("songs"); openSong(sg.id, true); setSongEditing(true, false);
+    draft = { id: sg.id, snap: draftSnap(sg) };
     if (withTyping) openTypePanel(true);
     const t = $("songTitleInput"); t.focus(); t.select();
   }
@@ -3741,7 +3774,7 @@ details.hint li { margin: 3px 0; }
     if (open) {
       curFolder = null; showTab("songs"); openSong(sg.id, true); setSongEditing(true, false);
       const t = $("songTitleInput"); t.focus(); t.select();
-      toast("Saved as a new song. Name it, fix notes, or 🎤 Keep humming");
+      toast("Saved as a new song. Name it, fix notes, or 🎤 Hum more");
     } else toast("Saved “" + name + "” to Your songs");
     return sg;
   }

@@ -9,7 +9,7 @@ Hum or sing a melody and see the notes, with fingering charts for your instrumen
 - Drawn icons for every instrument, and fingering diagrams for sax (tenor and alto), piano, guitar, bass, ukulele, violin, cello, flute, clarinet, trumpet, recorder and ocarina
 - Automatic transposition for B♭ and E♭ instruments
 - Edit notes, add chords and play melodies back with real recorded instrument sounds, all at an even volume. ← → step through notes, Alt+← → moves one
-- Hum a song: when you stop, it becomes a song you can name and edit. 🎤 Keep humming adds more, and ↩ Undo last note takes back a wrong one
+- Hum a song: when you stop, it becomes a song you can name and edit. 🎤 Hum adds more to a song, ↩ Undo last note takes back a wrong one, and ✕ Cancel throws the whole take away
 - View options: note size, fit the whole song on screen, spacing, and hiding fingering pictures
 - Piano diagrams show three octaves, each in its own color
 - A built-in library of 22 classic and traditional songs (kids, holiday, classical, folk), all free to use. Preview any song, then Remix it to save your own editable copy
