@@ -265,6 +265,24 @@ details.ep-chord > summary { display: flex; align-items: center; gap: 6px; paddi
 details.ep-chord > summary .ep-t { margin: 0; }
 details.ep-chord > summary .ep-chsum { margin-left: auto; font-weight: 800; font-size: .9rem; }
 details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass); }
+/* Wide-screen layouts */
+.hum-layout { display: flex; flex-direction: column; }
+@media (min-width: 1100px) {
+  .hum-layout { display: grid; grid-template-columns: minmax(340px, 400px) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .hum-layout > .stage { position: sticky; top: 12px; margin: 0; }
+  .hum-layout > .mel-card { margin: 0; }
+  .hum-layout .stage-main { flex-direction: column; gap: 14px; }
+  .hum-layout .note-wrap { min-width: 0; }
+}
+.pr-home { display: flex; flex-direction: column; }
+.pr-home-h { margin-top: 22px; }
+@media (min-width: 1000px) {
+  .pr-home { display: grid; grid-template-columns: minmax(320px, 440px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .pr-home-side { position: sticky; top: 12px; }
+  .pr-home-side .streak-card { flex-direction: column; align-items: flex-start; }
+  .pr-home-side .sk-main { flex: 0 0 auto; }
+  .pr-home-lists .pr-home-h:first-child, .pr-home-lists > div:first-child:empty + div .pr-home-h { margin-top: 0; }
+}
 /* Practice mode */
 .streak-card { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 14px; padding: 14px 18px; border-radius: 16px; background: var(--panel); border: 1.5px solid var(--line); }
 .streak-card.lit { border-color: #E8833A; background: color-mix(in srgb, #E8833A 14%, var(--panel)); }
@@ -296,7 +314,23 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .pr-bar { width: 140px; height: 10px; border-radius: 5px; background: var(--bg); overflow: hidden; }
 .pr-bar i { display: block; height: 100%; width: 0; background: var(--good); border-radius: 5px; transition: width .3s; }
 .pr-banner { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); font-weight: 600; font-size: .92rem; }
-.pr-layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 18px; align-items: start; }
+.pr-layout { display: grid; gap: 18px; align-items: start; grid-template-columns: minmax(0, 1fr); grid-template-areas: "notes" "controls" "steps"; }
+.pr-main { grid-area: notes; min-width: 0; }
+.pr-controls { grid-area: controls; }
+.pr-steps { grid-area: steps; }
+@media (min-width: 761px) { .pr-layout { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); grid-template-areas: "notes controls" "steps steps"; } }
+@media (min-width: 1200px) {
+  .pr-layout { grid-template-columns: 250px minmax(0, 1fr) 340px; grid-template-areas: "steps notes controls"; }
+  .pr-steps, .pr-controls { position: sticky; top: 12px; }
+  .pr-notes { max-height: calc(100vh - 230px); }
+}
+.pr-controls .pr-streak { margin-top: 0; }
+.pr-controls .pr-next { margin-left: 0; width: 100%; }
+.pr-controls .pr-metro { flex-direction: column; align-items: stretch; }
+.pr-controls .pr-metro-btn { width: 100%; }
+.pr-controls .pr-tempo { justify-content: space-between; gap: 6px; }
+.pr-controls .pr-bpm-btn { min-width: 46px; }
+.pr-controls .pr-bpm { min-width: 66px; }
 .pr-step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }
 .pr-step-head h3 { margin: 0; font-size: 1.3rem; }
 .pr-notes { max-height: 300px; overflow-y: auto; }
@@ -592,6 +626,7 @@ details.hint li { margin: 3px 0; }
 
   <!-- HUM TAB -->
   <section id="view-hum">
+    <div class="hum-layout">
     <div class="card stage">
       <div class="stage-main">
         <div class="note-wrap">
@@ -676,6 +711,7 @@ details.hint li { margin: 3px 0; }
       </div>
     </div>
 
+    </div>
   </section>
 
   <!-- SONGS TAB -->
@@ -835,10 +871,9 @@ details.hint li { margin: 3px 0; }
 
   <!-- PRACTICE TAB -->
   <section id="view-practice" hidden>
-    <div id="practiceHome">
-      <div id="prContinue"></div>
-      <div id="prPracticed"></div>
-      <div id="prOthers"></div>
+    <div id="practiceHome" class="pr-home">
+      <div id="prContinue" class="pr-home-side"></div>
+      <div class="pr-home-lists"><div id="prPracticed"></div><div id="prOthers"></div></div>
     </div>
     <div id="songPractice" hidden>
       <div class="pr-nav"><button id="practiceHomeBtn" type="button" class="link">← All practice</button><button id="practiceBack" type="button" class="link">Open this song in Songs →</button></div>
@@ -852,6 +887,8 @@ details.hint li { margin: 3px 0; }
           <section class="pr-main" aria-label="Current step">
             <div class="pr-step-head"><h3 id="prStepName"></h3><span id="prStepMeta" class="fine"></span></div>
             <div id="prNotes" class="seq pr-notes"></div>
+          </section>
+          <section class="pr-controls" aria-label="How did it go?">
             <div id="prStreak" class="pr-streak" aria-live="polite"></div>
             <div class="pr-actions">
               <button id="prClean" type="button" class="pr-btn clean">✓ Clean</button>
@@ -3750,7 +3787,7 @@ details.hint li { margin: 3px 0; }
     const started = withNotes.filter(sg => practice[sg.id]).map(sg => ({ sg, d: practice[sg.id] })).sort((x, y) => lastPracticed(y.d) - lastPracticed(x.d));
     const fresh = withNotes.filter(sg => !practice[sg.id]);
     $("prContinue").innerHTML = (withNotes.length ? streakHTML() : "") + (started.length ? practiceCard(started[0].sg, started[0].d, true) : "");
-    $("prPracticed").innerHTML = started.length > 1 ? '<h2 class="pr-home-h">Your practice</h2><div class="song-grid">' + started.slice(1).map(e => practiceCard(e.sg, e.d)).join("") + '</div>' : "";
+    $("prPracticed").innerHTML = started.length > 1 ? '<h2 class="pr-home-h">More of your practice</h2><div class="song-grid">' + started.slice(1).map(e => practiceCard(e.sg, e.d)).join("") + '</div>' : "";
     $("prOthers").innerHTML = !withNotes.length
       ? '<div class="empty-songs">No songs to practice yet. Make one in <button type="button" class="link" data-gosongs>Songs</button>, or remix one from the song library.</div>'
       : fresh.length ? '<h2 class="pr-home-h">' + (started.length ? "Start practicing another song" : "Pick a song to practice") + '</h2><div class="song-grid">'
