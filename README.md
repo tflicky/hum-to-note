@@ -1,4 +1,4 @@
-# 🎷 Hum to Note
+# 🎶 Hum to Note
 
 Hum or sing a melody and see the notes, with fingering charts for your instrument.
 

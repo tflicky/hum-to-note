@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hum to Note</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2032%2032%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M2.5%2017c1.8-4.5%203.6-4.5%205.4%200s3.6%204.5%205.4%200%203.6-4.5%205.4%200%22%20fill%3D%22none%22%20stroke%3D%22%23B8861E%22%20stroke-width%3D%222.6%22%20stroke-linecap%3D%22round%22%20opacity%3D%22.55%22%2F%3E%3Cellipse%20cx%3D%2220.3%22%20cy%3D%2224%22%20rx%3D%224.6%22%20ry%3D%223.4%22%20transform%3D%22rotate(-22%2020.3%2024)%22%20fill%3D%22%23B8861E%22%2F%3E%3Cpath%20d%3D%22M24.2%2022.6V4.5c3.6%201.2%206%203.4%205.2%208.6%22%20fill%3D%22none%22%20stroke%3D%22%23B8861E%22%20stroke-width%3D%222.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
@@ -34,7 +35,10 @@ h2 { font-size: 1.1rem; margin: 0; font-weight: 800; }
 
 /* Top bar */
 .top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; }
-.brand { font-weight: 800; font-size: 1.25rem; letter-spacing: -0.01em; margin-right: auto; }
+.brand { font-weight: 800; font-size: 1.25rem; letter-spacing: -0.01em; margin-right: auto; display: inline-flex; align-items: center; gap: 8px; color: var(--ink); text-decoration: none; border-radius: 10px; }
+.brand svg { flex: none; transition: transform .15s; }
+.brand:hover svg { transform: rotate(-8deg) scale(1.06); }
+.brand:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
 .tabs { display: inline-flex; background: var(--panel); border: 1.5px solid var(--line); border-radius: 12px; padding: 3px; }
 .tab { border: none; background: none; font: inherit; font-weight: 600; color: var(--muted); padding: 7px 16px; border-radius: 9px; cursor: pointer; }
 .tab.active { background: var(--ink); color: var(--bg); }
@@ -76,6 +80,10 @@ select:focus-visible, input:focus-visible, textarea:focus-visible, button:focus-
 .meta { color: var(--muted); font-size: .9rem; min-height: 1.2em; }
 .stage-fing:empty { display: none; }
 .stage .btn.big { margin-top: 16px; }
+.undo-pair { display: inline-flex; }
+.undo-pair .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.undo-pair .btn:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; }
+.undo-pair .btn[disabled] { opacity: .45; }
 .stage-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 10px; }
 .stage-btns [hidden] { display: none; }
 .sofar { font-size: 1.05rem; margin: 0; }
@@ -272,7 +280,7 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 #editModeBtn.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 #songView.preview #editModeBtn { display: none; }
 /* reading mode: tapping a note just plays it; editing tools appear in Edit mode */
-#songView:not(.editing) .editpanel, #songView:not(.editing) .seq .ins, #songView:not(.editing) #singSong, #songView:not(.editing) #undoSong,
+#songView:not(.editing) .editpanel, #songView:not(.editing) .seq .ins, #songView:not(.editing) #singSong, #songView:not(.editing) .undo-pair,
 #songView:not(.editing) .song-tools .menu-wrap:not(.song-more), #songView:not(.editing) #typeNotes { display: none !important; }
 #shareSongText[hidden] { display: none; }
 #songView:not(.editing) .mel-layout { grid-template-columns: minmax(0, 1fr); }
@@ -626,7 +634,7 @@ details.hint li { margin: 3px 0; }
 <body>
 <main>
   <header class="top">
-    <div class="brand">🎷 Hum to Note</div>
+    <a class="brand" href="#" id="brandHome" title="Go to Hum"><svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M2.5 17c1.8-4.5 3.6-4.5 5.4 0s3.6 4.5 5.4 0 3.6-4.5 5.4 0" fill="none" stroke="var(--brass)" stroke-width="2.6" stroke-linecap="round" opacity=".55"/><ellipse cx="20.3" cy="24" rx="4.6" ry="3.4" transform="rotate(-22 20.3 24)" fill="var(--brass)"/><path d="M24.2 22.6V4.5c3.6 1.2 6 3.4 5.2 8.6" fill="none" stroke="var(--brass)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Hum to Note</span></a>
     <nav class="tabs" role="tablist">
       <button class="tab active" id="tab-hum" role="tab" aria-selected="true" type="button">Hum</button>
       <button class="tab" id="tab-songs" role="tab" aria-selected="false" type="button">Songs</button>
@@ -783,7 +791,7 @@ details.hint li { margin: 3px 0; }
           <button id="editModeBtn" type="button" class="btn" aria-pressed="false">✏️ Edit</button>
           <button id="practiceSong" type="button" class="btn">🎯 Practice</button>
           <button id="singSong" type="button" class="btn" title="Hum more notes into this song">🎤 Hum</button>
-          <button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
+          <span class="undo-pair"><button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button><button id="redoSong" type="button" class="btn" title="Redo (Ctrl+Y / ⌘⇧Z)">↪ Redo</button></span>
           <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">🎚 Key<span class="wide-only"> &amp; octave</span> ▾</button>
             <div class="menu tp-menu" role="group" aria-label="Move every note" hidden>
               <div class="tp-row"><span class="tp-lab">Key</span><span class="octpair"><button id="songKeyDown" type="button" class="btn" title="Move every note down a half step">▼ Half step</button><button id="songKeyUp" type="button" class="btn" title="Move every note up a half step">▲ Half step</button></span></div>
@@ -2010,7 +2018,7 @@ details.hint li { margin: 3px 0; }
   function setPreviewMode(on) {
     $("songView").classList.toggle("preview", on);
     $("previewNote").hidden = !on;
-    ["undoSong", "typeNotes", "deleteSong", "singSong", "practiceSong", "editModeBtn", "songOctDown", "songOctUp", "songKeyDown", "songKeyUp", "dupSong"].forEach(id => { $(id).hidden = on; });
+    ["undoSong", "redoSong", "typeNotes", "deleteSong", "singSong", "practiceSong", "editModeBtn", "songOctDown", "songOctUp", "songKeyDown", "songKeyUp", "dupSong"].forEach(id => { $(id).hidden = on; });
     if (on) $("unmergeSong").hidden = true;
   }
   function previewLibrary(id) {
@@ -2156,6 +2164,7 @@ details.hint li { margin: 3px 0; }
     return lines.some(l => sheetLineNotes(l)) && lines.some(l => !sheetLineNotes(l) && /[a-z]{2}/i.test(l));
   }
 
+  $("brandHome").addEventListener("click", e => { e.preventDefault(); showTab("hum"); window.scrollTo(0, 0); });
   function showTab(which) {
     if (which !== "songs" && running && recTarget === "song") stop();
     if (which !== "hum" && running && recTarget === "mel") { stop(); finishHum(false); } // leaving mid-hum keeps the notes as a song
@@ -3052,6 +3061,10 @@ details.hint li { margin: 3px 0; }
     if (st.sel !== null && isNote(list[st.sel])) select(which, st.sel, false);
     else updateEditbar(which);
   }
+  function updateUndoBtns() {
+    const sg = currentSong(), h = sg && !isPreview() ? H("song") : null;
+    $("undoSong").disabled = !(h && h.undo.length); $("redoSong").disabled = !(h && h.redo.length);
+  }
   function undoRedo(which, redo) {
     if (which === "song" && !currentSong()) return;
     const h = H(which), from = redo ? h.redo : h.undo, to = redo ? h.undo : h.redo;
@@ -3176,6 +3189,7 @@ details.hint li { margin: 3px 0; }
   window.addEventListener("resize", refit);
   function renderSongSeq() {
     const sg = currentSong(); if (!sg) return;
+    updateUndoBtns();
     $("songView").querySelector(".card").classList.toggle("is-empty", !sg.items.some(isNote));
     $("songSeq").innerHTML = sg.items.some(isNote) ? chipsHTML(sg.items) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>No notes yet</strong><span>Add notes any way you like:</span><div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note</button><button type="button" class="btn" data-sing>🎤 Hum them</button><button type="button" class="btn" data-type>⌨️ Type or paste</button></div></div>';
     updateEditbar("song");
@@ -3815,6 +3829,7 @@ details.hint li { margin: 3px 0; }
   });
   try { localStorage.removeItem("htn-melsong"); } catch (e) {} // the old Hum melody already lives in Your songs
   $("undoSong").addEventListener("click", () => undoRedo("song", false));
+  $("redoSong").addEventListener("click", () => undoRedo("song", true));
   // Small menus (🎚 Key & octave, ⋯ More): one open at a time; list menus close after a choice
   function closeMenus(except) {
     document.querySelectorAll(".menu-wrap .menu").forEach(m => { if (m !== except) { m.hidden = true; m.previousElementSibling.setAttribute("aria-expanded", false); } });
