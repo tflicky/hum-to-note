@@ -282,7 +282,6 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 /* reading mode: tapping a note just plays it; editing tools appear in Edit mode */
 #songView:not(.editing) .editpanel, #songView:not(.editing) .seq .ins, #songView:not(.editing) #singSong, #songView:not(.editing) .undo-pair,
 #songView:not(.editing) .song-tools .menu-wrap:not(.song-more), #songView:not(.editing) #typeNotes { display: none !important; }
-#shareSongText[hidden] { display: none; }
 #songView:not(.editing) .mel-layout { grid-template-columns: minmax(0, 1fr); }
 #songView.editing .seq { box-shadow: 0 0 0 2px var(--brass) inset; }
 @media (max-width: 600px) {
@@ -801,7 +800,7 @@ details.hint li { margin: 3px 0; }
           <span class="menu-wrap song-more"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⋯ More</button>
             <div class="menu list-menu" hidden>
               <button id="copySongText" type="button" class="menu-item">📋 Copy notes as text</button>
-              <button id="shareSongText" type="button" class="menu-item" hidden>📤 Share notes…</button>
+              <button id="exportMidi" type="button" class="menu-item" title="Download a .mid file to open in GarageBand, MuseScore, a DAW…">🎹 Export as MIDI</button>
               <button id="typeNotes" type="button" class="menu-item">⌨️ Type or paste notes</button>
               <label class="menu-field">📁 Folder <select id="songFolderSel" aria-label="Folder"></select></label>
               <button id="dupSong" type="button" class="menu-item" title="Make your own copy to change, named “… Remix”">🎛 Remix (make my own copy)</button>
@@ -2453,10 +2452,42 @@ details.hint li { margin: 3px 0; }
     const n = noteCount(sg.items);
     toast(await copyText(songAsText(sg)) ? "Copied " + n + " notes as text. Paste them anywhere" : "Couldn't copy. Your browser blocked it");
   });
-  if (navigator.share) $("shareSongText").hidden = false;
-  $("shareSongText").addEventListener("click", () => {
+  // ---- Export as MIDI: one track, a quarter note per note at the app's playback speed, chords included ----
+  const GM_PROGRAM = { piano: 0, guitar: 25, ukulele: 24, bass: 33, violin: 40, cello: 42, trumpet: 56, clarinet: 71, flute: 73, recorder: 74, ocarina: 79, tenor: 66, alto: 65 };
+  function songToMidi(sg) {
+    const PPQ = 480, BPM = 110, NOTE = Math.round(PPQ * 0.9), REST = PPQ - NOTE;
+    const vlq = n => { const b = [n & 0x7f]; while ((n >>= 7)) b.unshift((n & 0x7f) | 0x80); return b; };
+    const text = t => [...new TextEncoder().encode(t)];
+    const meta = (type, bytes) => [0xff, type, ...vlq(bytes.length), ...bytes];
+    const ev = [];
+    let wait = 0; // ticks since the last event
+    const put = bytes => { ev.push(...vlq(wait), ...bytes); wait = 0; };
+    put(meta(0x03, text(sg.name)));
+    const us = Math.round(60000000 / BPM); put(meta(0x51, [(us >> 16) & 255, (us >> 8) & 255, us & 255]));
+    put(meta(0x58, [4, 2, 24, 8]));
+    put([0xc0, GM_PROGRAM[instSel.value] != null ? GM_PROGRAM[instSel.value] : 0]);
+    sg.items.forEach(x => {
+      if (typeof x === "string") { if (x.startsWith("§")) put(meta(0x06, text(x.slice(1)))); return; } // part names become markers
+      if (!isNote(x)) return;
+      const keys = [pitchOf(x), ...chordTonesMidi(x)].filter(k => k >= 0 && k <= 127);
+      keys.forEach((k, n) => put([0x90, k, n ? 70 : 100])); // melody a bit louder than its chord
+      wait = NOTE; keys.forEach(k => put([0x80, k, 0]));
+      wait = REST;
+    });
+    put(meta(0x2f, []));
+    const be = (n, len) => Array.from({ length: len }, (_, k) => (n >> (8 * (len - 1 - k))) & 255);
+    const bytes = [0x4d, 0x54, 0x68, 0x64, ...be(6, 4), 0, 0, 0, 1, ...be(PPQ, 2), 0x4d, 0x54, 0x72, 0x6b, ...be(ev.length, 4), ...ev];
+    return new Uint8Array(bytes);
+  }
+  $("exportMidi").addEventListener("click", () => {
     const sg = currentSong(); if (!sg) return;
-    navigator.share({ title: sg.name, text: songAsText(sg) }).catch(() => {});
+    if (!sg.items.some(isNote)) { toast("Add some notes first"); return; }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([songToMidi(sg)], { type: "audio/midi" }));
+    a.download = (sg.name.replace(/[\\/:*?"<>|]+/g, "").trim() || "song") + ".mid";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast("Saved " + a.download);
   });
   // A song made with ＋ New song that you leave without adding notes or changing anything is removed
   let draft = null;
