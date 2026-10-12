@@ -4327,7 +4327,7 @@ details.hint li { margin: 3px 0; }
     $("prContinue").innerHTML = started.length ? practiceHero(started[0].sg, started[0].d)
       : withNotes.length ? '<div class="pr-hero empty"><span class="ph-ic" aria-hidden="true">🎯</span><div><strong>Practice a song step by step</strong><span>Pick a song below to start.</span></div></div>' : "";
     $("prStreakBox").innerHTML = withNotes.length ? streakHTML() : "";
-    $("prPracticed").innerHTML = started.length > 1 ? '<h2 class="pr-home-h">More of your practice</h2><div class="song-grid">' + started.slice(1).map(e => practiceCard(e.sg, e.d)).join("") + '</div>' : "";
+    $("prPracticed").innerHTML = started.length > 1 ? '<h2 class="pr-home-h">Continue practice</h2><div class="song-grid">' + started.slice(1).map(e => practiceCard(e.sg, e.d)).join("") + '</div>' : "";
     $("prOthers").innerHTML = !withNotes.length
       ? '<div class="empty-songs">No songs to practice yet. Make one in <button type="button" class="link" data-gosongs>Songs</button>, or remix one from the song library.</div>'
       : fresh.length ? '<h2 class="pr-home-h">' + (started.length ? "Start practicing another song" : "Pick a song to practice") + '</h2><div class="song-grid">'
