@@ -267,18 +267,25 @@ details.ep-chord > summary .ep-chsum { margin-left: auto; font-weight: 800; font
 details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass); }
 /* Wide-screen layouts */
 .hum-layout { display: flex; flex-direction: column; }
-@media (min-width: 1100px) {
-  .hum-layout { display: grid; grid-template-columns: minmax(340px, 400px) minmax(0, 1fr); gap: 16px; align-items: start; }
-  .hum-layout > .stage { position: sticky; top: 12px; margin: 0; }
-  .hum-layout > .mel-card { margin: 0; }
-  .hum-layout .stage-main { flex-direction: column; gap: 14px; }
-  .hum-layout .note-wrap { min-width: 0; }
-}
 .pr-home { display: flex; flex-direction: column; }
 .pr-home-h { margin-top: 22px; }
+.pr-hero { width: 100%; display: flex; align-items: center; flex-wrap: wrap; gap: 14px 22px; padding: 26px 28px; margin-bottom: 18px; text-align: left; font: inherit; color: var(--ink); cursor: pointer;
+  border: 2px solid var(--brass); border-radius: 22px; background: linear-gradient(135deg, var(--brass-soft), var(--panel)); box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+.pr-hero:hover { transform: translateY(-1px); box-shadow: 0 14px 34px rgba(0,0,0,.24); }
+.pr-hero.empty { cursor: default; border-style: dashed; box-shadow: none; }
+.ph-ic { font-size: 3.2rem; line-height: 1; display: inline-flex; }
+.ph-body { flex: 1 1 260px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pr-hero.empty div { display: flex; flex-direction: column; gap: 4px; }
+.pr-hero.empty strong { font-size: 1.4rem; }
+.ph-name { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 800; line-height: 1.1; }
+.ph-meta { color: var(--muted); font-weight: 600; }
+.ph-next { font-size: 1.05rem; }
+.pr-hero .pc-bar { height: 10px; max-width: 520px; }
+.ph-go { font-size: 1.2rem; font-weight: 800; padding: 16px 26px; border-radius: 16px; background: var(--brass); color: #fff; white-space: nowrap; }
+@media (max-width: 600px) { .ph-go { width: 100%; text-align: center; } .pr-hero { padding: 20px; } }
+.pr-home-row { display: flex; flex-direction: column; }
 @media (min-width: 1000px) {
-  .pr-home { display: grid; grid-template-columns: minmax(320px, 440px) minmax(0, 1fr); gap: 20px; align-items: start; }
-  .pr-home-side { position: sticky; top: 12px; }
+  .pr-home-row { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
   .pr-home-side .streak-card { flex-direction: column; align-items: flex-start; }
   .pr-home-side .sk-main { flex: 0 0 auto; }
   .pr-home-lists .pr-home-h:first-child, .pr-home-lists > div:first-child:empty + div .pr-home-h { margin-top: 0; }
@@ -318,22 +325,17 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .pr-main { grid-area: notes; min-width: 0; }
 .pr-controls { grid-area: controls; }
 .pr-steps { grid-area: steps; }
-@media (min-width: 761px) { .pr-layout { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); grid-template-areas: "notes controls" "steps steps"; } }
-@media (min-width: 1200px) {
-  .pr-layout { grid-template-columns: 250px minmax(0, 1fr) 340px; grid-template-areas: "steps notes controls"; }
-  .pr-steps, .pr-controls { position: sticky; top: 12px; }
-  .pr-notes { max-height: calc(100vh - 230px); }
-}
-.pr-controls .pr-streak { margin-top: 0; }
-.pr-controls .pr-next { margin-left: 0; width: 100%; }
-.pr-controls .pr-metro { flex-direction: column; align-items: stretch; }
-.pr-controls .pr-metro-btn { width: 100%; }
-.pr-controls .pr-tempo { justify-content: space-between; gap: 6px; }
-.pr-controls .pr-bpm-btn { min-width: 46px; }
-.pr-controls .pr-bpm { min-width: 66px; }
+@media (min-width: 761px) { .pr-layout { grid-template-columns: minmax(0, 1fr) 250px; grid-template-areas: "notes steps" "controls steps"; grid-template-rows: auto 1fr; row-gap: 0; } .pr-controls { align-self: start; } .pr-steps { align-self: start; } }
+
 .pr-step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }
 .pr-step-head h3 { margin: 0; font-size: 1.3rem; }
-.pr-notes { max-height: 300px; overflow-y: auto; }
+.pr-notes { overflow-y: auto; }
+.pr-notes .sec-title { font-size: .85rem; padding-top: 4px; }
+.pr-notes.names-only .chip .fing, .pr-notes.names-only .chip .chordpill { display: none; }
+.pr-notes.names-only .chip { padding: 10px 12px; font-size: 1.15rem; min-width: 52px; }
+.pr-notes-hint { margin: 6px 0 0; }
+.pr-notes.names-only .sec-title { flex-basis: auto; align-self: center; margin: 0 2px 0 8px; padding: 2px 8px; border: none; border-radius: 999px; background: var(--brass-soft); font-size: .75rem; }
+.pr-notes.names-only .sec-title:first-child { margin-left: 0; }
 .pr-notes .chip { cursor: pointer; }
 .pr-notes .ins { display: none; }
 .pr-streak { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 16px 0 12px; font-weight: 700; }
@@ -396,7 +398,6 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
   .pr-tempo { justify-content: center; width: 100%; }
   .pr-metro-btn { width: 100%; }
   .pr-btn { min-height: 110px; }
-  .pr-notes { max-height: 170px; }
   .pr-table { font-size: .8rem; }
 }
 @media (prefers-reduced-motion: reduce) { .pr-beat.tick { animation: none; } .pr-bar i { transition: none; } }
@@ -872,8 +873,11 @@ details.hint li { margin: 3px 0; }
   <!-- PRACTICE TAB -->
   <section id="view-practice" hidden>
     <div id="practiceHome" class="pr-home">
-      <div id="prContinue" class="pr-home-side"></div>
-      <div class="pr-home-lists"><div id="prPracticed"></div><div id="prOthers"></div></div>
+      <div id="prContinue"></div>
+      <div class="pr-home-row">
+        <div id="prStreakBox" class="pr-home-side"></div>
+        <div class="pr-home-lists"><div id="prPracticed"></div><div id="prOthers"></div></div>
+      </div>
     </div>
     <div id="songPractice" hidden>
       <div class="pr-nav"><button id="practiceHomeBtn" type="button" class="link">← All practice</button><button id="practiceBack" type="button" class="link">Open this song in Songs →</button></div>
@@ -887,6 +891,7 @@ details.hint li { margin: 3px 0; }
           <section class="pr-main" aria-label="Current step">
             <div class="pr-step-head"><h3 id="prStepName"></h3><span id="prStepMeta" class="fine"></span></div>
             <div id="prNotes" class="seq pr-notes"></div>
+            <p id="prNotesHint" class="fine pr-notes-hint" hidden></p>
           </section>
           <section class="pr-controls" aria-label="How did it go?">
             <div id="prStreak" class="pr-streak" aria-live="polite"></div>
@@ -2938,7 +2943,7 @@ details.hint li { margin: 3px 0; }
     if (VIEW.fit) fitNow(scroll);
     else { document.documentElement.style.setProperty("--chip-zoom", VIEW.zoom / 100); $("vZoom").value = VIEW.zoom; $("vZoomOut").textContent = VIEW.zoom + "%"; }
     if (!VIEW.fit) ["seq", "songSeq"].forEach(id => $(id).style.removeProperty("--chip-zoom")); // drop sizes left over from fitting
-    if (typeof pr !== "undefined" && pr) $("prNotes").style.setProperty("--chip-zoom", VIEW.zoom / 100);
+    if (typeof pr !== "undefined" && pr) fitPracticeNotes();
   }
   function setView(patch, scroll) { Object.assign(VIEW, patch); saveView(); applyView(scroll); }
   function openViewPop(btn) {
@@ -3590,14 +3595,20 @@ details.hint li { margin: 3px 0; }
   }
   function renderStep() {
     const { sg, d, key } = pr, st = d.steps[key] || {}, [a, b] = stepRange(d, key), notes = songNotes(sg);
-    $("prNotes").style.setProperty("--chip-zoom", (VIEW.zoom || 100) / 100);
     $("prStepName").textContent = stepName(d, key);
     const bits = ["notes " + (a + 1) + "–" + b];
     if (st.passes) bits.push("passed " + st.passes + "×");
     if (st.bestBpm) bits.push("best " + st.bestBpm + " BPM");
     if (st.last) bits.push("last passed " + fmtDay(st.last));
     $("prStepMeta").textContent = bits.join(" · ");
-    const items = sg.items.slice(notes[a].i, notes[b - 1].i + 1);
+    // a combined step shows each phrase on its own line, labeled, so you can see where each one starts
+    const [pa, pb] = keyRange(key), items = [];
+    for (let k = pa; k <= pb; k++) {
+      const ph = d.phrases[k], part = sg.items.slice(notes[ph.start].i, notes[ph.end - 1].i + 1).filter(x => !isSec(x));
+      while (part[0] === "|") part.shift();
+      if (pb > pa) items.push("§Phrase " + (k + 1));
+      items.push(...part);
+    }
     $("prNotes").innerHTML = chipsHTML(items);
     const dots = Array.from({ length: PR_PASS }, (_, k) => '<span class="pr-dot' + (k < pr.streak ? " on" : "") + '"></span>').join("");
     const nxt = st.passed && pr.streak === 0 ? nextStep(d) : null;
@@ -3605,7 +3616,31 @@ details.hint li { margin: 3px 0; }
       + (pr.streak ? pr.streak + " of " + PR_PASS + " clean in a row" : st.passed ? "Passed ✓ Play it again at a faster tempo, or move on." : PR_PASS + " clean runs in a row to pass")
       + '</span>' + (nxt && nxt !== key ? '<button type="button" class="btn primary pr-next" data-step="' + nxt + '">Next: ' + stepName(d, nxt) + ' →</button>' : '');
     $("prUndo").hidden = !pr.undo;
+    fitPracticeNotes(); // last, once the streak line and buttons have their final size
   }
+  // Shrink the notes until every one of them fits in the space above the buttons
+  function fitPracticeNotes() {
+    const el = $("prNotes"); if (!pr || el.offsetParent === null) return;
+    // room left on screen (with the page scrolled to the top) once the buttons and metronome below are counted
+    const phone = window.innerWidth <= 760, r = el.getBoundingClientRect();
+    const below = document.querySelector(".pr-controls .pr-metro").getBoundingClientRect().bottom - r.bottom;
+    const avail = Math.max(phone ? 110 : 200, Math.floor(window.innerHeight - (r.top + window.scrollY) - below - 40));
+    el.style.maxHeight = avail + "px";
+    const MIN = 0.6, top = Math.max(MIN, (VIEW.zoom || 100) / 100);
+    const fits = z => { el.style.setProperty("--chip-zoom", z); return el.scrollHeight <= avail; };
+    const fit = () => { if (fits(top)) return true; if (!fits(MIN)) return false; let lo = MIN, hi = top; for (let k = 0; k < 8; k++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; } fits(lo); return true; };
+    // big steps: when the fingering pictures won't fit at a readable size, show big note names instead
+    el.classList.remove("names-only");
+    let ok = fit(), names = false;
+    if (!ok && !prFingForced) { el.classList.add("names-only"); names = true; ok = fit(); }
+    if (!ok) fits(MIN);
+    $("prNotesHint").hidden = !names && !prFingForced;
+    $("prNotesHint").innerHTML = names ? 'Showing note names so the whole step fits · <button type="button" class="link" data-prfing="1">Show fingerings</button>'
+      : 'Fingerings shown (scroll to see every note) · <button type="button" class="link" data-prfing="0">Fit with note names</button>';
+  }
+  let prFingForced = false;
+  document.addEventListener("click", e => { const b = e.target.closest("[data-prfing]"); if (b) { prFingForced = b.dataset.prfing === "1"; fitPracticeNotes(); } });
+  window.addEventListener("resize", () => { clearTimeout(window.__prFit); window.__prFit = setTimeout(fitPracticeNotes, 80); });
   function renderHistory() {
     const { d } = pr, days = {};
     d.history.forEach(h => {
@@ -3780,13 +3815,24 @@ details.hint li { margin: 3px 0; }
       + '<span class="pc-bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span><span class="ct">' + meta + '</span>'
       + (big && nx ? '<span class="pc-next">Next: ' + stepName(d, nx) + '</span>' : big && done === keys.length ? '<span class="pc-next">Every step passed 🎉 Try it faster!</span>' : '') + '</span></button>';
   }
+  function practiceHero(sg, d) {
+    const keys = prSteps(d), done = keys.filter(k => passed(d, k)).length, nx = nextStep(d);
+    return '<button type="button" class="pr-hero" data-practice="' + sg.id + '"><span class="ph-ic" aria-hidden="true">' + songIcon(sg) + '</span>'
+      + '<span class="ph-body"><span class="pc-kicker">Continue where you left off</span><span class="ph-name">' + esc(sg.name) + '</span>'
+      + '<span class="pc-bar" aria-hidden="true"><i style="width:' + Math.round(done / keys.length * 100) + '%"></i></span>'
+      + '<span class="ph-meta">' + done + ' of ' + keys.length + ' steps passed' + (d.history.length ? ' · last practiced ' + fmtDay(lastPracticed(d)) : '') + '</span>'
+      + '<span class="ph-next">' + (nx ? 'Next up: <b>' + stepName(d, nx) + '</b>' : 'Every step passed 🎉 Try it at a faster tempo') + '</span></span>'
+      + '<span class="ph-go">▶ Continue practicing</span></button>';
+  }
   function showPracticeHome() {
     if (typeof metro !== "undefined" && metro.on) stopMetro();
     $("songPractice").hidden = true; $("practiceHome").hidden = false;
     const withNotes = songs.filter(sg => sg.items.some(isNote));
     const started = withNotes.filter(sg => practice[sg.id]).map(sg => ({ sg, d: practice[sg.id] })).sort((x, y) => lastPracticed(y.d) - lastPracticed(x.d));
     const fresh = withNotes.filter(sg => !practice[sg.id]);
-    $("prContinue").innerHTML = (withNotes.length ? streakHTML() : "") + (started.length ? practiceCard(started[0].sg, started[0].d, true) : "");
+    $("prContinue").innerHTML = started.length ? practiceHero(started[0].sg, started[0].d)
+      : withNotes.length ? '<div class="pr-hero empty"><span class="ph-ic" aria-hidden="true">🎯</span><div><strong>Practice a song step by step</strong><span>Pick a song below to start.</span></div></div>' : "";
+    $("prStreakBox").innerHTML = withNotes.length ? streakHTML() : "";
     $("prPracticed").innerHTML = started.length > 1 ? '<h2 class="pr-home-h">More of your practice</h2><div class="song-grid">' + started.slice(1).map(e => practiceCard(e.sg, e.d)).join("") + '</div>' : "";
     $("prOthers").innerHTML = !withNotes.length
       ? '<div class="empty-songs">No songs to practice yet. Make one in <button type="button" class="link" data-gosongs>Songs</button>, or remix one from the song library.</div>'
