@@ -162,7 +162,17 @@ details[open] > summary::before { transform: rotate(90deg); }
 .ep-empty strong { color: var(--ink); display: block; margin-bottom: 4px; }
 .ep-empty p { margin: 0; }
 .plus-demo { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--brass); color: #fff; font-weight: 800; font-size: .85rem; }
-.ep-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.ep-head { display: flex; align-items: center; gap: 4px; margin-bottom: 10px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ep-head .eb-label { margin-right: auto; }
+.ep-grip { color: var(--muted); font-size: 1.1rem; line-height: 1; padding: 2px 2px 2px 0; }
+.ep-head:hover .ep-grip { color: var(--brass); }
+.ep-head-btns { display: inline-flex; align-items: center; }
+.ep-dock { display: none; font: inherit; border: none; background: none; color: var(--muted); font-size: 1rem; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+.ep-dock:hover { background: var(--panel); color: var(--ink); }
+body.v-floatpanel .ep-dock { display: inline-block; }
+.editpanel.dragging { box-shadow: 0 20px 50px rgba(0,0,0,.35) !important; opacity: .97; }
+.editpanel.dragging .ep-head { cursor: grabbing; }
+body.v-floatpanel.v-panelpos .editpanel.active { left: var(--pnl-x); top: var(--pnl-y); right: auto; bottom: auto; max-height: calc(100vh - var(--pnl-y) - 12px); }
 .eb-label { font: inherit; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); background: none; border: none; padding: 2px 8px 2px 4px; margin-left: -4px; border-radius: 10px; cursor: pointer; text-align: left; }
 .eb-label::after { content: " ▶"; font-size: .55em; color: var(--brass); vertical-align: middle; }
 .eb-label:hover { background: var(--panel); }
@@ -687,7 +697,7 @@ details.hint li { margin: 3px 0; }
             <p>Tap any note to hear it and change it: pick a new note, move it, add notes around it, or give it a chord.</p>
           </div>
           <div class="ep-body" hidden>
-            <div class="ep-head"><button type="button" class="eb-label" title="Play this note"></button><button type="button" data-act="done" class="ep-close" aria-label="Close" title="Close (Esc)">✕</button></div>
+            <div class="ep-head" title="Drag here to move this panel"><span class="ep-grip" aria-hidden="true">⠿</span><button type="button" class="eb-label" title="Play this note"></button><span class="ep-head-btns"><button type="button" class="ep-dock" aria-label="Put the panel back beside the notes" title="Put the panel back beside the notes">⇲</button><button type="button" data-act="done" class="ep-close" aria-label="Close" title="Close (Esc)">✕</button></span></div>
             <div class="ep-fing" aria-hidden="true"></div>
             <div class="ep-sec"><span class="ep-t">Change to</span><div class="ep-notes"><button type="button" data-act="set" data-pc="0">C</button><button type="button" data-act="set" data-pc="1">C♯</button><button type="button" data-act="set" data-pc="2">D</button><button type="button" data-act="set" data-pc="3">E♭</button><button type="button" data-act="set" data-pc="4">E</button><button type="button" data-act="set" data-pc="5">F</button><button type="button" data-act="set" data-pc="6">F♯</button><button type="button" data-act="set" data-pc="7">G</button><button type="button" data-act="set" data-pc="8">A♭</button><button type="button" data-act="set" data-pc="9">A</button><button type="button" data-act="set" data-pc="10">B♭</button><button type="button" data-act="set" data-pc="11">B</button></div></div>
             <div class="ep-sec"><span class="ep-t">Pitch</span>
@@ -843,7 +853,7 @@ details.hint li { margin: 3px 0; }
             <p>Tap any note to hear it and change it: pick a new note, move it, add notes around it, or give it a chord.</p>
           </div>
           <div class="ep-body" hidden>
-            <div class="ep-head"><button type="button" class="eb-label" title="Play this note"></button><button type="button" data-act="done" class="ep-close" aria-label="Close" title="Close (Esc)">✕</button></div>
+            <div class="ep-head" title="Drag here to move this panel"><span class="ep-grip" aria-hidden="true">⠿</span><button type="button" class="eb-label" title="Play this note"></button><span class="ep-head-btns"><button type="button" class="ep-dock" aria-label="Put the panel back beside the notes" title="Put the panel back beside the notes">⇲</button><button type="button" data-act="done" class="ep-close" aria-label="Close" title="Close (Esc)">✕</button></span></div>
             <div class="ep-fing" aria-hidden="true"></div>
             <div class="ep-sec"><span class="ep-t">Change to</span><div class="ep-notes"><button type="button" data-act="set" data-pc="0">C</button><button type="button" data-act="set" data-pc="1">C♯</button><button type="button" data-act="set" data-pc="2">D</button><button type="button" data-act="set" data-pc="3">E♭</button><button type="button" data-act="set" data-pc="4">E</button><button type="button" data-act="set" data-pc="5">F</button><button type="button" data-act="set" data-pc="6">F♯</button><button type="button" data-act="set" data-pc="7">G</button><button type="button" data-act="set" data-pc="8">A♭</button><button type="button" data-act="set" data-pc="9">A</button><button type="button" data-act="set" data-pc="10">B♭</button><button type="button" data-act="set" data-pc="11">B</button></div></div>
             <div class="ep-sec"><span class="ep-t">Pitch</span>
@@ -948,7 +958,7 @@ details.hint li { margin: 3px 0; }
   <label class="check"><input type="checkbox" id="vFing"> Show fingering pictures</label>
   <label class="check"><input type="checkbox" id="vTitles"> Show part titles and bar lines</label>
   <label class="check vp-song"><input type="checkbox" id="vPanel"> Keep the edit panel beside the notes</label>
-  <p class="fine vp-song" style="margin:2px 0 0">With the panel off, it pops up only when you tap a note.</p>
+  <p class="fine vp-song" style="margin:2px 0 0">With this off, the panel floats and pops up when you tap a note. You can also drag it anywhere by its top bar.</p>
   <p class="fine vp-pr" style="margin:2px 0 0">Turn it off to see every note at full size and scroll the page instead.</p>
   <button type="button" id="vReset" class="link">Reset view</button>
 </div>
@@ -2941,6 +2951,7 @@ details.hint li { margin: 3px 0; }
     const b = document.body.classList;
     b.toggle("v-tight", VIEW.gap === "tight"); b.toggle("v-roomy", VIEW.gap === "roomy");
     b.toggle("v-nofing", !VIEW.fing); b.toggle("v-notitles", !VIEW.titles); b.toggle("v-floatpanel", !VIEW.panel);
+    placePanel();
     $("vFit").checked = VIEW.fit; $("vPrFit").checked = VIEW.prFit !== false; $("vFing").checked = VIEW.fing; $("vTitles").checked = VIEW.titles; $("vPanel").checked = VIEW.panel;
     $("vGap").querySelectorAll("button").forEach(x => x.classList.toggle("active", x.dataset.gap === VIEW.gap));
     if (VIEW.fit) fitNow(scroll);
@@ -2948,6 +2959,38 @@ details.hint li { margin: 3px 0; }
     if (!VIEW.fit) ["seq", "songSeq"].forEach(id => $(id).style.removeProperty("--chip-zoom")); // drop sizes left over from fitting
     if (typeof pr !== "undefined" && pr) { fitPracticeNotes(); if ($("viewPop").dataset.ctx === "practice") { $("vZoom").value = VIEW.zoom; $("vZoomOut").textContent = VIEW.zoom + "%"; } }
   }
+  // The edit panel can be dragged by its top bar; once moved it floats where you leave it (⇲ puts it back)
+  function placePanel() {
+    const has = !VIEW.panel && VIEW.panelX != null && VIEW.panelY != null;
+    document.body.classList.toggle("v-panelpos", has);
+    if (!has) return;
+    const x = Math.max(4, Math.min(window.innerWidth - 120, VIEW.panelX)), y = Math.max(4, Math.min(window.innerHeight - 220, VIEW.panelY));
+    document.body.style.setProperty("--pnl-x", x + "px"); document.body.style.setProperty("--pnl-y", y + "px");
+  }
+  let panelDrag = null;
+  document.addEventListener("pointerdown", e => {
+    const head = e.target.closest(".editpanel .ep-head");
+    if (!head || e.target.closest("button")) return;
+    const panel = head.closest(".editpanel"), r = panel.getBoundingClientRect();
+    if (VIEW.panel !== false || VIEW.panelX == null) { // first move: lift it out from beside the notes, right where it is
+      VIEW.panel = false; VIEW.panelX = r.left; VIEW.panelY = r.top; applyView();
+    }
+    panelDrag = { panel, dx: e.clientX - VIEW.panelX, dy: e.clientY - VIEW.panelY, id: e.pointerId };
+    try { head.setPointerCapture(e.pointerId); } catch (err) {}
+    panel.classList.add("dragging"); e.preventDefault();
+  });
+  document.addEventListener("pointermove", e => {
+    if (!panelDrag || e.pointerId !== panelDrag.id) return;
+    const w = panelDrag.panel.offsetWidth;
+    VIEW.panelX = Math.max(4, Math.min(window.innerWidth - w - 4, e.clientX - panelDrag.dx));
+    VIEW.panelY = Math.max(4, Math.min(window.innerHeight - 220, e.clientY - panelDrag.dy));
+    placePanel();
+  });
+  const endPanelDrag = e => { if (!panelDrag || (e && e.pointerId !== panelDrag.id)) return; panelDrag.panel.classList.remove("dragging"); panelDrag = null; saveView(); };
+  document.addEventListener("pointerup", endPanelDrag);
+  document.addEventListener("pointercancel", endPanelDrag);
+  document.addEventListener("click", e => { if (e.target.closest(".ep-dock")) { setView({ panel: true }); toast("Panel is back beside the notes"); } });
+  window.addEventListener("resize", placePanel);
   function setView(patch, scroll) { Object.assign(VIEW, patch); saveView(); applyView(scroll); }
   function openViewPop(btn) {
     const pop = $("viewPop");
