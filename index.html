@@ -267,6 +267,7 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 /* reading mode: tapping a note just plays it; editing tools appear in Edit mode */
 #songView:not(.editing) .editpanel, #songView:not(.editing) .seq .ins, #songView:not(.editing) #singSong, #songView:not(.editing) #undoSong,
 #songView:not(.editing) .song-tools .menu-wrap:not(.song-more), #songView:not(.editing) #typeNotes { display: none !important; }
+#shareSongText[hidden] { display: none; }
 #songView:not(.editing) .mel-layout { grid-template-columns: minmax(0, 1fr); }
 #songView.editing .seq { box-shadow: 0 0 0 2px var(--brass) inset; }
 @media (max-width: 600px) {
@@ -429,6 +430,7 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .song-tools { margin: 0 0 14px; }
 .singbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -4px 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); }
 .singbar .fine { margin: 0; }
+.singbar .check[hidden] { display: none; }
 .live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
 .song-live { font-weight: 800; font-size: 1.15rem; min-width: 4.5em; }
@@ -818,6 +820,8 @@ details.hint li { margin: 3px 0; }
             </div></span>
           <span class="menu-wrap song-more"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⋯ More</button>
             <div class="menu list-menu" hidden>
+              <button id="copySongText" type="button" class="menu-item">📋 Copy notes as text</button>
+              <button id="shareSongText" type="button" class="menu-item" hidden>📤 Share notes…</button>
               <button id="typeNotes" type="button" class="menu-item">⌨️ Type or paste notes</button>
               <label class="menu-field">📁 Folder <select id="songFolderSel" aria-label="Folder"></select></label>
               <button id="dupSong" type="button" class="menu-item" title="Make your own copy to change, named “… Remix”">🎛 Remix (make my own copy)</button>
@@ -853,7 +857,7 @@ details.hint li { margin: 3px 0; }
           <span class="live-dot" aria-hidden="true"></span>
           <span id="songLive" class="song-live">Listening…</span>
           <span class="fine" id="singWhere"></span>
-          <label class="check"><input type="checkbox" id="carryChord"> Keep the last chord going on new notes</label>
+          <label class="check" id="carryChordRow" title="If the note before has a chord, each note you sing gets that same chord"><input type="checkbox" id="carryChord"> Give each new note the chord of the note before it</label>
         </div>
         <div id="previewNote" class="preview-note" hidden>
           <span>📚 From the song library. Tap a note to hear it. <span id="previewFit"></span></span>
@@ -1703,6 +1707,7 @@ details.hint li { margin: 3px 0; }
       recPos = selState && selState.list === "song" ? selState.idx + 1 : list.length;
       $("singWhere").textContent = recPos >= list.length ? "New notes go at the end." : "New notes go after the note you picked.";
       $("singBar").hidden = false; $("songLive").textContent = "Listening…";
+      $("carryChordRow").hidden = !list.some(x => isNote(x) && chordOf(x)); // only useful when the song has chords
       $("singSong").textContent = "■ Stop singing"; $("singSong").classList.add("live");
     }
     try {
@@ -2267,6 +2272,9 @@ details.hint li { margin: 3px 0; }
   function applyTyped(replace) {
     const sg = currentSong(); if (!sg || isPreview()) return;
     const r = typedNotes(); if (!noteCount(r.items)) return;
+    // text copied from Hum to Note starts with "# Song name (piano notes)": use it as the name, not as a part
+    const head = r.items[0], m = typeof head === "string" && head.match(/^§(.+?) \([a-z ]+ notes\)$/);
+    if (m) { r.items.shift(); if (!r.title) r.title = m[1]; }
     remember("song");
     if (replace) sg.items = r.items;
     else {
@@ -2394,6 +2402,26 @@ details.hint li { margin: 3px 0; }
     if (!already) return;
     stopPlayback(); curFolder = null; picking = false; picked = []; $("mySearch").value = "";
     showSongHome(); window.scrollTo({ top: 0 });
+  });
+  // The whole song as plain text (title, bar lines, part names, chords), in the notes for your instrument.
+  // Anyone can read it, and pasting it into ⌨️ Type or paste in Hum to Note brings the song back.
+  function songAsText(sg) { return "# " + sg.name + " (" + inst().name + " notes)\n" + itemsToText(sg.items); }
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (e) { // older browsers: copy through a hidden text box
+      const ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand("copy"); } catch (err) {} ta.remove(); return ok;
+    }
+  }
+  $("copySongText").addEventListener("click", async () => {
+    const sg = currentSong(); if (!sg) return;
+    const n = noteCount(sg.items);
+    toast(await copyText(songAsText(sg)) ? "Copied " + n + " notes as text. Paste them anywhere" : "Couldn't copy. Your browser blocked it");
+  });
+  if (navigator.share) $("shareSongText").hidden = false;
+  $("shareSongText").addEventListener("click", () => {
+    const sg = currentSong(); if (!sg) return;
+    navigator.share({ title: sg.name, text: songAsText(sg) }).catch(() => {});
   });
   function newSong(withTyping) {
     picking = false; picked = [];
