@@ -628,6 +628,48 @@ details.hint li { margin: 3px 0; }
 #songView.preview .editpanel, #songView.preview .ins, #songView.preview .empty-add button { display: none; }
 #songView.preview .mel-layout { grid-template-columns: 1fr; }
 @media (prefers-reduced-motion: reduce) { .needle, .note, details > summary::before { transition: none; } }
+.ep-nav { display: none; }
+/* ---------- Phones ---------- */
+@media (max-width: 760px) {
+  main { padding: 10px 10px 40px; }
+  .card { padding: 12px; border-radius: 16px; }
+  /* header: logo + instrument on one row, tabs full width below */
+  .top { gap: 10px; margin-bottom: 12px; }
+  .brand { font-size: 1.1rem; }
+  .brand svg { width: 24px; height: 24px; }
+  .top .tabs { order: 3; flex: 1 1 100%; display: flex; }
+  .top .tabs .tab { flex: 1; }
+  .instlab { display: none; }
+  /* song page: title and View on one row, smaller buttons */
+  #songView .row-head { flex-wrap: nowrap; margin-bottom: 8px; }
+  #songView .song-title-edit { flex: 1 1 auto; min-width: 0; }
+  .song-tools { gap: 6px; }
+  .song-tools .btn { padding: 7px 10px; font-size: .86rem; }
+  /* edit mode: keep the toolbar (Done, Undo, Redo…) at the top while you scroll; Practice/Remix wait until you're done */
+  #songView.editing .song-tools { position: sticky; top: 0; z-index: 40; background: var(--panel); margin: 0 -12px 10px; padding: 8px 12px; border-bottom: 1.5px solid var(--line); }
+  #songView.editing #practiceSong, #songView.editing #dupSong { display: none; }
+  .seq { padding: 8px; gap: 6px; }
+  /* the edit panel is a sheet at the bottom of the screen while a note is picked */
+  #songView .editpanel { display: none; }
+  #songView .editpanel.active { display: block; position: fixed !important; left: 0 !important; right: 0 !important; top: auto !important; bottom: 0 !important; max-height: 50vh; z-index: 70; margin: 0; background: var(--panel); border: none; border-top: 2px solid var(--brass); border-radius: 18px 18px 0 0; padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 10px); box-shadow: 0 -12px 40px rgba(0,0,0,.35); }
+  #songView .ep-grip, #songView .ep-dock, #songView .ep-fing, #songView .ep-keys { display: none !important; }
+  #songView .ep-head { cursor: default; touch-action: auto; margin-bottom: 6px; position: sticky; top: -8px; background: var(--panel); z-index: 1; padding-top: 4px; }
+  #songView .ep-nav { display: inline-block; font: inherit; font-size: 1rem; min-width: 44px; padding: 8px 10px !important; margin-right: 4px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+  #songView .eb-label { font-size: 1.3rem; }
+  #songView .ep-close { font-size: 1.3rem; min-width: 44px; padding: 8px; }
+  #songView .ep-sec { margin-bottom: 8px; }
+  #songView .ep-t { font-size: .68rem; margin-bottom: 3px; }
+  #songView .ep-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  #songView .editpanel button[data-act]:not(.ep-close):not(.ep-nav) { padding: 10px 3px; font-size: .8rem; }
+  #songView .ep-multi .ep-wide { margin-bottom: 8px; }
+  html.ep-open main { padding-bottom: 54vh; }
+  html.ep-open { scroll-padding-bottom: 52vh; }
+  /* View options: a sheet at the bottom so nothing goes off the screen */
+  .viewpop { position: fixed !important; left: 8px !important; right: 8px !important; top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important; width: auto; max-height: 75vh; overflow-y: auto; z-index: 90; box-shadow: 0 -8px 40px rgba(0,0,0,.35); }
+  .vp-desk { display: none !important; }
+  #songView .card.song-enter { animation-name: songInPhone; }
+}
+@keyframes songInPhone { from { opacity: 0; } to { opacity: 1; } }
 </style>
 </head>
 <body>
@@ -783,7 +825,7 @@ details.hint li { margin: 3px 0; }
               <div id="iconPop" class="icon-pop" role="dialog" aria-label="Choose an icon" hidden><div id="iconPick" class="icon-pick"></div></div></span>
             <input id="songTitleInput" class="title-input" type="text" aria-label="Song name (click to rename)" title="Click to rename" maxlength="80" autocomplete="off">
           </div>
-          <span class="head-right"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍 View ▾</button></span></span>
+          <span class="head-right"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍<span class="wide-only"> View</span> ▾</button></span></span>
         </div>
         <div class="toolbar song-tools">
           <button id="playSong" type="button" class="btn primary">▶ Play</button>
@@ -861,7 +903,7 @@ details.hint li { margin: 3px 0; }
             <p>Tap any note to hear it and change it: pick a new note, move it, add notes around it, or give it a chord.</p>
           </div>
           <div class="ep-body" hidden>
-            <div class="ep-head" title="Drag here to move this panel"><span class="ep-grip" aria-hidden="true">⠿</span><button type="button" class="eb-label" title="Play this note"></button><span class="ep-head-btns"><button type="button" class="ep-dock" aria-label="Put the panel back beside the notes" title="Put the panel back beside the notes">⇲</button><button type="button" data-act="done" class="ep-close" aria-label="Close" title="Close (Esc)">✕</button></span></div>
+            <div class="ep-head" title="Drag here to move this panel"><span class="ep-grip" aria-hidden="true">⠿</span><button type="button" class="eb-label" title="Play this note"></button><span class="ep-head-btns"><button type="button" data-act="prev" class="ep-nav" aria-label="Previous note">◀</button><button type="button" data-act="next" class="ep-nav" aria-label="Next note">▶</button><button type="button" class="ep-dock" aria-label="Put the panel back beside the notes" title="Put the panel back beside the notes">⇲</button><button type="button" data-act="done" class="ep-close" aria-label="Close" title="Close (Esc)">✕</button></span></div>
             <div class="ep-fing" aria-hidden="true"></div>
             <div class="ep-sec"><span class="ep-t">Change to</span><div class="ep-notes"><button type="button" data-act="set" data-pc="0">C</button><button type="button" data-act="set" data-pc="1">C♯</button><button type="button" data-act="set" data-pc="2">D</button><button type="button" data-act="set" data-pc="3">E♭</button><button type="button" data-act="set" data-pc="4">E</button><button type="button" data-act="set" data-pc="5">F</button><button type="button" data-act="set" data-pc="6">F♯</button><button type="button" data-act="set" data-pc="7">G</button><button type="button" data-act="set" data-pc="8">A♭</button><button type="button" data-act="set" data-pc="9">A</button><button type="button" data-act="set" data-pc="10">B♭</button><button type="button" data-act="set" data-pc="11">B</button></div></div>
             <div class="ep-sec"><span class="ep-t">Pitch</span>
@@ -903,7 +945,7 @@ details.hint li { margin: 3px 0; }
       <div class="card practice">
         <div class="row-head">
           <h2 id="prTitle">🎯 Practice</h2>
-          <div class="pr-overall"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍 View ▾</button></span><span id="prStreakBadge" class="pr-streak-badge" title="Days practiced in a row"></span><span id="prOverallText"></span><span class="pr-bar" aria-hidden="true"><i id="prBarFill"></i></span></div>
+          <div class="pr-overall"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍<span class="wide-only"> View</span> ▾</button></span><span id="prStreakBadge" class="pr-streak-badge" title="Days practiced in a row"></span><span id="prOverallText"></span><span class="pr-bar" aria-hidden="true"><i id="prBarFill"></i></span></div>
         </div>
         <p id="prBanner" class="pr-banner" role="status" hidden></p>
         <div id="prMainWrap" class="pr-layout">
@@ -965,8 +1007,8 @@ details.hint li { margin: 3px 0; }
   <div class="vp-row"><span class="vp-lab">Spacing</span><div id="vGap" class="seg"><button type="button" data-gap="tight">Tight</button><button type="button" data-gap="normal">Normal</button><button type="button" data-gap="roomy">Roomy</button></div></div>
   <label class="check"><input type="checkbox" id="vFing"> Show fingering pictures</label>
   <label class="check"><input type="checkbox" id="vTitles"> Show part titles and bar lines</label>
-  <label class="check vp-song"><input type="checkbox" id="vPanel"> Keep the edit panel beside the notes</label>
-  <p class="fine vp-song" style="margin:2px 0 0">With this off, the panel floats and pops up when you tap a note. You can also drag it anywhere by its top bar.</p>
+  <label class="check vp-song vp-desk"><input type="checkbox" id="vPanel"> Keep the edit panel beside the notes</label>
+  <p class="fine vp-song vp-desk" style="margin:2px 0 0">With this off, the panel floats and pops up when you tap a note. You can also drag it anywhere by its top bar.</p>
   <p class="fine vp-pr" style="margin:2px 0 0">Turn it off to see every note at full size and scroll the page instead.</p>
   <button type="button" id="vReset" class="link">Reset view</button>
 </div>
@@ -2173,7 +2215,7 @@ details.hint li { margin: 3px 0; }
       $("view-" + t).hidden = t !== which;
       $("tab-" + t).classList.toggle("active", t === which); $("tab-" + t).setAttribute("aria-selected", t === which);
     });
-    closeViewPop(); refit();
+    closeViewPop(); refit(); setTimeout(syncSheet, 0);
     if (which === "songs" && $("songView").hidden) showSongHome();
     if (which === "practice" && $("songPractice").hidden) showPracticeHome();
   }
@@ -3127,7 +3169,11 @@ details.hint li { margin: 3px 0; }
   // ---------- View options (saved in this browser) ----------
   const VIEW_DEFAULT = { zoom: 100, fit: false, gap: "normal", fing: true, titles: true, panel: true, prFit: true };
   let VIEW = Object.assign({}, VIEW_DEFAULT);
-  try { Object.assign(VIEW, JSON.parse(localStorage.getItem("htn-view") || "{}")); } catch (e) {}
+  try {
+    const saved = JSON.parse(localStorage.getItem("htn-view") || "{}");
+    if (saved.zoom == null && window.matchMedia("(max-width: 760px)").matches) VIEW.zoom = 70;
+    Object.assign(VIEW, saved);
+  } catch (e) {}
   const saveView = () => { try { localStorage.setItem("htn-view", JSON.stringify(VIEW)); } catch (e) {} };
   function visibleSeq() { const w = context(); return w ? seqFor(w) : null; }
   function fitNow(scroll) { // largest note size that shows every note without scrolling
@@ -3169,7 +3215,7 @@ details.hint li { margin: 3px 0; }
   let panelDrag = null;
   document.addEventListener("pointerdown", e => {
     const head = e.target.closest(".editpanel .ep-head");
-    if (!head || e.target.closest("button")) return;
+    if (!head || e.target.closest("button") || isPhone()) return; // on phones the panel is a fixed sheet
     const panel = head.closest(".editpanel"), r = panel.getBoundingClientRect();
     if (VIEW.panel !== false || VIEW.panelX == null) { // first move: lift it out from beside the notes, right where it is
       VIEW.panel = false; VIEW.panelX = r.left; VIEW.panelY = r.top; applyView();
@@ -3263,13 +3309,17 @@ details.hint li { margin: 3px 0; }
     if (which === "mel") { renderSeq(); updateEditbar("mel"); }
     else { storeSongs(); renderSongSeq(); }
   }
+  const isPhone = () => window.matchMedia("(max-width: 760px)").matches;
+  function syncSheet() { // phones: room below the notes for the edit sheet while a note is picked
+    document.documentElement.classList.toggle("ep-open", !!document.querySelector("#view-songs:not([hidden]) #songView:not([hidden]) .editpanel.active"));
+  }
   function updateEditbar(which) {
     const bar = seqFor(which).closest(".mel-layout").querySelector(".editpanel");
     if (!bar) return;
     let active = !!(selState && selState.list === which);
     const list = getList(which), i = active ? selState.idx : -1, m = list[i];
     if (active && !isNote(m)) { selState = null; active = false; }
-    bar.classList.toggle("active", active);
+    bar.classList.toggle("active", active); syncSheet();
     bar.querySelector(".ep-empty").hidden = active; bar.querySelector(".ep-body").hidden = !active;
     const group = active && selState.multi && selState.multi.size > 1;
     bar.classList.toggle("multi", !!group);
@@ -3408,7 +3458,10 @@ details.hint li { margin: 3px 0; }
     if (!seqFor(other).hidden) seqFor(other).querySelectorAll(".chip.selected").forEach(c => c.classList.remove("selected"));
     updateEditbar(which); updateEditbar(other);
     const chip = seqFor(which).querySelector('.chip[data-i="' + idx + '"]');
-    if (chip) { chip.focus({ preventScroll: true }); if (play) playChips([chip], null); }
+    if (chip) {
+      chip.focus({ preventScroll: true }); if (play) playChips([chip], null);
+      if (isPhone()) setTimeout(() => chip.scrollIntoView({ block: "nearest" }), 0); // keep it above the edit sheet
+    }
   }
   function deselect() {
     if (!selState) return;
