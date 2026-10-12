@@ -28,7 +28,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-padding-top: env(safe-area-inset-top, 0px); }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.45; }
-main { max-width: 1060px; margin: 0 auto; padding: 16px 16px 48px; }
+main { margin: 0; padding: 16px clamp(16px, 2.5vw, 40px) 48px; }
 [hidden] { display: none !important; }
 h2 { font-size: 1.1rem; margin: 0; font-weight: 800; }
 
@@ -2886,10 +2886,10 @@ details.hint li { margin: 3px 0; }
     let lo = 0.2, hi = 1.6;
     for (let k = 0; k < 9; k++) {
       const mid = (lo + hi) / 2;
-      document.documentElement.style.setProperty("--chip-zoom", mid);
+      seq.style.setProperty("--chip-zoom", mid);
       if (seq.scrollHeight <= avail) lo = mid; else hi = mid;
     }
-    document.documentElement.style.setProperty("--chip-zoom", lo);
+    seq.style.setProperty("--chip-zoom", lo);
     $("vZoom").value = Math.round(lo * 100); $("vZoomOut").textContent = Math.round(lo * 100) + "%";
   }
   function applyView(scroll) {
@@ -2900,6 +2900,8 @@ details.hint li { margin: 3px 0; }
     $("vGap").querySelectorAll("button").forEach(x => x.classList.toggle("active", x.dataset.gap === VIEW.gap));
     if (VIEW.fit) fitNow(scroll);
     else { document.documentElement.style.setProperty("--chip-zoom", VIEW.zoom / 100); $("vZoom").value = VIEW.zoom; $("vZoomOut").textContent = VIEW.zoom + "%"; }
+    if (!VIEW.fit) ["seq", "songSeq"].forEach(id => $(id).style.removeProperty("--chip-zoom")); // drop sizes left over from fitting
+    if (typeof pr !== "undefined" && pr) $("prNotes").style.setProperty("--chip-zoom", VIEW.zoom / 100);
   }
   function setView(patch, scroll) { Object.assign(VIEW, patch); saveView(); applyView(scroll); }
   function openViewPop(btn) {
@@ -3551,6 +3553,7 @@ details.hint li { margin: 3px 0; }
   }
   function renderStep() {
     const { sg, d, key } = pr, st = d.steps[key] || {}, [a, b] = stepRange(d, key), notes = songNotes(sg);
+    $("prNotes").style.setProperty("--chip-zoom", (VIEW.zoom || 100) / 100);
     $("prStepName").textContent = stepName(d, key);
     const bits = ["notes " + (a + 1) + "–" + b];
     if (st.passes) bits.push("passed " + st.passes + "×");
