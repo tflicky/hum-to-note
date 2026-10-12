@@ -105,6 +105,12 @@ details[open] > summary::before { transform: rotate(90deg); }
 .chip { border: none; font: inherit; cursor: pointer; background: var(--brass-soft); color: var(--ink); border-radius: 10px; font-weight: 700; font-size: 1rem; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 6px 8px; }
 .chip:hover { filter: brightness(0.96); }
 .chip.playing { outline: 3px solid var(--brass); outline-offset: 1px; }
+.chip.out-range { background: color-mix(in srgb, var(--danger) 16%, var(--panel)); color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
+.out-fing .x { color: var(--danger); font-weight: 700; font-size: .8rem; max-width: 9em; text-align: center; line-height: 1.2; }
+.range-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--danger) 12%, var(--panel)); border: 1.5px solid color-mix(in srgb, var(--danger) 45%, transparent); }
+.range-note[hidden] { display: none; }
+.range-note .rn-text { flex: 1 1 260px; }
+.range-note .rn-text strong { color: var(--danger); }
 .chip.listen-at { outline: 3px solid var(--brass); outline-offset: 1px; }
 .seq .bar { width: 2px; align-self: stretch; background: var(--line); border-radius: 1px; margin: 0 2px; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .78rem; color: var(--muted); margin: 10px 0 0; }
@@ -836,6 +842,7 @@ details.hint li { margin: 3px 0; }
           <span>📚 From the song library. Tap a note to hear it. <span id="previewFit"></span></span>
           <button id="remixSong" type="button" class="btn primary">🎛 Remix: save my own copy</button>
         </div>
+        <div id="rangeNote" class="range-note" role="status" hidden></div>
         <div class="mel-layout">
           <div class="mel-main">
             <div id="songSeq" class="seq" data-list="song"></div>
@@ -1399,10 +1406,12 @@ details.hint li { margin: 3px 0; }
     const txt = v ? (v.length === 1 ? "Valve " : "Valves ") + v.split("").join(" + ") : "Open (no valves)";
     return '<div class="fing">' + o + '<span class="x">' + txt + '</span></div>';
   }
+  function outOfRange(x) { const r = inst(), w = pitchOf(x) + shiftNow(); return w < r.lo || w > r.hi; }
   function fingHTML(x, big) {
     const midiConcert = pitchOf(x);
-    const w = fitRange(midiConcert + shiftNow());
-    const label = NAMES[w % 12] + (Math.floor(w / 12) - 1);
+    const w = midiConcert + shiftNow();
+    const label = NAMES[((w % 12) + 12) % 12] + (Math.floor(w / 12) - 1);
+    if (outOfRange(x)) return { label, out: true, html: '<div class="fing out-fing"><span class="x">Too ' + (w < inst().lo ? "low" : "high") + " for " + inst().name + "</span></div>" };
     if (inst().kind === "piano") return { label, html: pianoHTML(w, big, x) };
     if (inst().kind === "guitar") return { label, html: guitarHTML(w, big) };
     if (inst().kind === "recorder") return { label, html: recorderHTML(w, big) };
@@ -1433,7 +1442,7 @@ details.hint li { margin: 3px 0; }
     const m = midiConcert + shiftNow();
     return NAMES[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
   }
-  function displayLabel(m) { const w = fitRange(pitchOf(m) + shiftNow()); return NAMES[w % 12] + (Math.floor(w / 12) - 1); }
+  function displayLabel(m) { const w = pitchOf(m) + shiftNow(); return NAMES[((w % 12) + 12) % 12] + (Math.floor(w / 12) - 1); }
 
   // ---------- Pitch detection ----------
   let ctx = null, analyser = null, stream = null, buf = null, raf = null, running = false;
@@ -1503,7 +1512,7 @@ details.hint li { margin: 3px 0; }
   }
 
 
-  function soundingMidi(m) { return fitRange(pitchOf(m) + shiftNow()) - shiftNow(); }
+  function soundingMidi(m) { return pitchOf(m); }
   // Chord helpers (roots stored at concert pitch; shown in the selected instrument's note names)
   const pcName = pcConcert => NAMES[(((pcConcert + shiftNow()) % 12) + 12) % 12];
   function chordRoot(x) { const ch = chordOf(x); if (!ch) return null; return ch.on ? ((soundingMidi(x) % 12) + 12) % 12 : ch.root; }
@@ -1529,7 +1538,7 @@ details.hint li { margin: 3px 0; }
       const sel = selState && list === getList(selState.list) && (selState.idx === i || (selState.multi && selState.multi.has(i))) ? " selected" : "";
       const h = fingHTML(m, false), ch = chordOf(m);
       const pill = ch ? '<span class="chordpill' + (ch.on ? ' on' : '') + '" title="' + (ch.on ? 'Played as a chord' : 'Supporting chord') + '">' + (ch.on ? '♫ ' : '+ ') + chordSymbol(m) + '</span>' : '';
-      return slot + '<button type="button" class="chip' + (ch ? ' has-chord' : '') + sel + '" data-i="' + i + '" data-play="' + snd + '" data-chord="' + chordTonesMidi(m).join(",") + '" aria-label="' + h.label + (ch ? ' with ' + chordSymbol(m) + ' chord' : '') + '">' + pill + h.label + h.html + '</button>';
+      return slot + '<button type="button" class="chip' + (ch ? ' has-chord' : '') + (h.out ? ' out-range' : '') + sel + '" data-i="' + i + '" data-play="' + snd + '" data-chord="' + chordTonesMidi(m).join(",") + '" aria-label="' + h.label + (h.out ? ' (out of range)' : '') + (ch ? ' with ' + chordSymbol(m) + ' chord' : '') + '"' + (h.out ? ' title="' + inst().name + ' can\'t play this note"' : '') + '>' + pill + h.label + h.html + '</button>';
     }).join("") + insSlot(list.length, true);
   }
   function renderSeq() {
@@ -3170,9 +3179,31 @@ details.hint li { margin: 3px 0; }
     $("songView").querySelector(".card").classList.toggle("is-empty", !sg.items.some(isNote));
     $("songSeq").innerHTML = sg.items.some(isNote) ? chipsHTML(sg.items) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>No notes yet</strong><span>Add notes any way you like:</span><div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note</button><button type="button" class="btn" data-sing>🎤 Hum them</button><button type="button" class="btn" data-type>⌨️ Type or paste</button></div></div>';
     updateEditbar("song");
+    updateRangeNote(sg);
     refit();
     preloadSoon();
   }
+  // Notes the instrument can't play: say how many, and suggest the octave move that fits the most
+  function updateRangeNote(sg) {
+    const el = $("rangeNote"), r = inst(), lim = pitchLimits();
+    const notes = sg.items.filter(isNote).map(pitchOf), out = ps => ps.filter(p => p < lim.lo || p > lim.hi).length;
+    const n = out(notes);
+    if (!n) { el.hidden = true; el.innerHTML = ""; return; }
+    const low = notes.filter(p => p < lim.lo).length, high = n - low;
+    let best = 0, bestN = n;
+    [1, -1, 2, -2, 3, -3, 4, -4].forEach(k => { const m = out(notes.map(p => p + 12 * k)); if (m < bestN) { bestN = m; best = k; } });
+    const oct = Math.abs(best) === 1 ? "an octave" : Math.abs(best) + " octaves";
+    let html = '<span class="rn-text">⚠ <strong>' + n + " note" + (n === 1 ? " is" : "s are") + " too " + (low && high ? "low or high" : low ? "low" : "high") + " for " + esc(r.name) + "</strong> (in red). It plays " + writtenName(r.lo) + " to " + writtenName(r.hi) + ".";
+    if (best && !isPreview()) html += "</span>" + '<button type="button" class="btn primary" data-rangefix="' + best + '">' + (best > 0 ? "▲ Move the song up " : "▼ Move the song down ") + oct + "</button>"
+      + '<span class="fine" style="margin:0">' + (bestN ? "Fixes " + (n - bestN) + " of them" : "Then every note fits") + "</span>";
+    else if (best) html += " Moving it " + (best > 0 ? "up " : "down ") + oct + " would help. 🎛 Remix it to make your own copy.</span>";
+    else html += " The song spans more than " + (/^[aeiou]/i.test(r.name) ? "an " : "a ") + esc(r.name) + " can play, so moving it won't fix them all. In ✏️ Edit mode, tap a red note to change it.</span>";
+    el.innerHTML = html; el.hidden = false;
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-rangefix]"); if (!b) return;
+    shiftSong("song", 12 * +b.dataset.rangefix);
+  });
   let preloadTimer = null;
   function preloadSoon() {
     clearTimeout(preloadTimer);
@@ -3218,12 +3249,11 @@ details.hint li { margin: 3px 0; }
     bar.querySelector('[data-act="left"]').disabled = i === 0;
     bar.querySelector('[data-act="right"]').disabled = i === list.length - 1;
     const lim = pitchLimits(m);
-    bar.querySelector('[data-act="up"]').disabled = normPitch(m) + 1 > lim.hi;
-    bar.querySelector('[data-act="down"]').disabled = normPitch(m) - 1 < lim.lo;
-    bar.querySelector('[data-act="octup"]').disabled = normPitch(m) + 12 > lim.hi;
-    bar.querySelector('[data-act="octdown"]').disabled = normPitch(m) - 12 < lim.lo;
+    [["up", 1], ["down", -1], ["octup", 12], ["octdown", -12]].forEach(([a, d]) => { bar.querySelector('[data-act="' + a + '"]').disabled = !canStep(m, d); });
   }
   // In sax mode, keep edits inside the horn's range (written low B♭ to high F♯)
+  // A pitch move is fine if it lands in range, or brings a red (out-of-range) note closer to it
+  function canStep(m, d) { const lim = pitchLimits(), p = pitchOf(m), n = p + d; return (n >= lim.lo && n <= lim.hi) || (p < lim.lo && d > 0) || (p > lim.hi && d < 0); }
   function normPitch(m) { return fitRange(pitchOf(m) + shiftNow()) - shiftNow(); }
   function pitchLimits() { const r = inst(); return { lo: r.lo - r.shift, hi: r.hi - r.shift }; }
   function setTarget(m, pc) {
@@ -3351,8 +3381,8 @@ details.hint li { margin: 3px 0; }
     else if (action === "right" && i < list.length - 1) { remember(which); [list[i + 1], list[i]] = [list[i], list[i + 1]]; i++; }
     else if (["up", "down", "octup", "octdown"].includes(action)) {
       const d = { up: 1, down: -1, octup: 12, octdown: -12 }[action];
-      const n = normPitch(m) + d;
-      if (n < lim.lo || n > lim.hi) return;
+      if (!canStep(m, d)) return;
+      const n = pitchOf(m) + d;
       remember(which); list[i] = withPitch(m, n); play = true;
     }
     else if (action === "del") {
@@ -3841,7 +3871,7 @@ details.hint li { margin: 3px 0; }
     if (sel !== null) select(which, sel, false);
     const what = Math.abs(semis) === 12 ? (d > 0 ? "Up" : "Down") + " an octave" : (d > 0 ? "Up" : "Down") + " a half step · first note " + was + " → " + displayLabel(list.find(isNote));
     document.querySelectorAll(".tp-menu").forEach(m => { if (!m.hidden) updateShiftUI(m); });
-    toast(what + (extra > 0 ? " · " + extra + " note" + (extra === 1 ? " is" : "s are") + " " + (d > 0 ? "too high" : "too low") + " for " + inst().name + ", so " + (extra === 1 ? "it shows" : "they show") + " in a nearer octave" : ""));
+    toast(what + (extra > 0 ? " · " + extra + " note" + (extra === 1 ? " is" : "s are") + " " + (d > 0 ? "too high" : "too low") + " for " + inst().name + " (in red)" : ""));
   }
   [["song", "song"]].forEach(([p, which]) => {
     $(p + "OctDown").addEventListener("click", () => shiftOctave(which, -1));
