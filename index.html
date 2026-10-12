@@ -266,6 +266,21 @@ details.ep-chord > summary .ep-t { margin: 0; }
 details.ep-chord > summary .ep-chsum { margin-left: auto; font-weight: 800; font-size: .9rem; }
 details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass); }
 /* Practice mode */
+.streak-card { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 14px; padding: 14px 18px; border-radius: 16px; background: var(--panel); border: 1.5px solid var(--line); }
+.streak-card.lit { border-color: #E8833A; background: color-mix(in srgb, #E8833A 14%, var(--panel)); }
+.sk-flame { font-size: 2rem; line-height: 1; filter: grayscale(1); opacity: .5; }
+.streak-card.lit .sk-flame { filter: none; opacity: 1; }
+.sk-main { display: flex; flex-direction: column; flex: 1 1 180px; }
+.sk-main strong { font-size: 1.25rem; }
+.sk-main span { color: var(--muted); font-size: .9rem; font-weight: 600; }
+.sk-week { display: flex; gap: 6px; }
+.sk-day { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: .68rem; font-weight: 700; color: var(--muted); }
+.sk-day i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); }
+.sk-day.on i { background: #E8833A; border-color: #E8833A; }
+.sk-day.today { color: var(--ink); }
+.sk-day.today i { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--muted); }
+.pr-streak-badge { font-weight: 800; color: var(--muted); filter: grayscale(1); }
+.pr-streak-badge.lit { color: #E8833A; filter: none; }
 .pr-nav { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 14px; }
 .pr-home-h { font-size: 1.05rem; margin: 22px 0 10px; }
 .pr-card { align-items: flex-start; }
@@ -462,6 +477,9 @@ body.touch-dragging { -webkit-user-select: none; user-select: none; }
 .kpill { font-size: .66rem; line-height: 1.2; font-weight: 700; background: var(--brass); color: #fff; border-radius: 6px; padding: 2px 6px; text-align: center; }
 /* Song library & paste a song */
 .library { margin-top: 26px; }
+.lib-toggle { font: inherit; font-weight: 800; font-size: inherit; color: var(--ink); background: none; border: none; padding: 4px 8px 4px 0; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; }
+.lib-toggle:hover .lib-caret { color: var(--brass); }
+.lib-caret { width: 1em; color: var(--muted); }
 .lib-tools { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 12px; }
 .lib-tools input[type=search] { font: inherit; color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 12px; flex: 1 1 220px; min-width: 0; }
 .lib-tools input[type=search]:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
@@ -688,13 +706,15 @@ details.hint li { margin: 3px 0; }
         <button id="cancelSel" type="button" class="btn">Done</button>
       </div>
       <section id="library" class="library" aria-labelledby="libTitle">
-        <div class="row-head"><h2 id="libTitle">📚 Song library</h2></div>
+        <div class="row-head"><h2 id="libTitle"><button type="button" id="libToggle" class="lib-toggle" aria-expanded="true" aria-controls="libBody"><span class="lib-caret" aria-hidden="true">▾</span> 📚 Song library</button></h2></div>
+        <div id="libBody">
         <div class="lib-tools">
           <input id="libSearch" type="search" placeholder="Search songs…" aria-label="Search the song library" autocomplete="off">
           <div id="libCats" class="seg" role="group" aria-label="Filter by type"></div>
         </div>
         <div id="libList" class="song-grid"></div>
         <p class="fine">Tap a song to see and hear it. Press <strong>🎛 Remix</strong> to save your own copy you can change. These are classic and traditional tunes that are free to use. For other songs, press <strong>＋ New song</strong> and paste the notes from a website.</p>
+        </div>
       </section>
       <details class="backup">
         <summary>Back up or move songs</summary>
@@ -825,7 +845,7 @@ details.hint li { margin: 3px 0; }
       <div class="card practice">
         <div class="row-head">
           <h2 id="prTitle">🎯 Practice</h2>
-          <div class="pr-overall"><span id="prOverallText"></span><span class="pr-bar" aria-hidden="true"><i id="prBarFill"></i></span></div>
+          <div class="pr-overall"><span id="prStreakBadge" class="pr-streak-badge" title="Days practiced in a row"></span><span id="prOverallText"></span><span class="pr-bar" aria-hidden="true"><i id="prBarFill"></i></span></div>
         </div>
         <p id="prBanner" class="pr-banner" role="status" hidden></p>
         <div id="prMainWrap" class="pr-layout">
@@ -1855,10 +1875,19 @@ details.hint li { margin: 3px 0; }
   let libCat = "all";
   const searchKey = t => String(t).toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/[^a-z0-9 ]+/g, " ");
   $("libCats").innerHTML = LIB_CATS.map(([id, label]) => '<button type="button" data-cat="' + id + '" class="' + (id === libCat ? "active" : "") + '">' + label + '</button>').join("");
+  let libOpen = true;
+  try { libOpen = localStorage.getItem("htn-libopen") !== "0"; } catch (e) {}
+  function setLibOpen(open) {
+    libOpen = open; try { localStorage.setItem("htn-libopen", open ? "1" : "0"); } catch (e) {}
+    $("libBody").hidden = !open; $("libToggle").setAttribute("aria-expanded", open);
+    $("libToggle").querySelector(".lib-caret").textContent = open ? "▾" : "▸";
+    if (open) renderLibrary();
+  }
   function renderLibrary() {
     const lib = $("library");
     lib.hidden = !!curFolder || picking;
-    if (lib.hidden) return;
+    $("libBody").hidden = !libOpen; $("libToggle").setAttribute("aria-expanded", libOpen); $("libToggle").querySelector(".lib-caret").textContent = libOpen ? "▾" : "▸";
+    if (lib.hidden || !libOpen) return;
     const q = searchKey($("libSearch").value).trim(), words = q.split(/\s+/).filter(Boolean);
     const hits = LIBRARY.filter(s => (libCat === "all" || s.cat === libCat) && words.every(w => searchKey(s.name + " " + s.by + " " + (s.also || "")).includes(w)));
     $("libCats").querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.cat === libCat));
@@ -1931,6 +1960,7 @@ details.hint li { margin: 3px 0; }
     announceRemix(sg, from);
   });
   $("libSearch").addEventListener("input", renderLibrary);
+  $("libToggle").addEventListener("click", () => setLibOpen(!libOpen));
   $("libCats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; libCat = b.dataset.cat; renderLibrary(); });
   $("libList").addEventListener("click", e => { const b = e.target.closest("[data-lib]"); if (b) previewLibrary(b.dataset.lib); });
 
@@ -2526,7 +2556,7 @@ details.hint li { margin: 3px 0; }
     songs = songs.filter(x => x.id !== openId); storeSongs(); showSongHome();
   });
   $("exportSongs").addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify({ app: "hum-to-note", songs, folders, practice }, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ app: "hum-to-note", songs, folders, practice, practiceDays }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = "hum-to-note-songs.json";
     document.body.appendChild(a); a.click(); a.remove();
@@ -2542,6 +2572,7 @@ details.hint li { margin: 3px 0; }
       (data.songs || []).filter(x => x && x.name && Array.isArray(x.items)).forEach(x => {
         if (!songs.some(y => y.id === x.id)) { songs.push({ id: x.id || newId("s"), name: x.name, items: x.items, instr: x.instr || "sax", folder: x.folder || null, libId: x.libId, icon: x.icon }); added++; }
       });
+      if (Array.isArray(data.practiceDays)) { practiceDays = [...new Set(practiceDays.concat(data.practiceDays.filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x))))].sort(); try { localStorage.setItem("htn-days", JSON.stringify(practiceDays)); } catch (e) {} }
       if (data.practice && typeof data.practice === "object") { Object.keys(data.practice).forEach(id => { if (!practice[id] && songs.some(x => x.id === id)) practice[id] = data.practice[id]; }); savePractice(); }
       storeSongs(); showSongHome();
       $("backupMsg").textContent = "Imported " + added + " song" + (added === 1 ? "" : "s") + ".";
@@ -3505,6 +3536,7 @@ details.hint li { margin: 3px 0; }
     if (!pr) return;
     const { d } = pr, keys = prSteps(d), done = keys.filter(k => passed(d, k)).length;
     $("prOverallText").textContent = done + " of " + keys.length + " steps passed";
+    const sk = streakInfo(); $("prStreakBadge").textContent = "🔥 " + sk.cur; $("prStreakBadge").classList.toggle("lit", sk.today);
     $("prBarFill").style.width = Math.round(done / keys.length * 100) + "%";
     $("prStepList").innerHTML = keys.map(k => {
       const st = d.steps[k] || {}, open = unlocked(d, k) || !!st.passed, lvl = stepLevel(d, k);
@@ -3549,10 +3581,44 @@ details.hint li { margin: 3px 0; }
       : '<p class="fine" style="margin:0">Nothing yet. Your practice days will show up here.</p>';
   }
   function snapshot() { const { d, key } = pr; return { key, streak: pr.streak, streakBpm: pr.streakBpm, step: d.steps[key] ? Object.assign({}, d.steps[key]) : null, hist: d.history.length }; }
+  // Days practiced (any song), kept apart from song progress so resetting a song keeps your streak
+  const DAYS_KEY = "htn-days";
+  const dayStr = t => { const x = new Date(t); return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0") + "-" + String(x.getDate()).padStart(2, "0"); };
+  const addDays = (str, n) => { const [y, m, dd] = str.split("-").map(Number); return dayStr(new Date(y, m - 1, dd + n).getTime()); };
+  let practiceDays = [];
+  try { practiceDays = JSON.parse(localStorage.getItem(DAYS_KEY) || "null"); } catch (e) { practiceDays = null; }
+  if (!Array.isArray(practiceDays)) { // first time: start from any practice already saved
+    const set = new Set(); Object.values(practice).forEach(d => (d.history || []).forEach(h => set.add(dayStr(h.t))));
+    practiceDays = [...set].sort();
+    try { localStorage.setItem(DAYS_KEY, JSON.stringify(practiceDays)); } catch (e) {}
+  }
+  function markPracticedToday() {
+    const today = dayStr(Date.now());
+    if (practiceDays.includes(today)) return false;
+    practiceDays.push(today); practiceDays.sort();
+    try { localStorage.setItem(DAYS_KEY, JSON.stringify(practiceDays)); } catch (e) {}
+    return true;
+  }
+  function streakInfo() {
+    const set = new Set(practiceDays), today = dayStr(Date.now()), yesterday = addDays(today, -1);
+    let cur = 0, day = set.has(today) ? today : set.has(yesterday) ? yesterday : null;
+    while (day && set.has(day)) { cur++; day = addDays(day, -1); }
+    let best = 0, run = 0, prev = null;
+    practiceDays.forEach(dd => { run = prev && addDays(prev, 1) === dd ? run + 1 : 1; best = Math.max(best, run); prev = dd; });
+    const week = Array.from({ length: 7 }, (_, k) => { const dd = addDays(today, k - 6); return { dd, on: set.has(dd), today: dd === today }; });
+    return { cur, best, today: set.has(today), week };
+  }
+  function streakHTML() {
+    const st = streakInfo(), wk = ["S", "M", "T", "W", "T", "F", "S"];
+    const msg = st.today ? "✓ Practiced today" : st.cur ? "Practice today to keep it going!" : practiceDays.length ? "Start a new streak today" : "Practice today to start a streak";
+    return '<div class="streak-card' + (st.cur ? " lit" : "") + '"><span class="sk-flame" aria-hidden="true">🔥</span><div class="sk-main"><strong>' + st.cur + '-day streak</strong><span>' + msg + (st.best > 1 ? " · Best: " + st.best + " days" : "") + '</span></div>'
+      + '<div class="sk-week" aria-label="Last 7 days">' + st.week.map(w => { const [y, m, dd] = w.dd.split("-").map(Number), dow = new Date(y, m - 1, dd).getDay(); return '<span class="sk-day' + (w.on ? " on" : "") + (w.today ? " today" : "") + '" title="' + w.dd + (w.on ? ": practiced" : "") + '"><i></i>' + wk[dow] + '</span>'; }).join("") + '</div></div>';
+  }
   function tapResult(clean) {
     if (!pr) return;
     const { d, key } = pr, now = Date.now();
     pr.undo = snapshot();
+    if (markPracticedToday()) { const c = streakInfo().cur; setTimeout(() => toast(c > 1 ? "🔥 " + c + "-day streak! Keep it up" : "🔥 Streak started: day 1"), 1200); }
     if (!clean) { pr.streak = 0; d.history.push({ t: now, s: key, r: "m", b: d.bpm }); }
     else {
       if (pr.streak && pr.streakBpm !== d.bpm) pr.streak = 0;
@@ -3680,7 +3746,7 @@ details.hint li { margin: 3px 0; }
     const withNotes = songs.filter(sg => sg.items.some(isNote));
     const started = withNotes.filter(sg => practice[sg.id]).map(sg => ({ sg, d: practice[sg.id] })).sort((x, y) => lastPracticed(y.d) - lastPracticed(x.d));
     const fresh = withNotes.filter(sg => !practice[sg.id]);
-    $("prContinue").innerHTML = started.length ? practiceCard(started[0].sg, started[0].d, true) : "";
+    $("prContinue").innerHTML = (withNotes.length ? streakHTML() : "") + (started.length ? practiceCard(started[0].sg, started[0].d, true) : "");
     $("prPracticed").innerHTML = started.length > 1 ? '<h2 class="pr-home-h">Your practice</h2><div class="song-grid">' + started.slice(1).map(e => practiceCard(e.sg, e.d)).join("") + '</div>' : "";
     $("prOthers").innerHTML = !withNotes.length
       ? '<div class="empty-songs">No songs to practice yet. Make one in <button type="button" class="link" data-gosongs>Songs</button>, or remix one from the song library.</div>'
