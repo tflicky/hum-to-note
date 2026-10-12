@@ -101,6 +101,7 @@ details[open] > summary::before { transform: rotate(90deg); }
 .chip { border: none; font: inherit; cursor: pointer; background: var(--brass-soft); color: var(--ink); border-radius: 10px; font-weight: 700; font-size: 1rem; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 6px 8px; }
 .chip:hover { filter: brightness(0.96); }
 .chip.playing { outline: 3px solid var(--brass); outline-offset: 1px; }
+.chip.listen-at { outline: 3px solid var(--brass); outline-offset: 1px; }
 .seq .bar { width: 2px; align-self: stretch; background: var(--line); border-radius: 1px; margin: 0 2px; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .78rem; color: var(--muted); margin: 10px 0 0; }
 .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
@@ -454,6 +455,8 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .crumb { font: inherit; font-weight: 800; font-size: 1.1rem; background: none; border: none; padding: 0; color: var(--ink); cursor: pointer; }
 .crumbs.in-folder .crumb { color: var(--muted); }
 .crumb-sep { color: var(--muted); }
+#crumbFolder { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.title-input.folder-title { flex: 0 1 auto; width: auto; max-width: 100%; font-size: inherit; padding: 2px 6px; margin-left: -6px; }
 .subhead { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 18px 0 8px; }
 .folder-card { background: var(--brass-soft); border-color: transparent; }
 .song-card { position: relative; }
@@ -575,6 +578,9 @@ body.touch-dragging { -webkit-user-select: none; user-select: none; }
 .title-input { flex: 1 1 auto; min-width: 0; font: inherit; font-size: 1.15rem; font-weight: 800; color: var(--ink); background: transparent; border: 1.5px solid transparent; border-radius: 10px; padding: 5px 8px; text-overflow: ellipsis; }
 .title-input:hover { border-color: var(--line); border-style: dashed; cursor: text; }
 .title-input:focus { outline: none; border-style: solid; border-color: var(--brass); background: var(--panel); }
+#crumbFolder .title-input { background: transparent; border: 1.5px solid transparent; font-weight: 800; color: var(--ink); }
+#crumbFolder .title-input:hover { border-color: var(--line); border-style: dashed; }
+#crumbFolder .title-input:focus { border-style: solid; border-color: var(--brass); background: var(--panel); }
 .menu-field { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-weight: 600; color: var(--ink); }
 .menu-field select { flex: 1; min-width: 0; }
 .type-panel { margin: 0 0 14px; padding: 12px; border: 1.5px solid var(--brass); border-radius: 14px; background: var(--bg); }
@@ -758,7 +764,6 @@ details.hint li { margin: 3px 0; }
         <h2 class="crumbs" id="crumbs"><button type="button" class="crumb" id="crumbRoot">Your songs</button><span id="crumbFolder"></span></h2>
       </div>
       <div id="folderTools" class="toolbar" style="margin:0 0 12px" hidden>
-        <button id="renameFolder" type="button" class="btn">✏️ Rename folder</button>
         <div id="folderColors" class="colorbar" role="group" aria-label="Folder color"></div>
         <button id="deleteFolder" type="button" class="btn danger">Delete folder</button>
       </div>
@@ -2176,7 +2181,8 @@ details.hint li { margin: 3px 0; }
     $("mySearchWrap").hidden = !songs.length && !folders.length && !searching;
     $("crumbs").classList.toggle("in-folder", !!curFolder);
     const hex = folderHex(folders.find(f => f.id === curFolder));
-    $("crumbFolder").innerHTML = curFolder ? '<span class="crumb-sep">›</span> ' + folderIcon(hex) + " " + esc(folderName(curFolder)) : "";
+    const fname = folderName(curFolder) || "";
+    $("crumbFolder").innerHTML = curFolder ? '<span class="crumb-sep">›</span> ' + folderIcon(hex) + ' <input id="folderTitleInput" class="title-input folder-title" type="text" aria-label="Folder name (click to rename)" title="Click to rename" maxlength="60" autocomplete="off" size="' + Math.max(4, fname.length + 1) + '" value="' + esc(fname) + '">' : "";
     $("folderTools").hidden = !curFolder || picking || searching;
     if (curFolder) renderFolderColors();
     $("newFolder").hidden = !!curFolder;
@@ -2441,10 +2447,28 @@ details.hint li { margin: 3px 0; }
     const n = prompt("Folder name:"); if (!n || !n.trim()) return;
     folders.push({ id: newId("f"), name: n.trim() }); storeSongs(); showSongHome();
   });
-  $("renameFolder").addEventListener("click", () => {
-    const f = folders.find(x => x.id === curFolder); if (!f) return;
-    const n = prompt("Rename folder:", f.name); if (!n || !n.trim()) return;
-    f.name = n.trim(); storeSongs(); showSongHome();
+  // The folder name at the top is a text box: click it and type to rename (saves as you type)
+  let folderTitleTimer = null;
+  function saveFolderTitle(el) {
+    const f = folders.find(x => x.id === curFolder), v = el.value.trim();
+    if (!f || !v || v === f.name) return;
+    f.name = v; storeSongs();
+  }
+  document.addEventListener("input", e => {
+    if (e.target.id !== "folderTitleInput") return;
+    e.target.size = Math.max(4, e.target.value.length + 1);
+    clearTimeout(folderTitleTimer); folderTitleTimer = setTimeout(() => saveFolderTitle(e.target), 300);
+  });
+  document.addEventListener("keydown", e => {
+    if (e.target.id !== "folderTitleInput" || (e.key !== "Enter" && e.key !== "Escape")) return;
+    e.preventDefault();
+    if (e.key === "Escape") { const f = folders.find(x => x.id === curFolder); if (f) e.target.value = f.name; }
+    e.target.blur();
+  });
+  document.addEventListener("focusout", e => {
+    if (e.target.id !== "folderTitleInput") return;
+    clearTimeout(folderTitleTimer); saveFolderTitle(e.target);
+    const f = folders.find(x => x.id === curFolder); if (f) { e.target.value = f.name; e.target.size = Math.max(4, f.name.length + 1); }
   });
   $("deleteFolder").addEventListener("click", () => {
     const f = folders.find(x => x.id === curFolder); if (!f) return;
@@ -3534,6 +3558,38 @@ details.hint li { margin: 3px 0; }
     boxJustEnded = true; setTimeout(() => { boxJustEnded = false; }, 0);
     const all = b.add ? b.base.concat(b.hits || []) : (b.hits || []);
     if (all.length) selectMany(b.which, all, Math.max(...all)); else if (!b.add) deselect();
+  });
+  // Listening: while just reading a song, or in practice, ← / → step through the notes and play each one
+  function listenSeq() {
+    const pr = $("prNotes");
+    if (!$("view-practice").hidden && pr.offsetParent !== null && pr.querySelector(".chip[data-play]")) return pr;
+    if (context() === "song" && songLocked()) return $("songSeq");
+    return null;
+  }
+  document.addEventListener("keydown", e => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End" && e.key !== "Escape") return;
+    if (isTyping(e.target) || e.target.type === "range" || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    if (e.target.closest && e.target.closest(".menu-wrap, [role=dialog]")) return;
+    const seq = listenSeq(); if (!seq) return;
+    const chips = [...seq.querySelectorAll(".chip[data-play]")]; if (!chips.length) return;
+    let at = chips.findIndex(c => c.classList.contains("listen-at"));
+    if (e.key === "Escape") { if (at >= 0) { chips[at].classList.remove("listen-at"); e.preventDefault(); } return; }
+    if (at < 0 && playingSeq && playPos) at = chips.findIndex(c => +c.dataset.i === playPos.i); // pick up from where Play is
+    const fwd = e.key === "ArrowRight";
+    let next = e.key === "Home" ? 0 : e.key === "End" ? chips.length - 1 : at < 0 ? (fwd ? 0 : chips.length - 1) : at + (fwd ? 1 : -1);
+    if (next < 0 || next >= chips.length) { toast(next < 0 ? "That's the first note" : "That's the last note"); e.preventDefault(); return; }
+    e.preventDefault();
+    chips.forEach(c => c.classList.remove("listen-at"));
+    const c = chips[next]; c.classList.add("listen-at");
+    c.scrollIntoView({ block: "nearest", inline: "nearest" });
+    playChips([c], null);
+  });
+  // Clicking a note while listening moves the arrow-key spot there too
+  document.addEventListener("click", e => {
+    const c = e.target.closest(".chip[data-play]"), seq = listenSeq();
+    if (!c || !seq || !seq.contains(c)) return;
+    seq.querySelectorAll(".chip.listen-at").forEach(x => x.classList.remove("listen-at"));
+    c.classList.add("listen-at");
   });
   // Keyboard: arrows move/adjust the selected note
   document.addEventListener("keydown", e => {
