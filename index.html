@@ -265,6 +265,77 @@ details.ep-chord > summary { display: flex; align-items: center; gap: 6px; paddi
 details.ep-chord > summary .ep-t { margin: 0; }
 details.ep-chord > summary .ep-chsum { margin-left: auto; font-weight: 800; font-size: .9rem; }
 details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass); }
+/* Practice mode */
+.pr-overall { display: flex; align-items: center; gap: 10px; font-size: .9rem; font-weight: 700; color: var(--muted); }
+.pr-bar { width: 140px; height: 10px; border-radius: 5px; background: var(--bg); overflow: hidden; }
+.pr-bar i { display: block; height: 100%; width: 0; background: var(--good); border-radius: 5px; transition: width .3s; }
+.pr-banner { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); font-weight: 600; font-size: .92rem; }
+.pr-layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 18px; align-items: start; }
+.pr-step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }
+.pr-step-head h3 { margin: 0; font-size: 1.3rem; }
+.pr-notes { max-height: 300px; overflow-y: auto; }
+.pr-notes .chip { pointer-events: none; }
+.pr-notes .ins { display: none; }
+.pr-streak { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 16px 0 12px; font-weight: 700; }
+.pr-dots { display: inline-flex; gap: 8px; }
+.pr-dot { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--good); }
+.pr-dot.on { background: var(--good); }
+.pr-next { margin-left: auto; }
+.pr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pr-btn { font: inherit; font-size: 1.6rem; font-weight: 800; min-height: 96px; border-radius: 20px; border: none; cursor: pointer; color: #fff; touch-action: manipulation; }
+.pr-btn.clean { background: var(--good); }
+.pr-btn.mistake { background: var(--danger); }
+.pr-btn:active { transform: scale(.98); filter: brightness(.95); }
+.pr-under { min-height: 30px; text-align: center; margin-top: 6px; }
+.pr-metro { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 10px; padding: 14px; border-radius: 18px; background: var(--bg); }
+.pr-metro-btn { font: inherit; font-size: 1.15rem; font-weight: 800; min-height: 64px; padding: 0 22px; border-radius: 16px; border: none; background: var(--brass); color: #fff; cursor: pointer; touch-action: manipulation; }
+.pr-metro-btn.on { background: var(--ink); color: var(--bg); }
+.pr-tempo { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end; }
+.pr-bpm-btn { font: inherit; font-size: 1.1rem; font-weight: 800; min-width: 56px; min-height: 64px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; touch-action: manipulation; }
+.pr-bpm { display: flex; flex-direction: column; align-items: center; min-width: 84px; position: relative; }
+.pr-bpm #prBpm { font-size: 2rem; font-weight: 800; line-height: 1; }
+.pr-bpm small { color: var(--muted); font-weight: 700; }
+.pr-beat { position: absolute; top: -10px; width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.pr-beat.tick { animation: beat .18s ease-out; }
+.pr-beat.accent { background: var(--brass); }
+@keyframes beat { from { transform: scale(1.8); background: var(--brass); } to { transform: scale(1); } }
+.pr-steps { background: var(--bg); border-radius: 14px; padding: 12px; }
+.pr-steps-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.pr-steps ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pr-step { width: 100%; display: flex; align-items: center; gap: 10px; font: inherit; font-weight: 700; text-align: left; padding: 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+.pr-step.combo { margin-left: 14px; width: calc(100% - 14px); }
+.pr-step.current { border-color: var(--brass); box-shadow: 0 0 0 1.5px var(--brass) inset; }
+.pr-step.done .ps-ic { color: var(--good); }
+.pr-step:disabled { opacity: .5; cursor: default; }
+.ps-ic { width: 1.2em; text-align: center; }
+.ps-name { flex: 1; }
+.ps-bpm { font-size: .78rem; color: var(--muted); }
+.pr-split { margin-bottom: 14px; }
+.sp-notes { display: flex; flex-wrap: wrap; align-items: stretch; row-gap: 10px; padding: 12px; background: var(--bg); border-radius: 12px; }
+.sp-note { display: inline-flex; align-items: center; gap: 4px; padding: 8px 6px; font-weight: 700; font-size: .95rem; border-radius: 8px; }
+.sp-note.ph0 { background: var(--brass-soft); }
+.sp-note.ph1 { background: color-mix(in srgb, #3E7BD6 22%, var(--panel)); }
+.sp-num { font-size: .7rem; color: var(--bg); background: var(--ink); border-radius: 999px; padding: 1px 6px; }
+.sp-gap { width: 14px; border: none; background: none; cursor: pointer; position: relative; padding: 0; }
+.sp-gap::before { content: ""; position: absolute; left: 6px; top: 25%; bottom: 25%; width: 2px; border-radius: 1px; background: var(--line); }
+.sp-gap.bar::before { top: 6%; bottom: 6%; background: var(--muted); }
+.sp-gap:hover::before { background: var(--brass); }
+.sp-gap.cut { width: 22px; }
+.sp-gap.cut::before { left: 8px; width: 5px; top: -4px; bottom: -4px; background: var(--danger); }
+.pr-history { margin-top: 18px; }
+.pr-history summary { color: var(--ink); }
+.pr-table { width: 100%; border-collapse: collapse; font-size: .9rem; margin-top: 4px; }
+.pr-table th, .pr-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.pr-table th { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+@media (max-width: 760px) {
+  .pr-layout { grid-template-columns: minmax(0, 1fr); }
+  .pr-tempo { justify-content: center; width: 100%; }
+  .pr-metro-btn { width: 100%; }
+  .pr-btn { min-height: 110px; }
+  .pr-notes { max-height: 170px; }
+  .pr-table { font-size: .8rem; }
+}
+@media (prefers-reduced-motion: reduce) { .pr-beat.tick { animation: none; } .pr-bar i { transition: none; } }
 .song-tools { margin: 0 0 14px; }
 .singbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -4px 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); }
 .singbar .fine { margin: 0; }
@@ -635,6 +706,7 @@ details.hint li { margin: 3px 0; }
         </div>
         <div class="toolbar song-tools">
           <button id="playSong" type="button" class="btn primary">▶ Play</button>
+          <button id="practiceSong" type="button" class="btn">🎯 Practice</button>
           <button id="singSong" type="button" class="btn">🎤 Sing more</button>
           <button id="undoSong" type="button" class="btn" title="Undo (Ctrl+Z / ⌘Z)">↩ Undo</button>
           <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">🎚 Key<span class="wide-only"> &amp; octave</span> ▾</button>
@@ -721,6 +793,59 @@ details.hint li { margin: 3px 0; }
           </div>
         </aside>
         </div>
+      </div>
+    </div>
+    <div id="songPractice" hidden>
+      <button id="practiceBack" type="button" class="link">← Back to the song</button>
+      <div class="card practice">
+        <div class="row-head">
+          <h2 id="prTitle">🎯 Practice</h2>
+          <div class="pr-overall"><span id="prOverallText"></span><span class="pr-bar" aria-hidden="true"><i id="prBarFill"></i></span></div>
+        </div>
+        <p id="prBanner" class="pr-banner" role="status" hidden></p>
+        <div id="prMainWrap" class="pr-layout">
+          <section class="pr-main" aria-label="Current step">
+            <div class="pr-step-head"><h3 id="prStepName"></h3><span id="prStepMeta" class="fine"></span></div>
+            <div id="prNotes" class="seq pr-notes"></div>
+            <div id="prStreak" class="pr-streak" aria-live="polite"></div>
+            <div class="pr-actions">
+              <button id="prClean" type="button" class="pr-btn clean">✓ Clean</button>
+              <button id="prMistake" type="button" class="pr-btn mistake">✗ Mistake</button>
+            </div>
+            <div class="pr-under"><button id="prUndo" type="button" class="link" hidden>↩ Undo last tap</button></div>
+            <div class="pr-metro" role="group" aria-label="Metronome">
+              <button id="prMetroToggle" type="button" class="pr-metro-btn">▶ Metronome</button>
+              <div class="pr-tempo">
+                <button type="button" class="pr-bpm-btn" data-bpm="-5" aria-label="5 BPM slower">−5</button>
+                <button type="button" class="pr-bpm-btn" data-bpm="-1" aria-label="1 BPM slower">−1</button>
+                <div class="pr-bpm"><span id="prBeat" class="pr-beat" aria-hidden="true"></span><span id="prBpm">80</span><small>BPM</small></div>
+                <button type="button" class="pr-bpm-btn" data-bpm="1" aria-label="1 BPM faster">+1</button>
+                <button type="button" class="pr-bpm-btn" data-bpm="5" aria-label="5 BPM faster">+5</button>
+              </div>
+            </div>
+          </section>
+          <aside class="pr-steps" aria-label="Steps">
+            <div class="pr-steps-head"><span class="ep-t" style="margin:0">Steps</span><button id="prEditSplits" type="button" class="link">✂ Adjust phrases</button></div>
+            <ol id="prStepList"></ol>
+            <p class="fine">Learn each phrase, then join it to the ones before it, until you can play the whole song.</p>
+          </aside>
+        </div>
+        <div id="prSplitEditor" class="pr-split" hidden>
+          <p class="fine" style="margin-top:0">Tap between two notes to split or join phrases. Taller marks are your bar lines and part breaks, which make good places to split.</p>
+          <div id="prSplitNotes" class="sp-notes"></div>
+          <p id="prSplitInfo" class="fine"></p>
+          <div class="toolbar">
+            <button id="prSplitSave" type="button" class="btn primary">Save phrases</button>
+            <button id="prAutoSplit" type="button" class="btn">Auto-split</button>
+            <button id="prSplitCancel" type="button" class="btn">Cancel</button>
+          </div>
+          <p class="fine">Phrases you don't change keep their progress.</p>
+        </div>
+        <details class="pr-history">
+          <summary>📈 Progress over time</summary>
+          <div id="prHistory"></div>
+          <button id="prReset" type="button" class="btn danger" style="margin-top:12px">Reset progress for this song</button>
+        </details>
       </div>
     </div>
   </section>
@@ -1732,7 +1857,7 @@ details.hint li { margin: 3px 0; }
   function setPreviewMode(on) {
     $("songView").classList.toggle("preview", on);
     $("previewNote").hidden = !on;
-    ["undoSong", "typeNotes", "deleteSong", "singSong", "songOctDown", "songOctUp", "songKeyDown", "songKeyUp", "dupSong"].forEach(id => { $(id).hidden = on; });
+    ["undoSong", "typeNotes", "deleteSong", "singSong", "practiceSong", "songOctDown", "songOctUp", "songKeyDown", "songKeyUp", "dupSong"].forEach(id => { $(id).hidden = on; });
     if (on) $("unmergeSong").hidden = true;
   }
   function previewLibrary(id) {
@@ -1885,12 +2010,14 @@ details.hint li { margin: 3px 0; }
     $("tab-hum").classList.toggle("active", hum); $("tab-songs").classList.toggle("active", !hum);
     $("tab-hum").setAttribute("aria-selected", hum); $("tab-songs").setAttribute("aria-selected", !hum);
     closeViewPop(); refit();
-    if (!hum && $("songView").hidden) showSongHome();
+    if (!hum && $("songView").hidden && $("songPractice").hidden) showSongHome();
+    if (hum && typeof metro !== "undefined" && metro.on) stopMetro();
   }
   function showPanel(name) {
     if (selState && selState.list === "song") { selState = null; }
     if (running && recTarget === "song") stop();
-    $("songHome").hidden = name !== "home"; $("songView").hidden = name !== "view";
+    if (name !== "practice" && typeof metro !== "undefined" && metro.on) stopMetro();
+    $("songHome").hidden = name !== "home"; $("songView").hidden = name !== "view"; $("songPractice").hidden = name !== "practice";
   }
   function songCard(sg, showFolder) {
     const k = picked.indexOf(sg.id);
@@ -2370,10 +2497,11 @@ details.hint li { margin: 3px 0; }
     const sg = songs.find(x => x.id === openId); if (!sg) return;
     if (!confirm('Delete "' + sg.name + '"?')) return;
     curFolder = sg.folder && folders.some(f => f.id === sg.folder) ? sg.folder : null;
+    forgetPractice(openId);
     songs = songs.filter(x => x.id !== openId); storeSongs(); showSongHome();
   });
   $("exportSongs").addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify({ app: "hum-to-note", songs, folders }, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ app: "hum-to-note", songs, folders, practice }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = "hum-to-note-songs.json";
     document.body.appendChild(a); a.click(); a.remove();
@@ -2389,6 +2517,7 @@ details.hint li { margin: 3px 0; }
       (data.songs || []).filter(x => x && x.name && Array.isArray(x.items)).forEach(x => {
         if (!songs.some(y => y.id === x.id)) { songs.push({ id: x.id || newId("s"), name: x.name, items: x.items, instr: x.instr || "sax", folder: x.folder || null, libId: x.libId, icon: x.icon }); added++; }
       });
+      if (data.practice && typeof data.practice === "object") { Object.keys(data.practice).forEach(id => { if (!practice[id] && songs.some(x => x.id === id)) practice[id] = data.practice[id]; }); savePractice(); }
       storeSongs(); showSongHome();
       $("backupMsg").textContent = "Imported " + added + " song" + (added === 1 ? "" : "s") + ".";
     } catch (err) { $("backupMsg").textContent = "That file couldn't be read."; }
@@ -3221,6 +3350,277 @@ details.hint li { margin: 3px 0; }
   } catch (e) {}
   applySens(+$("sens").value);
   syncInstUI();
+  // ---------- Practice mode ----------
+  // A saved song is split into phrases (~10–12 notes). Each step needs 3 clean runs in a row to pass.
+  // Steps follow the progressive-part method: phrase 1, phrase 2, then 1–2 together, phrase 3, then 1–3, …
+  // up to the whole song. Phrases are stored by note position (bar lines and part titles don't count),
+  // with a fingerprint of their notes, so edits to a song only reset the phrases that actually changed.
+  // Saved in this browser under "htn-practice": { [songId]: { phrases: [{start, end, sig}], steps: {key: {passed, passes, bestBpm, last}}, bpm, history: [{t, s, r, b}] } }
+  const PR_KEY = "htn-practice", PR_PASS = 3;
+  let practice = {};
+  try { practice = JSON.parse(localStorage.getItem(PR_KEY) || "{}") || {}; } catch (e) { practice = {}; }
+  const savePractice = () => { try { localStorage.setItem(PR_KEY, JSON.stringify(practice)); } catch (e) {} };
+  function forgetPractice(id) { if (practice[id]) { delete practice[id]; savePractice(); } }
+  const songNotes = sg => { const out = []; sg.items.forEach((x, i) => { if (isNote(x)) out.push({ i, m: pitchOf(x) }); }); return out; };
+  const sigOf = (notes, a, b) => notes.slice(a, b).map(n => n.m).join(",");
+  // break strength before note k: 2 = a new part starts, 1 = bar line, 0 = none
+  function breakStrength(sg, notes, k) {
+    let st = 0;
+    for (let i = notes[k - 1].i + 1; i < notes[k].i; i++) { const x = sg.items[i]; if (isSec(x)) st = 2; else if (x === "|" && st < 2) st = 1; }
+    return st;
+  }
+  function autoSplit(sg, from) {
+    const notes = songNotes(sg), N = notes.length, out = [];
+    let start = from || 0;
+    while (N - start > 14) {
+      let cut = start + 11, best = -Infinity;
+      for (let len = 8; len <= 14 && start + len < N; len++) {
+        const score = breakStrength(sg, notes, start + len) * 10 - Math.abs(len - 11);
+        if (score > best) { best = score; cut = start + len; }
+      }
+      out.push({ start, end: cut }); start = cut;
+    }
+    if (start < N) {
+      const last = out[out.length - 1];
+      if (N - start < 6 && last && N - last.start <= 16) last.end = N; else out.push({ start, end: N });
+    }
+    out.forEach(p => { p.sig = sigOf(notes, p.start, p.end); });
+    return out;
+  }
+  function prSteps(d) {
+    const n = d.phrases.length, keys = ["p:0"];
+    for (let k = 1; k < n; k++) keys.push("p:" + k, "c:" + k);
+    return keys;
+  }
+  const stepOf = (d, key) => d.steps[key] || (d.steps[key] = { passed: false, passes: 0, bestBpm: 0, last: 0 });
+  const passed = (d, key) => !!(d.steps[key] && d.steps[key].passed);
+  function unlocked(d, key) {
+    const [t, ks] = key.split(":"), k = +ks;
+    if (t === "p") return true;
+    return k === 1 ? passed(d, "p:0") && passed(d, "p:1") : passed(d, "c:" + (k - 1)) && passed(d, "p:" + k);
+  }
+  function stepName(d, key) {
+    const [t, ks] = key.split(":"), k = +ks, n = d.phrases.length;
+    if (n === 1) return "Whole song";
+    if (t === "p") return "Phrase " + (k + 1);
+    return k === n - 1 ? "Whole song (1–" + n + ")" : "Phrases 1–" + (k + 1);
+  }
+  function stepRange(d, key) { const [t, ks] = key.split(":"), k = +ks; return t === "p" ? [d.phrases[k].start, d.phrases[k].end] : [0, d.phrases[k].end]; }
+  function resetFrom(d, k) { // phrase k changed: it and every combined step that includes it must be passed again
+    Object.keys(d.steps).forEach(key => { const [t, ks] = key.split(":"); if ((t === "p" && +ks === k) || (t === "c" && +ks >= k)) d.steps[key].passed = false; });
+  }
+  // Bring saved phrases in line with the song as it is now; returns notes for a banner
+  function reconcile(sg, d) {
+    const notes = songNotes(sg), N = notes.length, msgs = [], changed = [];
+    while (d.phrases.length && d.phrases[d.phrases.length - 1].start >= N) d.phrases.pop();
+    if (!d.phrases.length) { d.phrases = autoSplit(sg); d.steps = {}; return msgs; }
+    const last = d.phrases[d.phrases.length - 1];
+    if (last.end > N) last.end = N;
+    if (N > last.end) { // the song got longer
+      if (N - last.end <= 4) last.end = N;
+      else { d.phrases.push(...autoSplit(sg, last.end)); msgs.push("New notes at the end were split into new phrases."); }
+    }
+    d.phrases.forEach((p, k) => { const cur = sigOf(notes, p.start, p.end); if (cur !== p.sig) { p.sig = cur; changed.push(k); resetFrom(d, k); } });
+    if (changed.length) msgs.push((changed.length === 1 ? "Phrase " : "Phrases ") + changed.map(k => k + 1).join(", ") + (changed.length === 1 ? " has" : " have") + " changed since you last practiced, so " + (changed.length === 1 ? "it needs" : "they need") + " passing again.");
+    if (d.notes && Math.abs(N - d.notes) / d.notes > 0.3) msgs.push("This song changed a lot. Use ✂ Adjust phrases → Auto-split to start fresh.");
+    d.notes = N;
+    return msgs;
+  }
+  function prDataFor(sg) {
+    let d = practice[sg.id];
+    if (!d) { d = practice[sg.id] = { phrases: autoSplit(sg), steps: {}, bpm: 80, history: [], notes: songNotes(sg).length, started: Date.now() }; }
+    return d;
+  }
+
+  // ----- Practice screen -----
+  let pr = null; // { sg, d, key, streak, streakBpm, undo }
+  function openPractice(id) {
+    const sg = songs.find(x => x.id === id); if (!sg) return;
+    if (!sg.items.some(isNote)) { toast("Add some notes to this song first"); return; }
+    stopPlayback();
+    const d = prDataFor(sg), msgs = reconcile(sg, d);
+    savePractice();
+    pr = { sg, d, key: null, streak: 0, streakBpm: 0, undo: null };
+    pr.key = nextStep(d) || prSteps(d)[0];
+    showPanel("practice");
+    $("prTitle").textContent = "🎯 " + sg.name;
+    $("prBanner").hidden = !msgs.length; $("prBanner").textContent = msgs.join(" ");
+    $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false;
+    renderPractice();
+    window.scrollTo({ top: 0 });
+  }
+  function nextStep(d) { return prSteps(d).find(k => unlocked(d, k) && !passed(d, k)) || null; }
+  const fmtDay = t => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  function renderPractice() {
+    if (!pr) return;
+    const { d } = pr, keys = prSteps(d), done = keys.filter(k => passed(d, k)).length;
+    $("prOverallText").textContent = done + " of " + keys.length + " steps passed";
+    $("prBarFill").style.width = Math.round(done / keys.length * 100) + "%";
+    $("prStepList").innerHTML = keys.map(k => {
+      const st = d.steps[k] || {}, open = unlocked(d, k), isCombo = k[0] === "c";
+      const icon = !open ? "🔒" : st.passed ? "✓" : "○";
+      return '<li><button type="button" class="pr-step' + (k === pr.key ? " current" : "") + (st.passed ? " done" : "") + (isCombo ? " combo" : "") + '" data-step="' + k + '"' + (open ? "" : " disabled") + '>'
+        + '<span class="ps-ic" aria-hidden="true">' + icon + '</span><span class="ps-name">' + stepName(d, k) + '</span>'
+        + (st.bestBpm ? '<span class="ps-bpm">' + st.bestBpm + ' BPM</span>' : '') + '</button></li>';
+    }).join("");
+    renderStep();
+    renderHistory();
+    $("prBpm").textContent = d.bpm;
+  }
+  function renderStep() {
+    const { sg, d, key } = pr, st = d.steps[key] || {}, [a, b] = stepRange(d, key), notes = songNotes(sg);
+    $("prStepName").textContent = stepName(d, key);
+    const bits = ["notes " + (a + 1) + "–" + b];
+    if (st.passes) bits.push("passed " + st.passes + "×");
+    if (st.bestBpm) bits.push("best " + st.bestBpm + " BPM");
+    if (st.last) bits.push("last passed " + fmtDay(st.last));
+    $("prStepMeta").textContent = bits.join(" · ");
+    const items = sg.items.slice(notes[a].i, notes[b - 1].i + 1);
+    $("prNotes").innerHTML = chipsHTML(items);
+    const dots = Array.from({ length: PR_PASS }, (_, k) => '<span class="pr-dot' + (k < pr.streak ? " on" : "") + '"></span>').join("");
+    const nxt = st.passed && pr.streak === 0 ? nextStep(d) : null;
+    $("prStreak").innerHTML = '<span class="pr-dots" aria-hidden="true">' + dots + '</span><span class="pr-streak-text">'
+      + (pr.streak ? pr.streak + " of " + PR_PASS + " clean in a row" : st.passed ? "Passed ✓ Play it again at a faster tempo, or move on." : PR_PASS + " clean runs in a row to pass")
+      + '</span>' + (nxt && nxt !== key ? '<button type="button" class="btn primary pr-next" data-step="' + nxt + '">Next: ' + stepName(d, nxt) + ' →</button>' : '');
+    $("prUndo").hidden = !pr.undo;
+  }
+  function renderHistory() {
+    const { d } = pr, days = {};
+    d.history.forEach(h => {
+      const day = new Date(h.t); day.setHours(0, 0, 0, 0);
+      const k = day.getTime(), x = days[k] || (days[k] = { c: 0, m: 0, p: 0, b: 0 });
+      x[h.r]++; if (h.r === "p") x.b = Math.max(x.b, h.b);
+    });
+    const rows = Object.keys(days).map(Number).sort((x, y) => y - x).slice(0, 14);
+    $("prHistory").innerHTML = rows.length
+      ? '<p class="fine" style="margin:0 0 8px">Started ' + fmtDay(d.started || Date.now()) + ' · practiced on ' + Object.keys(days).length + ' day' + (Object.keys(days).length === 1 ? "" : "s") + '</p>'
+        + '<table class="pr-table"><thead><tr><th>Day</th><th>Clean runs</th><th>Mistakes</th><th>Steps passed</th><th>Fastest pass</th></tr></thead><tbody>'
+        + rows.map(k => { const x = days[k]; return '<tr><td>' + fmtDay(k) + '</td><td>' + x.c + '</td><td>' + x.m + '</td><td>' + x.p + '</td><td>' + (x.b ? x.b + " BPM" : "–") + '</td></tr>'; }).join("") + '</tbody></table>'
+      : '<p class="fine" style="margin:0">Nothing yet. Your practice days will show up here.</p>';
+  }
+  function snapshot() { const { d, key } = pr; return { key, streak: pr.streak, streakBpm: pr.streakBpm, step: d.steps[key] ? Object.assign({}, d.steps[key]) : null, hist: d.history.length }; }
+  function tapResult(clean) {
+    if (!pr) return;
+    const { d, key } = pr, now = Date.now();
+    pr.undo = snapshot();
+    if (!clean) { pr.streak = 0; d.history.push({ t: now, s: key, r: "m", b: d.bpm }); }
+    else {
+      if (pr.streak && pr.streakBpm !== d.bpm) pr.streak = 0;
+      pr.streak++; pr.streakBpm = d.bpm;
+      d.history.push({ t: now, s: key, r: "c", b: d.bpm });
+      if (pr.streak >= PR_PASS) {
+        const st = stepOf(d, key), wasOpen = prSteps(d).filter(k => unlocked(d, k));
+        st.passed = true; st.passes++; st.bestBpm = Math.max(st.bestBpm || 0, d.bpm); st.last = now;
+        d.history.push({ t: now, s: key, r: "p", b: d.bpm });
+        pr.streak = 0;
+        const opened = prSteps(d).filter(k => unlocked(d, k) && !wasOpen.includes(k));
+        toast("🎉 " + stepName(d, key) + " passed at " + d.bpm + " BPM!" + (opened.length ? " Unlocked: " + opened.map(k => stepName(d, k)).join(", ") : ""));
+      }
+    }
+    if (d.history.length > 2000) d.history.splice(0, d.history.length - 2000);
+    savePractice(); renderPractice();
+  }
+  function undoTap() {
+    if (!pr || !pr.undo) return;
+    const u = pr.undo, { d } = pr;
+    pr.key = u.key; pr.streak = u.streak; pr.streakBpm = u.streakBpm;
+    if (u.step) d.steps[u.key] = u.step; else delete d.steps[u.key];
+    d.history.length = u.hist; pr.undo = null;
+    savePractice(); renderPractice(); toast("Undone");
+  }
+  function pickStep(key) {
+    if (!pr || !unlocked(pr.d, key)) return;
+    if (key !== pr.key) { pr.key = key; pr.streak = 0; pr.undo = null; }
+    renderPractice();
+  }
+  function setBpm(v) {
+    if (!pr) return;
+    v = Math.max(30, Math.min(240, Math.round(v)));
+    if (v === pr.d.bpm) return;
+    pr.d.bpm = v; savePractice(); $("prBpm").textContent = v;
+    if (pr.streak) { pr.streak = 0; renderStep(); toast("New tempo: streak starts over"); }
+  }
+
+  // ----- Metronome (a steady click to play along with) -----
+  var metro = { on: false, timer: null, next: 0, beat: 0 };
+  function metroClick(t, accent) {
+    const o = pctx.createOscillator(), g = pctx.createGain();
+    o.type = "square"; o.frequency.value = accent ? 1760 : 1320;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(accent ? 0.35 : 0.22, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    o.connect(g); g.connect(pctx.destination); o.start(t); o.stop(t + 0.06);
+  }
+  function metroSchedule() {
+    while (metro.next < pctx.currentTime + 0.12) {
+      const t = metro.next, accent = metro.beat % 4 === 0;
+      metroClick(t, accent);
+      setTimeout(() => { const el = $("prBeat"); el.classList.remove("tick", "accent"); void el.offsetWidth; el.classList.add("tick"); if (accent) el.classList.add("accent"); }, Math.max(0, (t - pctx.currentTime) * 1000));
+      metro.beat++; metro.next += 60 / (pr ? pr.d.bpm : 80);
+    }
+  }
+  function startMetro() { ensureP(); metro.on = true; metro.beat = 0; metro.next = pctx.currentTime + 0.08; metro.timer = setInterval(metroSchedule, 25); metroSchedule(); $("prMetroToggle").textContent = "■ Stop"; $("prMetroToggle").classList.add("on"); }
+  function stopMetro() { metro.on = false; clearInterval(metro.timer); metro.timer = null; $("prMetroToggle").textContent = "▶ Metronome"; $("prMetroToggle").classList.remove("on"); }
+
+  // ----- Adjusting the phrases -----
+  let splitDraft = null; // set of note positions where a new phrase starts
+  function openSplitEditor() {
+    if (!pr) return;
+    splitDraft = new Set(pr.d.phrases.slice(1).map(p => p.start));
+    $("prMainWrap").hidden = true; $("prSplitEditor").hidden = false;
+    renderSplitEditor();
+  }
+  function renderSplitEditor() {
+    const { sg } = pr, notes = songNotes(sg);
+    let phrase = 0, html = "";
+    notes.forEach((n, k) => {
+      if (k > 0) {
+        const cut = splitDraft.has(k), st = breakStrength(sg, notes, k);
+        if (cut) phrase++;
+        html += '<button type="button" class="sp-gap' + (cut ? " cut" : "") + (st ? " bar" : "") + '" data-gap="' + k + '" title="' + (cut ? "Remove this split" : "Split here") + '" aria-label="' + (cut ? "Remove split before note " : "Split before note ") + (k + 1) + '"></button>';
+      }
+      html += '<span class="sp-note ph' + (phrase % 2) + '">' + (k === 0 || splitDraft.has(k) ? '<b class="sp-num">' + (phrase + 1) + '</b>' : '') + displayLabel(sg.items[n.i]) + '</span>';
+    });
+    $("prSplitNotes").innerHTML = html;
+    const sizes = [], cuts = [0, ...[...splitDraft].sort((x, y) => x - y), notes.length];
+    for (let k = 1; k < cuts.length; k++) sizes.push(cuts[k] - cuts[k - 1]);
+    $("prSplitInfo").textContent = sizes.length + " phrase" + (sizes.length === 1 ? "" : "s") + " · " + sizes.join(", ") + " notes";
+  }
+  function saveSplits() {
+    const { sg, d } = pr, notes = songNotes(sg), cuts = [0, ...[...splitDraft].sort((x, y) => x - y), notes.length];
+    const fresh = [];
+    for (let k = 1; k < cuts.length; k++) fresh.push({ start: cuts[k - 1], end: cuts[k], sig: sigOf(notes, cuts[k - 1], cuts[k]) });
+    // keep progress for phrases that didn't change, and for combined steps whose phrases are all unchanged
+    const same = fresh.map(p => d.phrases.findIndex(o => o.start === p.start && o.end === p.end && o.sig === p.sig));
+    const steps = {};
+    fresh.forEach((p, k) => {
+      if (same[k] >= 0 && d.steps["p:" + same[k]]) steps["p:" + k] = d.steps["p:" + same[k]];
+      if (k > 0 && same.slice(0, k + 1).every((o, j) => o === j) && d.steps["c:" + k]) steps["c:" + k] = d.steps["c:" + k];
+    });
+    d.phrases = fresh; d.steps = steps; d.notes = notes.length;
+    savePractice();
+    pr.key = nextStep(d) || prSteps(d)[0]; pr.streak = 0; pr.undo = null;
+    $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false; $("prBanner").hidden = true;
+    renderPractice(); toast("Phrases saved");
+  }
+
+  $("practiceSong").addEventListener("click", () => { const sg = currentSong(); if (sg && !isPreview()) openPractice(sg.id); });
+  $("practiceBack").addEventListener("click", () => { const id = pr && pr.sg.id; pr = null; if (id) openSong(id, true); else showSongHome(); });
+  $("prStepList").addEventListener("click", e => { const b = e.target.closest("[data-step]"); if (b) pickStep(b.dataset.step); });
+  $("prStreak").addEventListener("click", e => { const b = e.target.closest("[data-step]"); if (b) pickStep(b.dataset.step); });
+  $("prClean").addEventListener("click", () => tapResult(true));
+  $("prMistake").addEventListener("click", () => tapResult(false));
+  $("prUndo").addEventListener("click", undoTap);
+  $("prMetroToggle").addEventListener("click", () => metro.on ? stopMetro() : startMetro());
+  document.querySelectorAll("[data-bpm]").forEach(b => b.addEventListener("click", () => pr && setBpm(pr.d.bpm + +b.dataset.bpm)));
+  $("prEditSplits").addEventListener("click", openSplitEditor);
+  $("prSplitNotes").addEventListener("click", e => { const g = e.target.closest("[data-gap]"); if (!g) return; const k = +g.dataset.gap; if (splitDraft.has(k)) splitDraft.delete(k); else splitDraft.add(k); renderSplitEditor(); });
+  $("prAutoSplit").addEventListener("click", () => { splitDraft = new Set(autoSplit(pr.sg).slice(1).map(p => p.start)); renderSplitEditor(); });
+  $("prSplitSave").addEventListener("click", saveSplits);
+  $("prSplitCancel").addEventListener("click", () => { $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false; });
+  $("prReset").addEventListener("click", () => {
+    if (!pr || !confirm("Reset all practice progress for “" + pr.sg.name + "”? Your phrase splits stay.")) return;
+    pr.d.steps = {}; pr.d.history = []; pr.d.started = Date.now(); pr.streak = 0; pr.undo = null;
+    pr.key = prSteps(pr.d)[0]; savePractice(); renderPractice(); toast("Progress reset");
+  });
   loadSongs(); updateLabels(); renderSeq(); renderStage(null); applyView(); loadMelSong();
 })();
 </script>
