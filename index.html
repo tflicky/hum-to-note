@@ -802,7 +802,7 @@ details.hint li { margin: 3px 0; }
             <div class="menu list-menu" hidden>
               <button id="copySongText" type="button" class="menu-item">📋 Copy notes as text</button>
               <button id="exportMidi" type="button" class="menu-item" title="Download a .mid file to open in GarageBand, MuseScore, a DAW…">🎹 Export as MIDI</button>
-              <button id="typeNotes" type="button" class="menu-item">⌨️ Type or paste notes</button>
+              <button id="typeNotes" type="button" class="menu-item">⌨️ Type notes</button>
               <label class="menu-field">📁 Folder <select id="songFolderSel" aria-label="Folder"></select></label>
               <button id="unmergeSong" type="button" class="menu-item" hidden>✂️ Unmerge into separate songs</button>
               <button id="deleteSong" type="button" class="menu-item danger">🗑 Delete song</button>
@@ -1556,7 +1556,7 @@ details.hint li { margin: 3px 0; }
     const n = melody.filter(isNote).length;
     $("humCount").textContent = n ? "· " + n + " note" + (n === 1 ? "" : "s") : "";
     seqEl.innerHTML = has ? chipsHTML(melody) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>Your notes will appear here</strong><span>Press <b>Start humming</b> and sing “doo” for each note. When you stop, they become a song you can edit.</span>'
-      + '<div class="ea-actions"><button type="button" class="link" data-newsong="type">Type or paste a song instead →</button></div></div>';
+      + '<div class="ea-actions"><button type="button" class="link" data-newsong="blank">Or go to the song editor →</button></div></div>';
   }
   let stageMidi = null;
   function renderStage(m) {
@@ -2438,7 +2438,7 @@ details.hint li { margin: 3px 0; }
     showSongHome(); window.scrollTo({ top: 0 });
   });
   // The whole song as plain text (title, bar lines, part names, chords), in the notes for your instrument.
-  // Anyone can read it, and pasting it into ⌨️ Type or paste in Hum to Note brings the song back.
+  // Anyone can read it, and pasting it into ⌨️ Type notes in Hum to Note brings the song back.
   function songAsText(sg) { return "# " + sg.name + " (" + inst().name + " notes)\n" + itemsToText(sg.items); }
   async function copyText(text) {
     try { await navigator.clipboard.writeText(text); return true; }
@@ -3222,7 +3222,7 @@ details.hint li { margin: 3px 0; }
     const sg = currentSong(); if (!sg) return;
     updateUndoBtns();
     $("songView").querySelector(".card").classList.toggle("is-empty", !sg.items.some(isNote));
-    $("songSeq").innerHTML = sg.items.some(isNote) ? chipsHTML(sg.items) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>No notes yet</strong><span>Add notes any way you like:</span><div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note</button><button type="button" class="btn" data-sing>🎤 Hum them</button><button type="button" class="btn" data-type>⌨️ Type or paste</button></div></div>';
+    $("songSeq").innerHTML = sg.items.some(isNote) ? chipsHTML(sg.items) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>No notes yet</strong><span>Add notes any way you like:</span><div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note</button><button type="button" class="btn" data-sing>🎤 Hum them</button><button type="button" class="btn" data-type>⌨️ Type notes</button></div></div>';
     updateEditbar("song");
     updateRangeNote(sg);
     refit();
