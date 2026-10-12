@@ -402,7 +402,8 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .pr-beat.accent { background: var(--brass); }
 @keyframes beat { from { transform: scale(1.8); background: var(--brass); } to { transform: scale(1); } }
 .pr-steps { background: var(--bg); border-radius: 14px; padding: 12px; }
-.pr-steps-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.pr-steps-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.pr-steps-toggle { display: none; }
 .pr-steps ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .pr-step { width: 100%; display: flex; align-items: center; gap: 10px; font: inherit; font-weight: 700; text-align: left; padding: 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
 .pr-step.lvl1 { margin-left: 12px; width: calc(100% - 12px); }
@@ -675,12 +676,28 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   #songView .ep-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; }
   #songView .editpanel button[data-act]:not(.ep-close):not(.ep-nav) { padding: 10px 3px; font-size: .8rem; }
   #songView .ep-multi .ep-wide { margin-bottom: 8px; }
-  html.ep-open main { padding-bottom: 54vh; }
-  html.ep-open { scroll-padding-bottom: 52vh; }
+  html.ep-edit main { padding-bottom: calc(var(--sheet-h, 240px) + 16px); } /* fixed room for the edit sheet the whole time you're editing */
   /* View options: a sheet at the bottom so nothing goes off the screen */
   .viewpop { position: fixed !important; left: 8px !important; right: 8px !important; top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important; width: auto; max-height: 75vh; overflow-y: auto; z-index: 90; box-shadow: 0 -8px 40px rgba(0,0,0,.35); }
   .vp-desk { display: none !important; }
   #songView .card.song-enter { animation-name: songInPhone; }
+  /* practice */
+  .pr-nav .link { padding: 8px 0; }
+  .practice .row-head { flex-wrap: wrap; gap: 8px; }
+  .practice .row-head h2 { flex: 1 1 auto; min-width: 0; }
+  .pr-overall { flex: 1 1 100%; flex-wrap: nowrap; gap: 8px; }
+  .pr-overall .viewpick { order: 5; }
+  #prOverallText { white-space: nowrap; font-size: .82rem; }
+  .pr-overall .pr-bar { flex: 1 1 auto; width: auto; min-width: 40px; }
+  .pr-step-head h3 { font-size: 1.15rem; }
+  .pr-btn { min-height: 92px; font-size: 1.4rem; }
+  .pr-metro { flex-direction: column; align-items: stretch; gap: 10px; }
+  .pr-tempo { gap: 6px; justify-content: space-between; }
+  .pr-bpm-btn { min-width: 0; flex: 1; min-height: 52px; font-size: 1rem; }
+  .pr-bpm { flex: 1.4; text-align: center; }
+  .pr-steps-toggle { display: inline-block; margin-left: auto; }
+  .pr-steps:not(.open) #prStepList, .pr-steps:not(.open) > p.fine, .pr-steps:not(.open) #prEditSplits { display: none; }
+  .pr-steps:not(.open) .pr-steps-head { margin-bottom: 0; }
 }
 @keyframes songInPhone { from { opacity: 0; } to { opacity: 1; } }
 </style>
@@ -998,7 +1015,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
             </div>
           </section>
           <aside class="pr-steps" aria-label="Steps">
-            <div class="pr-steps-head"><span class="ep-t" style="margin:0">Steps</span><button id="prEditSplits" type="button" class="link">✂ Adjust phrases</button></div>
+            <div class="pr-steps-head"><span class="ep-t" style="margin:0">Steps</span><button id="prStepsToggle" type="button" class="link pr-steps-toggle" aria-expanded="false">Show steps ▾</button><button id="prEditSplits" type="button" class="link">✂ Adjust phrases</button></div>
             <ol id="prStepList"></ol>
             <p class="fine">Learn each phrase, practice the joins between neighbors, then put sections together. The whole song comes last.</p>
           </aside>
@@ -2635,6 +2652,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     $("editModeBtn").classList.toggle("on", songEditing); $("editModeBtn").setAttribute("aria-pressed", songEditing);
     $("editModeBtn").textContent = songEditing ? "✓ Done" : "✏️ Edit";
     if (!songEditing && selState && selState.list === "song") deselect();
+    syncSheet();
     refit();
   }
   $("editModeBtn").addEventListener("click", () => { setSongEditing(!songEditing, true); toast(songEditing ? "Edit mode: tap notes to change them" : "Done editing"); });
@@ -3335,8 +3353,27 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     else { storeSongs(); renderSongSeq(); }
   }
   const isPhone = () => window.matchMedia("(max-width: 760px)").matches;
-  function syncSheet() { // phones: room below the notes for the edit sheet while a note is picked
-    document.documentElement.classList.toggle("ep-open", !!document.querySelector("#view-songs:not([hidden]) #songView:not([hidden]) .editpanel.active"));
+  // Phones: keep a steady amount of room below the notes for the edit sheet (it only grows, so the page doesn't jump)
+  let sheetH = 0;
+  $("prStepsToggle").addEventListener("click", e => {
+    const box = e.target.closest(".pr-steps"), on = box.classList.toggle("open");
+    e.target.textContent = on ? "Hide steps ▴" : "Show steps ▾"; e.target.setAttribute("aria-expanded", on);
+  });
+  function syncSheet() {
+    const html = document.documentElement;
+    const editing = !!document.querySelector("#view-songs:not([hidden]) #songView.editing:not([hidden])");
+    html.classList.toggle("ep-edit", editing);
+    if (!editing) { sheetH = 0; html.style.removeProperty("--sheet-h"); return; }
+    const bar = document.querySelector("#songView .editpanel.active");
+    if (bar && isPhone() && bar.offsetHeight > sheetH) { sheetH = bar.offsetHeight; html.style.setProperty("--sheet-h", Math.max(240, sheetH) + "px"); }
+  }
+  // Phones: scroll only if the picked note is hidden behind the edit sheet or the toolbar
+  function keepChipVisible(chip) {
+    const bar = document.querySelector("#songView .editpanel.active"); if (!bar || !chip) return;
+    const r = chip.getBoundingClientRect(), bottom = bar.getBoundingClientRect().top - 10;
+    const tools = document.querySelector("#songView.editing .song-tools"), top = (tools ? tools.getBoundingClientRect().bottom : 0) + 10;
+    if (r.bottom > bottom) window.scrollBy(0, r.bottom - bottom);
+    else if (r.top < top) window.scrollBy(0, r.top - top);
   }
   function updateEditbar(which) {
     const bar = seqFor(which).closest(".mel-layout").querySelector(".editpanel");
@@ -3485,7 +3522,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     const chip = seqFor(which).querySelector('.chip[data-i="' + idx + '"]');
     if (chip) {
       chip.focus({ preventScroll: true }); if (play) playChips([chip], null);
-      if (isPhone()) setTimeout(() => chip.scrollIntoView({ block: "nearest" }), 0); // keep it above the edit sheet
+      if (isPhone()) setTimeout(() => keepChipVisible(chip), 0);
     }
   }
   function deselect() {
@@ -3521,7 +3558,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     else if (action === "done") { deselect(); return; }
     else if (action === "prev" || action === "next") {
       const d = action === "next" ? 1 : -1;
-      const go = j => { select(which, j, true); seqFor(which).querySelector('.chip[data-i="' + j + '"]').scrollIntoView({ block: "nearest" }); };
+      const go = j => { select(which, j, true); if (!isPhone()) seqFor(which).querySelector('.chip[data-i="' + j + '"]').scrollIntoView({ block: "nearest" }); };
       for (let j = i + d; j >= 0 && j < list.length; j += d) if (isNote(list[j])) { go(j); return; }
       const idxs = noteIdxs(which); // past either end: loop around
       if (idxs.length > 1) { go(d > 0 ? idxs[0] : idxs[idxs.length - 1]); toast(d > 0 ? "Back to the start" : "Jumped to the end"); }
