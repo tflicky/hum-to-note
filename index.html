@@ -629,6 +629,8 @@ details.hint li { margin: 3px 0; }
 #songView.preview .mel-layout { grid-template-columns: 1fr; }
 @media (prefers-reduced-motion: reduce) { .needle, .note, details > summary::before { transition: none; } }
 .ep-nav { display: none; }
+html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation; }
+.ep-pad, .ep-pad2 { display: none; }
 /* ---------- Phones ---------- */
 @media (max-width: 760px) {
   main { padding: 10px 10px 40px; }
@@ -652,7 +654,18 @@ details.hint li { margin: 3px 0; }
   /* the edit panel is a sheet at the bottom of the screen while a note is picked */
   #songView .editpanel { display: none; }
   #songView .editpanel.active { display: block; position: fixed !important; left: 0 !important; right: 0 !important; top: auto !important; bottom: 0 !important; max-height: 50vh; z-index: 70; margin: 0; background: var(--panel); border: none; border-top: 2px solid var(--brass); border-radius: 18px 18px 0 0; padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 10px); box-shadow: 0 -12px 40px rgba(0,0,0,.35); }
-  #songView .ep-grip, #songView .ep-dock, #songView .ep-fing, #songView .ep-keys { display: none !important; }
+  #songView .ep-grip, #songView .ep-dock, #songView .ep-fing, #songView .ep-keys, #songView .ep-nav { display: none !important; }
+  #songView .editpanel:not(.multi) .ep-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; }
+  #songView .editpanel:not(.multi) .ep-pad2 { display: grid; grid-template-columns: 1fr 1fr 56px 1fr; gap: 8px; margin-bottom: 4px; }
+  #songView .editpanel .ep-pad button[data-act] { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 64px; padding: 8px 2px !important; border-radius: 14px !important; background: var(--bg) !important; }
+  #songView .ep-pad b { font-size: 1.35rem; line-height: 1; color: var(--brass); }
+  #songView .ep-pad small { font-size: .72rem; color: var(--muted); font-weight: 700; }
+  #songView .editpanel .ep-pad2 button { min-height: 44px; }
+  #songView .ep-pdel { color: var(--danger) !important; font-size: 1.05rem !important; }
+  #songView .ep-moretoggle { font: inherit; font-size: .82rem; font-weight: 700; border: 1.5px dashed var(--line); background: none; color: var(--ink); border-radius: 9px; }
+  /* the rest (pick a note name, move, add, chords) only after More */
+  #songView .editpanel:not(.multi):not(.show-more) .ep-body > :not(.ep-head):not(.ep-pad):not(.ep-pad2):not(.ep-multi) { display: none !important; }
+  #songView .editpanel.show-more .ep-pad2 { margin-bottom: 12px; }
   #songView .ep-head { cursor: default; touch-action: auto; margin-bottom: 6px; position: sticky; top: -8px; background: var(--panel); z-index: 1; padding-top: 4px; }
   #songView .ep-nav { display: inline-block; font: inherit; font-size: 1rem; min-width: 44px; padding: 8px 10px !important; margin-right: 4px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
   #songView .eb-label { font-size: 1.3rem; }
@@ -904,6 +917,18 @@ details.hint li { margin: 3px 0; }
           </div>
           <div class="ep-body" hidden>
             <div class="ep-head" title="Drag here to move this panel"><span class="ep-grip" aria-hidden="true">⠿</span><button type="button" class="eb-label" title="Play this note"></button><span class="ep-head-btns"><button type="button" data-act="prev" class="ep-nav" aria-label="Previous note">◀</button><button type="button" data-act="next" class="ep-nav" aria-label="Next note">▶</button><button type="button" class="ep-dock" aria-label="Put the panel back beside the notes" title="Put the panel back beside the notes">⇲</button><button type="button" data-act="done" class="ep-close" aria-label="Close" title="Close (Esc)">✕</button></span></div>
+            <div class="ep-pad" role="group" aria-label="Quick edit">
+              <button type="button" data-act="prev" aria-label="Previous note"><b>◀</b><small>Prev</small></button>
+              <button type="button" data-act="down" aria-label="Half step lower"><b>▼</b><small>Lower</small></button>
+              <button type="button" data-act="up" aria-label="Half step higher"><b>▲</b><small>Higher</small></button>
+              <button type="button" data-act="next" aria-label="Next note"><b>▶</b><small>Next</small></button>
+            </div>
+            <div class="ep-pad2">
+              <button type="button" data-act="octdown">Octave ▼</button>
+              <button type="button" data-act="octup">Octave ▲</button>
+              <button type="button" data-act="del" class="ep-pdel" aria-label="Remove note">🗑</button>
+              <button type="button" class="ep-moretoggle" aria-expanded="false">More ▾</button>
+            </div>
             <div class="ep-fing" aria-hidden="true"></div>
             <div class="ep-sec"><span class="ep-t">Change to</span><div class="ep-notes"><button type="button" data-act="set" data-pc="0">C</button><button type="button" data-act="set" data-pc="1">C♯</button><button type="button" data-act="set" data-pc="2">D</button><button type="button" data-act="set" data-pc="3">E♭</button><button type="button" data-act="set" data-pc="4">E</button><button type="button" data-act="set" data-pc="5">F</button><button type="button" data-act="set" data-pc="6">F♯</button><button type="button" data-act="set" data-pc="7">G</button><button type="button" data-act="set" data-pc="8">A♭</button><button type="button" data-act="set" data-pc="9">A</button><button type="button" data-act="set" data-pc="10">B♭</button><button type="button" data-act="set" data-pc="11">B</button></div></div>
             <div class="ep-sec"><span class="ep-t">Pitch</span>
@@ -3344,7 +3369,7 @@ details.hint li { margin: 3px 0; }
     bar.querySelector('[data-act="left"]').disabled = i === 0;
     bar.querySelector('[data-act="right"]').disabled = i === list.length - 1;
     const lim = pitchLimits(m);
-    [["up", 1], ["down", -1], ["octup", 12], ["octdown", -12]].forEach(([a, d]) => { bar.querySelector('[data-act="' + a + '"]').disabled = !canStep(m, d); });
+    [["up", 1], ["down", -1], ["octup", 12], ["octdown", -12]].forEach(([a, d]) => { bar.querySelectorAll('[data-act="' + a + '"]').forEach(b => { b.disabled = !canStep(m, d); }); });
   }
   // In sax mode, keep edits inside the horn's range (written low B♭ to high F♯)
   // A pitch move is fine if it lands in range, or brings a red (out-of-range) note closer to it
@@ -3606,6 +3631,8 @@ details.hint li { margin: 3px 0; }
     if (chip) playChips([chip], null);
   }
   document.querySelectorAll(".editpanel").forEach(bar => bar.addEventListener("click", e => {
+    const mt = e.target.closest(".ep-moretoggle");
+    if (mt) { const on = bar.classList.toggle("show-more"); mt.textContent = on ? "Less ▴" : "More ▾"; mt.setAttribute("aria-expanded", on); return; }
     if (e.target.closest(".eb-label")) { playSelected(bar.closest(".mel-layout").querySelector(".seq").dataset.list); return; }
     const b = e.target.closest("button[data-act]"); if (!b || b.disabled) return;
     const which = bar.closest(".mel-layout").querySelector(".seq").dataset.list;
