@@ -3443,7 +3443,10 @@ details.hint li { margin: 3px 0; }
     else if (action === "done") { deselect(); return; }
     else if (action === "prev" || action === "next") {
       const d = action === "next" ? 1 : -1;
-      for (let j = i + d; j >= 0 && j < list.length; j += d) if (isNote(list[j])) { select(which, j, true); seqFor(which).querySelector('.chip[data-i="' + j + '"]').scrollIntoView({ block: "nearest" }); return; }
+      const go = j => { select(which, j, true); seqFor(which).querySelector('.chip[data-i="' + j + '"]').scrollIntoView({ block: "nearest" }); };
+      for (let j = i + d; j >= 0 && j < list.length; j += d) if (isNote(list[j])) { go(j); return; }
+      const idxs = noteIdxs(which); // past either end: loop around
+      if (idxs.length > 1) { go(d > 0 ? idxs[0] : idxs[idxs.length - 1]); toast(d > 0 ? "Back to the start" : "Jumped to the end"); }
       return;
     }
     else if (action === "insbefore") { insertAt(which, i); return; }
@@ -3681,7 +3684,8 @@ details.hint li { margin: 3px 0; }
     if (at < 0 && playingSeq && playPos) at = chips.findIndex(c => +c.dataset.i === playPos.i); // pick up from where Play is
     const fwd = e.key === "ArrowRight";
     let next = e.key === "Home" ? 0 : e.key === "End" ? chips.length - 1 : at < 0 ? (fwd ? 0 : chips.length - 1) : at + (fwd ? 1 : -1);
-    if (next < 0 || next >= chips.length) { toast(next < 0 ? "That's the first note" : "That's the last note"); e.preventDefault(); return; }
+    if (next >= chips.length) { next = 0; toast("Back to the start"); } // loop around
+    else if (next < 0) { next = chips.length - 1; toast("Jumped to the end"); }
     e.preventDefault();
     chips.forEach(c => c.classList.remove("listen-at"));
     const c = chips[next]; c.classList.add("listen-at"); c.focus({ preventScroll: true }); // the focus ring follows too, so the note you clicked first does not stay outlined
