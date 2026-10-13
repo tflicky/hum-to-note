@@ -281,7 +281,8 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 #songView.preview #editModeBtn { display: none; }
 /* reading mode: tapping a note just plays it; editing tools appear in Edit mode */
 #songView:not(.editing) .editpanel, #songView:not(.editing) .seq .ins, #songView:not(.editing) #singSong, #songView:not(.editing) .undo-pair,
-#songView:not(.editing) .song-tools .menu-wrap:not(.song-more), #songView:not(.editing) #typeNotes { display: none !important; }
+#songView:not(.editing) .song-tools .menu-wrap:not(.song-more):not(#rhythmWrap), #songView:not(.editing) #typeNotes { display: none !important; }
+#rhythmWrap[hidden] { display: none !important; }
 #songView:not(.editing) .mel-layout { grid-template-columns: minmax(0, 1fr); }
 #songView.editing .seq { box-shadow: 0 0 0 2px var(--brass) inset; }
 @media (max-width: 600px) {
@@ -637,6 +638,31 @@ body.touch-dragging { -webkit-user-select: none; user-select: none; }
 #crumbFolder .title-input:focus { border-style: solid; border-color: var(--brass); background: var(--panel); }
 .menu-field { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-weight: 600; color: var(--ink); }
 .menu-field select { flex: 1; min-width: 0; }
+.tap-panel { margin: 0 0 14px; padding: 12px 14px; border: 1.5px solid var(--brass); border-radius: 14px; background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
+.tap-top { display: flex; justify-content: space-between; align-items: center; }
+.tap-setup { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.tap-field { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: .92rem; }
+.tap-field select { font: inherit; padding: 4px 6px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); max-width: 260px; }
+.tap-help { margin: 0; }
+.tap-setup.locked { opacity: .55; pointer-events: none; }
+.tap-btn { font: inherit; border: none; cursor: pointer; border-radius: 22px; min-height: 150px; background: var(--brass); color: #1c1405; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; touch-action: manipulation; user-select: none; -webkit-user-select: none; transition: transform .05s; }
+.tap-btn span { font-size: 1.6rem; font-weight: 800; }
+.tap-btn small { font-size: .95rem; font-weight: 700; opacity: .8; }
+.tap-btn.hit { transform: scale(.98); filter: brightness(1.12); }
+.tap-btn[hidden] { display: none; }
+.tap-review { display: flex; flex-direction: column; gap: 10px; }
+.tap-review[hidden] { display: none; }
+.chip.tap-next { outline: 3px dashed var(--brass); outline-offset: 2px; }
+.rh-menu { min-width: 290px; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+.rh-tempo { display: inline-flex; align-items: center; gap: 6px; }
+.rh-tempo .btn { padding: 4px 8px; }
+.rh-tempo .goal-in { margin: 0; text-align: center; }
+.seg button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.rhw { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; }
+.rh { font-size: .68rem; font-weight: 800; color: var(--muted); line-height: 1; letter-spacing: .02em; }
+.rh.beat { color: var(--brass); }
+.rh-len { display: block; height: 3px; border-radius: 2px; background: var(--brass); opacity: .45; max-width: 100%; }
+.pr-listen { margin-left: auto; padding: 6px 12px; font-size: .9rem; }
 .type-panel { margin: 0 0 14px; padding: 12px; border: 1.5px solid var(--brass); border-radius: 14px; background: var(--bg); }
 .type-panel textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .95rem; }
 .type-panel .fine:empty { display: none; }
@@ -903,11 +929,20 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
               <div class="tp-row"><span class="tp-lab">Octave</span><span class="octpair"><button id="songOctDown" type="button" class="btn" title="Move every note down an octave">▼ Lower</button><button id="songOctUp" type="button" class="btn" title="Move every note up an octave">▲ Higher</button></span></div>
               <p class="fine" style="margin:0">Moves every note, chords too. ↩ Undo puts it back.</p>
             </div></span>
+          <span class="menu-wrap" id="rhythmWrap" hidden><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false" title="Rhythm playback"><span id="rhythmBtnTxt">♩</span> ▾</button>
+            <div class="menu rh-menu" hidden>
+              <div class="tp-row"><span class="tp-lab">Play at</span><span class="rh-tempo"><button type="button" class="btn" data-rhbpm="-5">−5</button><input type="number" id="rhPlayBpm" class="goal-in" min="30" max="300" inputmode="numeric"><button type="button" class="btn" data-rhbpm="5">+5</button> BPM</span></div>
+              <p class="fine" style="margin:0" id="rhOrig"></p>
+              <label class="check"><input type="checkbox" id="rhClick"> Metronome click while playing</label>
+              <div class="tp-row"><span class="tp-lab">Snap</span><div class="seg" id="rhSnap"><button type="button" data-snap="0">As tapped</button><button type="button" data-snap="2">8ths</button><button type="button" data-snap="4">16ths</button></div></div>
+              <div class="toolbar" style="margin:0"><button type="button" class="btn" id="rhRetap">🥁 Re-tap</button><button type="button" class="btn danger" id="rhClear">Remove rhythm</button></div>
+            </div></span>
           <span class="menu-wrap song-more"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⋯ More</button>
             <div class="menu list-menu" hidden>
               <button id="copySongText" type="button" class="menu-item">📋 Copy notes as text</button>
               <button id="exportMidi" type="button" class="menu-item" title="Download a .mid file to open in GarageBand, MuseScore, a DAW…">🎹 Export as MIDI</button>
               <button id="typeNotes" type="button" class="menu-item">⌨️ Type notes</button>
+              <button id="tapRhythmItem" type="button" class="menu-item">🥁 Tap rhythm</button>
               <label class="menu-field">📁 Folder <select id="songFolderSel" aria-label="Folder"></select></label>
               <button id="unmergeSong" type="button" class="menu-item" hidden>✂️ Unmerge into separate songs</button>
               <button id="deleteSong" type="button" class="menu-item danger">🗑 Delete song</button>
@@ -936,6 +971,25 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
               <li>Pasting from a website? Lines of lyrics are skipped, <code>^C</code> means one octave up, and dashed notes like <code>D-C-Bb</code> stay together.</li>
             </ul>
           </details>
+        </div>
+        <div id="tapPanel" class="tap-panel" hidden>
+          <div class="tap-top">
+            <strong>🥁 Tap the rhythm</strong>
+            <button type="button" id="tapClose" class="ep-close" aria-label="Close">✕</button>
+          </div>
+          <div id="tapSetup" class="tap-setup">
+            <label class="tap-field">Song tempo <input type="number" id="tapBpm" class="goal-in" min="30" max="300" inputmode="numeric"> BPM</label>
+            <label class="tap-field">Notes <select id="tapRange"></select></label>
+            <span id="tapCustom" class="tap-field" hidden>from <input type="number" id="tapFrom" class="goal-in" min="1"> to <input type="number" id="tapTo" class="goal-in" min="1"></span>
+          </div>
+          <p class="fine tap-help">Play the original recording, then tap once each time a note starts, in order. Use the big button or the space bar.</p>
+          <button type="button" id="tapBtn" class="tap-btn"><span id="tapNext">Tap to start</span><small id="tapCount"></small></button>
+          <div id="tapReview" class="tap-review" hidden>
+            <p id="tapDoneMsg" style="margin:0;font-weight:700"></p>
+            <div class="tp-row"><span class="tp-lab">Snap</span><div class="seg" id="tapSnap"><button type="button" data-snap="0">As tapped</button><button type="button" data-snap="2">8ths</button><button type="button" data-snap="4">16ths</button></div></div>
+            <p class="fine" style="margin:0">Snapping lines sloppy taps up with the nearest 8th or 16th note. Switch between them and press Hear it to compare. Your taps are kept either way.</p>
+            <div class="toolbar" style="margin:0"><button type="button" class="btn" id="tapHear">▶ Hear it</button><button type="button" class="btn primary" id="tapSave">✓ Save rhythm</button><button type="button" class="btn" id="tapAgain">↺ Tap again</button></div>
+          </div>
         </div>
         <div id="singBar" class="singbar" hidden>
           <div class="sing-now">
@@ -1034,7 +1088,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
         </div>
         <div id="prMainWrap" class="pr-layout">
           <section class="pr-main" aria-label="Current step">
-            <div class="pr-step-head"><h3 id="prStepName"></h3><span id="prStepMeta" class="fine"></span></div>
+            <div class="pr-step-head"><h3 id="prStepName"></h3><span id="prStepMeta" class="fine"></span><button type="button" id="prListen" class="btn pr-listen" data-label="🔊 Listen" title="Hear this step at your practice tempo, with a count-in">🔊 Listen</button></div>
             <div id="prNotes" class="seq pr-notes"></div>
             <p id="prNotesHint" class="fine pr-notes-hint" hidden></p>
           </section>
@@ -1207,8 +1261,8 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   const isNote = x => typeof x === "number" || (!!x && typeof x === "object" && typeof x.m === "number");
   const pitchOf = x => typeof x === "number" ? x : x.m;
   const chordOf = x => (x && typeof x === "object") ? x.ch || null : null;
-  const withPitch = (x, n) => typeof x === "number" ? n : { m: n, ch: x.ch };
-  const withChord = (x, ch) => ch ? { m: pitchOf(x), ch } : pitchOf(x);
+  const withPitch = (x, n) => typeof x === "number" ? n : Object.assign({}, x, { m: n }); // keeps the chord and rhythm
+  const withChord = (x, ch) => { const o = typeof x === "number" ? { m: x } : Object.assign({}, x); if (ch) o.ch = ch; else delete o.ch; return Object.keys(o).length === 1 ? o.m : o; };
   const CHORDS = {
     maj: { iv: [0, 4, 7], sym: "", name: "Major" }, m: { iv: [0, 3, 7], sym: "m", name: "Minor" },
     "7": { iv: [0, 4, 7, 10], sym: "7", name: "7" }, maj7: { iv: [0, 4, 7, 11], sym: "maj7", name: "Maj7" },
@@ -1676,18 +1730,21 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   }
   const chordNoteNames = x => { const ch = chordOf(x); if (!ch) return ""; const r = chordRoot(x); return (CHORDS[ch.type] || CHORDS.maj).iv.map(i => pcName(r + i)).join("–"); };
   function insSlot(k, end) { return '<button type="button" class="ins' + (end ? ' end' : '') + '" data-ins="' + k + '" aria-label="Add a note here" title="Add a note here">+</button>'; }
-  function chipsHTML(list) {
+  function chipsHTML(list, rmap) {
     if (!list.some(isNote)) return "";
     return list.map((m, i) => {
       if (m === "|") return '<span class="bar" aria-hidden="true"></span>';
       if (m === "~") return '<span class="breath" title="Breathe here" role="img" aria-label="Breath">’</span>';
       if (isSec(m)) return '<div class="sec-title">' + esc(m.slice(1)) + '</div>';
+      if (typeof m === "string") return "";
       const slot = "";
       const snd = soundingMidi(m);
       const sel = selState && list === getList(selState.list) && (selState.idx === i || (selState.multi && selState.multi.has(i))) ? " selected" : "";
       const h = fingHTML(m, false), ch = chordOf(m);
+      const rh = rmap && typeof m === "object" ? rmap.get(m) : null, rl = rh ? beatLabel(rh.on) : null;
+      const rhHTML = rh ? '<span class="rhw" title="' + (rl.beat ? "On beat " + rl.text : "Beat " + rl.text) + ' · lasts ' + fmtBeats(rh.len) + '"><span class="rh' + (rl.beat ? " beat" : "") + '">' + rl.text + '</span><i class="rh-len" style="width:' + Math.min(100, Math.max(8, rh.len * 25)) + '%"></i></span>' : '';
       const pill = ch ? '<span class="chordpill' + (ch.on ? ' on' : '') + '" title="' + (ch.on ? 'Played as a chord' : 'Supporting chord') + '">' + (ch.on ? '♫ ' : '+ ') + chordSymbol(m) + '</span>' : '';
-      return slot + '<button type="button" class="chip' + (ch ? ' has-chord' : '') + (h.out ? ' out-range' : '') + sel + '" data-i="' + i + '" data-play="' + snd + '" data-chord="' + chordTonesMidi(m).join(",") + '" aria-label="' + h.label + (h.out ? ' (out of range)' : '') + (ch ? ' with ' + chordSymbol(m) + ' chord' : '') + '"' + (h.out ? ' title="' + inst().name + ' can\'t play this note"' : '') + '>' + pill + h.label + h.html + '</button>';
+      return slot + '<button type="button" class="chip' + (ch ? ' has-chord' : '') + (h.out ? ' out-range' : '') + sel + '" data-i="' + i + '" data-play="' + snd + '" data-chord="' + chordTonesMidi(m).join(",") + '" aria-label="' + h.label + (h.out ? ' (out of range)' : '') + (ch ? ' with ' + chordSymbol(m) + ' chord' : '') + '"' + (h.out ? ' title="' + inst().name + ' can\'t play this note"' : '') + '>' + rhHTML + pill + h.label + h.html + '</button>';
     }).join("") + insSlot(list.length, true);
   }
   function renderSeq() {
@@ -2598,7 +2655,9 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   // ---- Export as MIDI: one track, a quarter note per note at the app's playback speed, chords included ----
   const GM_PROGRAM = { piano: 0, guitar: 25, ukulele: 24, bass: 33, violin: 40, cello: 42, trumpet: 56, clarinet: 71, flute: 73, recorder: 74, ocarina: 79, tenor: 66, alto: 65 };
   function songToMidi(sg) {
-    const PPQ = 480, BPM = 110, NOTE = Math.round(PPQ * 0.9), REST = PPQ - NOTE;
+    const rmap = rhythmMap(sg), PPQ = 480, BPM = rmap ? (sg.rhythm.play || sg.rhythm.bpm) : 110, NOTE = Math.round(PPQ * 0.9), REST = PPQ - NOTE;
+    const firstOn = rmap ? rmap.get(sg.items.find(isNote)).on : 0, bar0 = Math.floor(firstOn / 4) * 4; // pickups stay in their bar
+    let cursor = 0; // ticks written so far (rhythm songs)
     const vlq = n => { const b = [n & 0x7f]; while ((n >>= 7)) b.unshift((n & 0x7f) | 0x80); return b; };
     const text = t => [...new TextEncoder().encode(t)];
     const meta = (type, bytes) => [0xff, type, ...vlq(bytes.length), ...bytes];
@@ -2613,6 +2672,13 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       if (typeof x === "string") { if (x.startsWith("§")) put(meta(0x06, text(x.slice(1)))); return; } // part names become markers
       if (!isNote(x)) return;
       const keys = [pitchOf(x), ...chordTonesMidi(x)].filter(k => k >= 0 && k <= 127);
+      const rh = rmap && rmap.get(x);
+      if (rh) { // place the note on its beat, and hold it until just before the next one
+        const on = Math.round((rh.on - bar0) * PPQ), len = Math.max(1, Math.round(rh.len * PPQ * 0.92));
+        wait = Math.max(0, on - cursor); keys.forEach((k, n) => put([0x90, k, n ? 70 : 100]));
+        wait = len; keys.forEach(k => put([0x80, k, 0])); cursor = on + len; wait = 0;
+        return;
+      }
       keys.forEach((k, n) => put([0x90, k, n ? 70 : 100])); // melody a bit louder than its chord
       wait = NOTE; keys.forEach(k => put([0x80, k, 0]));
       wait = REST;
@@ -3175,10 +3241,12 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (master) { try { master.disconnect(); } catch (e) {} master = null; }
     document.querySelectorAll(".chip.playing").forEach(c => c.classList.remove("playing"));
     $("playSong").textContent = "▶ Play";
+    if (playingBtn && playingBtn.dataset.label) playingBtn.textContent = playingBtn.dataset.label;
     playingBtn = null; muteUntil = 0; playPos = null; playingSeq = false;
   }
   let playPos = null, playingSeq = false; // note currently sounding while a melody plays
-  async function playChips(chips, btn, which) {
+  // timing (optional): { at: [seconds], dur: [seconds], clicks: [{ t, accent }] } for rhythm playback
+  async function playChips(chips, btn, which, timing) {
     stopPlayback(); ensureP();
     const token = playToken, key = sfKey();
     const need = [];
@@ -3191,17 +3259,19 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     }
     master = pctx.createGain(); master.connect(pctx.destination);
     const step = 0.55, dur = 0.5, t0 = pctx.currentTime + 0.05;
+    const at = i => timing ? timing.at[i] : i * step, du = i => timing ? timing.dur[i] : dur;
     chips.forEach((c, i) => {
-      tone(+c.dataset.play, t0 + i * step, dur, master);
+      tone(+c.dataset.play, t0 + at(i), du(i), master);
       const strum = inst().kind === "guitar" ? 0.025 : 0;
-      (c.dataset.chord || "").split(",").filter(Boolean).forEach((t, k) => tone(+t, t0 + i * step + strum * (k + 1), dur, master, 0.45));
+      (c.dataset.chord || "").split(",").filter(Boolean).forEach((t, k) => tone(+t, t0 + at(i) + strum * (k + 1), du(i), master, 0.45));
       playTimers.push(setTimeout(() => {
         document.querySelectorAll(".chip.playing").forEach(x => x.classList.remove("playing"));
         c.classList.add("playing");
         if (which) playPos = { which, i: +c.dataset.i };
-      }, i * step * 1000 + 50));
+      }, at(i) * 1000 + 50));
     });
-    const total = chips.length * step * 1000 + 300;
+    if (timing) (timing.clicks || []).forEach(k => clickAt(t0 + k.t, k.accent, master));
+    const total = timing ? Math.max(0, ...chips.map((c, i) => at(i) + du(i)), ...(timing.clicks || []).map(k => k.t)) * 1000 + 300 : chips.length * step * 1000 + 300;
     muteUntil = performance.now() + total;
     if (btn) { btn.textContent = "■ Stop"; playingBtn = btn; }
     playingSeq = !!which;
@@ -3366,11 +3436,211 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   let fitTimer = null;
   const refit = () => { if (!VIEW.fit) return; clearTimeout(fitTimer); fitTimer = setTimeout(() => fitNow(false), 60); };
   window.addEventListener("resize", refit);
+  // ---------- Rhythm ----------
+  // A tapped song keeps, on each note, r = how many beats until the next note starts (exactly as tapped).
+  // sg.rhythm = { bpm (the recording's tempo), start (beat the first note lands on), snap (0, 2 = 8ths, 4 = 16ths), play (playback tempo), click }
+  // Snapping is only applied when the rhythm is read, so your original taps are always kept.
+  function hasRhythm(sg) { return !!(sg && sg.rhythm && sg.items.some(x => isNote(x) && typeof x === "object" && x.r > 0)); }
+  function rhythmMap(sg, snapOverride) { // note object -> { on (beat it starts on), len (beats until the next note) }
+    if (!hasRhythm(sg)) return null;
+    sg.items.forEach((x, i) => { if (typeof x === "number") sg.items[i] = { m: x }; }); // every note its own object, so it can be looked up
+    const notes = sg.items.filter(isNote), g = snapOverride != null ? snapOverride : (sg.rhythm.snap || 0);
+    const rOf = x => x.r > 0 ? x.r : 1;
+    let t = sg.rhythm.start || 0;
+    const raw = notes.map(x => { const at = t; t += rOf(x); return at; });
+    const on = g ? raw.map(x => Math.round(x * g) / g) : raw.slice();
+    for (let k = 1; k < on.length; k++) if (on[k] <= on[k - 1] + 1e-6) on[k] = on[k - 1] + (g ? 1 / g : 0.05); // two taps snapped together: keep them apart
+    const last = rOf(notes[notes.length - 1]), map = new Map();
+    notes.forEach((x, k) => map.set(x, { on: on[k], len: k < notes.length - 1 ? on[k + 1] - on[k] : (g ? Math.max(1 / g, Math.round(last * g) / g) : last) }));
+    return map;
+  }
+  // where a note lands, counted the way musicians say it: 1 e & a 2 e & a … (4 beats to a bar)
+  function beatLabel(on) {
+    const q = Math.round(on * 4), near = Math.abs(on * 4 - q) < 0.2, b = Math.floor(q / 4), sub = ((q % 4) + 4) % 4;
+    const n = ((b % 4) + 4) % 4 + 1;
+    if (!near) { const b2 = Math.floor(on); return { text: (((b2 % 4) + 4) % 4 + 1) + "·", beat: false }; }
+    return { text: n + ["", "e", "&", "a"][sub], beat: sub === 0 };
+  }
+  function fmtBeats(x) {
+    const q = Math.round(x * 4) / 4, whole = Math.floor(q), part = { 0: "", 0.25: "¼", 0.5: "½", 0.75: "¾" }[q - whole];
+    if (part == null || Math.abs(q - x) > 0.08) return x.toFixed(2) + " beats";
+    return (whole ? whole : "") + part + (q === 1 ? " beat" : " beats");
+  }
+  // start times (seconds) for chips; songs without rhythm get one note per beat
+  function rhythmTiming(chips, itemOf, rmap, bpm, countIn, click) {
+    const spb = 60 / bpm, infos = chips.map(c => rmap ? rmap.get(itemOf(c)) : null), ok = infos.every(Boolean);
+    const on = ok ? infos.map(x => x.on) : chips.map((c, k) => k), lens = ok ? infos.map(x => x.len) : chips.map(() => 1);
+    const first = on[0], fb = Math.floor(first + 1e-6), lead = countIn ? 4 + (first - fb) : 0;
+    const at = on.map(o => (o - first + lead) * spb), dur = lens.map(l => Math.max(0.12, Math.min(l * spb * 0.92, 2.5)));
+    const clicks = [], endB = Math.ceil(on[on.length - 1] + lens[lens.length - 1] - 1e-6);
+    const from = countIn ? fb - 4 : fb, to = click ? endB - 1 : fb - 1;
+    for (let b = from; b <= to; b++) { const t = (b - first + lead) * spb; if (t > -1e-6) clicks.push({ t, accent: ((b % 4) + 4) % 4 === 0 }); }
+    return { at, dur, clicks };
+  }
+  function clickAt(t, accent, out) {
+    const o = pctx.createOscillator(), g = pctx.createGain();
+    o.type = "square"; o.frequency.value = accent ? 1760 : 1320;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(accent ? 0.3 : 0.18, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.06);
+  }
+  // ----- the rhythm menu next to Play -----
+  function updateRhythmUI(sg) {
+    const on = !!sg && !isPreview() && hasRhythm(sg);
+    $("rhythmWrap").hidden = !on;
+    if (!on) return;
+    const r = sg.rhythm, bpm = r.play || r.bpm;
+    $("rhythmBtnTxt").textContent = "♩ " + bpm;
+    $("rhPlayBpm").value = bpm; $("rhClick").checked = !!r.click;
+    $("rhOrig").textContent = "Tapped at " + r.bpm + " BPM" + (bpm !== r.bpm ? " · " + Math.round(bpm / r.bpm * 100) + "% speed" : "");
+    $("rhSnap").querySelectorAll("[data-snap]").forEach(b => b.classList.toggle("on", +b.dataset.snap === (r.snap || 0)));
+  }
+  function setRhythm(patch) {
+    const sg = currentSong(); if (!sg || !sg.rhythm) return;
+    Object.assign(sg.rhythm, patch); storeSongs(); renderSongSeq();
+  }
+  $("rhPlayBpm").addEventListener("change", e => { const v = Math.max(30, Math.min(300, Math.round(+e.target.value) || 0)); if (v) setRhythm({ play: v }); });
+  $("rhClick").addEventListener("change", e => setRhythm({ click: e.target.checked }));
+  document.querySelector(".rh-menu").addEventListener("click", e => {
+    const b = e.target.closest("[data-rhbpm]"); const sg = currentSong();
+    if (b && sg && sg.rhythm) { setRhythm({ play: Math.max(30, Math.min(300, (sg.rhythm.play || sg.rhythm.bpm) + +b.dataset.rhbpm)) }); return; }
+    const sn = e.target.closest("#rhSnap [data-snap]"); if (sn) { setRhythm({ snap: +sn.dataset.snap }); return; }
+  });
+  $("rhRetap").addEventListener("click", () => { closeMenus(); openTapPanel(); });
+  $("rhClear").addEventListener("click", () => {
+    const sg = currentSong(); if (!sg || !confirm("Remove the tapped rhythm from “" + sg.name + "”? The notes stay.")) return;
+    remember("song");
+    sg.items = sg.items.map(x => { if (!isNote(x) || typeof x !== "object") return x; const o = Object.assign({}, x); delete o.r; return Object.keys(o).length === 1 ? o.m : o; });
+    delete sg.rhythm; closeMenus(); storeSongs(); renderSongSeq(); toast("Rhythm removed");
+  });
+
+  // ----- Tapping -----
+  let tap = null; // { from, to (note positions), bpm, times: [], state: "ready" | "tapping" | "review", snap }
+  function openTapPanel() {
+    const sg = currentSong(); if (!sg || isPreview()) return;
+    if (!sg.items.some(isNote)) { toast("Add some notes first"); return; }
+    stopPlayback(); if (running) stop();
+    $("typePanel").hidden = true; $("tapPanel").hidden = false;
+    const r = sg.rhythm, d = practice[sg.id];
+    $("tapBpm").value = r ? r.bpm : (d && d.goal) || 100;
+    // which notes: the whole song, a practice phrase, the notes you picked, or your own range
+    const N = songNotes(sg).length, opts = ['<option value="all">Whole song (' + N + ' notes)</option>'];
+    if (selState && selState.list === "song") {
+      const idx = selIdxs("song"), pos = idx.map(i => songNotes(sg).findIndex(n => n.i === i)).filter(k => k >= 0).sort((a, b) => a - b);
+      if (pos.length) opts.push('<option value="' + pos[0] + "-" + pos[pos.length - 1] + '">Picked notes (' + (pos[0] + 1) + "–" + (pos[pos.length - 1] + 1) + ')</option>');
+    }
+    if (d && d.phrases && d.phrases.length > 1) d.phrases.forEach((p, k) => opts.push('<option value="' + p.start + "-" + (p.end - 1) + '">Phrase ' + (k + 1) + ' (notes ' + (p.start + 1) + "–" + p.end + ')</option>'));
+    opts.push('<option value="custom">Choose notes…</option>');
+    $("tapRange").innerHTML = opts.join("");
+    $("tapFrom").value = 1; $("tapTo").value = N; $("tapCustom").hidden = true;
+    resetTap();
+    $("tapPanel").scrollIntoView({ block: "nearest" });
+  }
+  function tapRangeNow() {
+    const sg = currentSong(), N = songNotes(sg).length, v = $("tapRange").value;
+    if (v === "all") return [0, N - 1];
+    if (v === "custom") { const a = Math.max(1, Math.min(N, +$("tapFrom").value || 1)), b = Math.max(a, Math.min(N, +$("tapTo").value || N)); return [a - 1, b - 1]; }
+    const [a, b] = v.split("-").map(Number); return [a, Math.min(b, N - 1)];
+  }
+  function resetTap() {
+    const sg = currentSong(); if (!sg) return;
+    const [from, to] = tapRangeNow();
+    tap = { from, to, times: [], state: "ready", snap: sg.rhythm ? (sg.rhythm.snap || 0) : 0 };
+    $("tapBtn").hidden = false; $("tapReview").hidden = true; $("tapSetup").classList.remove("locked");
+    showTapNext();
+  }
+  function tapChip(k) { const sg = currentSong(), n = songNotes(sg)[k]; return n ? $("songSeq").querySelector('.chip[data-i="' + n.i + '"]') : null; }
+  function showTapNext() {
+    document.querySelectorAll(".chip.tap-next").forEach(c => c.classList.remove("tap-next"));
+    const sg = currentSong(); if (!sg || !tap) return;
+    const k = tap.from + tap.times.length, total = tap.to - tap.from + 1, notes = songNotes(sg);
+    if (k > tap.to) return;
+    const c = tapChip(k); if (c) { c.classList.add("tap-next"); if (tap.times.length) c.scrollIntoView({ block: "nearest" }); }
+    $("tapNext").textContent = (tap.times.length ? "Next: " : "Tap to start: ") + displayLabel(sg.items[notes[k].i]);
+    $("tapCount").textContent = "Note " + (k + 1) + " · " + tap.times.length + " of " + total + " tapped" + (tap.times.length ? "" : " · or press space");
+  }
+  function doTap(t) {
+    if (!tap || tap.state === "review" || $("tapPanel").hidden) return;
+    const bpm = +$("tapBpm").value;
+    if (!(bpm >= 30 && bpm <= 300)) { toast("Enter the song's tempo first (BPM)"); $("tapBpm").focus(); return; }
+    if (tap.state === "ready") { tap.state = "tapping"; tap.bpm = bpm; $("tapSetup").classList.add("locked"); }
+    tap.times.push(t);
+    const b = $("tapBtn"); b.classList.remove("hit"); void b.offsetWidth; b.classList.add("hit"); setTimeout(() => b.classList.remove("hit"), 90);
+    if (tap.from + tap.times.length > tap.to) finishTap(); else showTapNext();
+  }
+  // beats from each tap to the next, and where the first note sits against the beat
+  function tapTiming() {
+    const spb = 60 / tap.bpm, ivals = [];
+    for (let k = 1; k < tap.times.length; k++) ivals.push((tap.times[k] - tap.times[k - 1]) / 1000 / spb);
+    const u = tap.times.map(x => (x - tap.times[0]) / 1000 / spb);
+    const cost = p => u.reduce((s2, x) => { const y = (x + p) * 2; return s2 + Math.abs(y - Math.round(y)); }, 0);
+    let start = 0, bc = cost(0);
+    [0.25, 0.5, 0.75].forEach(p => { const c = cost(p); if (c < bc * 0.8) { bc = c; start = p; } }); // only move off the beat if that fits clearly better
+    return { ivals, start };
+  }
+  // a copy of the song with the new taps, for hearing before saving
+  function songWithTaps(sg) {
+    const res = tapTiming(), notes = songNotes(sg), items = sg.items.map(x => isNote(x) ? (typeof x === "number" ? { m: x } : Object.assign({}, x)) : x);
+    res.ivals.forEach((v, j) => { items[notes[tap.from + j].i].r = v; });
+    const r = Object.assign({ bpm: tap.bpm, start: 0, snap: 0 }, sg.rhythm || {}, { bpm: tap.bpm, snap: tap.snap });
+    if (tap.from === 0) r.start = res.start;
+    if (!sg.rhythm || !r.play) r.play = tap.bpm;
+    // a re-tapped range keeps the rest of the song in place: only the notes you tapped move
+    return { items, rhythm: r };
+  }
+  function finishTap() {
+    tap.state = "review";
+    document.querySelectorAll(".chip.tap-next").forEach(c => c.classList.remove("tap-next"));
+    $("tapBtn").hidden = true; $("tapReview").hidden = false;
+    const n = tap.times.length;
+    $("tapDoneMsg").textContent = n < 2 ? "Tap at least two notes to get a rhythm." : "✓ " + n + " notes tapped at " + tap.bpm + " BPM. Hear it, then save.";
+    $("tapSave").disabled = n < 2; $("tapHear").disabled = n < 2;
+    $("tapSnap").querySelectorAll("[data-snap]").forEach(b => b.classList.toggle("on", +b.dataset.snap === tap.snap));
+  }
+  $("tapBtn").addEventListener("pointerdown", e => { e.preventDefault(); doTap(e.timeStamp || performance.now()); });
+  $("tapBtn").addEventListener("click", e => e.preventDefault());
+  document.addEventListener("keydown", e => { // space bar = tap while the tap panel is open
+    if ((e.key !== " " && e.code !== "Space") || $("tapPanel").hidden || !tap || tap.state === "review") return;
+    if (isTyping(e.target) && e.target.type !== "checkbox") return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (!e.repeat) doTap(e.timeStamp || performance.now());
+  }, true);
+  document.addEventListener("keyup", e => { if ((e.key === " " || e.code === "Space") && !$("tapPanel").hidden && tap) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+  $("tapRange").addEventListener("change", () => { $("tapCustom").hidden = $("tapRange").value !== "custom"; resetTap(); });
+  $("tapFrom").addEventListener("change", resetTap); $("tapTo").addEventListener("change", resetTap);
+  $("tapAgain").addEventListener("click", resetTap);
+  $("tapClose").addEventListener("click", () => { $("tapPanel").hidden = true; tap = null; document.querySelectorAll(".chip.tap-next").forEach(c => c.classList.remove("tap-next")); });
+  $("tapSnap").addEventListener("click", e => { const b = e.target.closest("[data-snap]"); if (!b || !tap) return; tap.snap = +b.dataset.snap; finishTap(); });
+  $("tapHear").addEventListener("click", () => {
+    const sg = currentSong(); if (!sg || !tap) return;
+    if (playingBtn === $("tapHear")) { stopPlayback(); return; }
+    const tmp = songWithTaps(sg), rmap = rhythmMap(tmp), notes = songNotes(sg);
+    const chips = []; for (let k = tap.from; k <= tap.to && k < tap.from + tap.times.length; k++) { const c = tapChip(k); if (c) chips.push(c); }
+    $("tapHear").dataset.label = "▶ Hear it";
+    playChips(chips, $("tapHear"), "song", rhythmTiming(chips, c => tmp.items[+c.dataset.i], rmap, tap.bpm, false, false));
+  });
+  $("tapSave").addEventListener("click", () => {
+    const sg = currentSong(); if (!sg || !tap) return;
+    const tmp = songWithTaps(sg);
+    remember("song"); sg.items = tmp.items; sg.rhythm = tmp.rhythm;
+    storeSongs(); renderSongSeq();
+    $("tapPanel").hidden = true; const n = tap.times.length; tap = null;
+    toast("🥁 Rhythm saved for " + n + " notes. Play uses it now");
+  });
+  $("tapRhythmItem").addEventListener("click", openTapPanel);
+
+  // ----- Practice: Listen to the current step at your practice tempo, with a one-bar count-in -----
+  $("prListen").addEventListener("click", () => {
+    if (!pr) return;
+    if (playingBtn === $("prListen")) { stopPlayback(); return; }
+    const chips = [...$("prNotes").querySelectorAll(".chip[data-play]")]; if (!chips.length) return;
+    playChips(chips, $("prListen"), null, rhythmTiming(chips, c => pr.items[+c.dataset.i], rhythmMap(pr.sg), pr.d.bpm, true, false));
+  });
+
   function renderSongSeq() {
     const sg = currentSong(); if (!sg) return;
-    updateUndoBtns();
+    updateUndoBtns(); updateRhythmUI(sg);
     $("songView").querySelector(".card").classList.toggle("is-empty", !sg.items.some(isNote));
-    $("songSeq").innerHTML = sg.items.some(isNote) ? chipsHTML(sg.items) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>No notes yet</strong><span>Add notes any way you like:</span><div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note</button><button type="button" class="btn" data-sing>🎤 Hum them</button><button type="button" class="btn" data-type>⌨️ Type notes</button></div></div>';
+    $("songSeq").innerHTML = sg.items.some(isNote) ? chipsHTML(sg.items, rhythmMap(sg)) : '<div class="empty-add mel-empty"><span class="ea-ic" aria-hidden="true">🎶</span><strong>No notes yet</strong><span>Add notes any way you like:</span><div class="ea-actions"><button type="button" class="btn" data-ins="0">＋ Add a note</button><button type="button" class="btn" data-sing>🎤 Hum them</button><button type="button" class="btn" data-type>⌨️ Type notes</button></div></div>';
     updateEditbar("song");
     updateRangeNote(sg);
     refit();
@@ -3674,7 +3944,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       if (k >= 0) start = k + 1; // the selected note was just heard, so continue with the next one
       if (start >= chips.length) { toast("That's the last note"); return; }
     }
-    playChips(chips.slice(start), which === "mel" ? null : $("playSong"), which);
+    if (which === "mel") playChips(chips.slice(start), null, which); else playSongChips(chips.slice(start), $("playSong"));
   });
   document.addEventListener("keyup", e => {
     if ((e.key === " " || e.code === "Space") && spaceHandled) { e.preventDefault(); spaceHandled = false; }
@@ -3919,7 +4189,15 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   function playAllIn(seqId, btn) {
     if (playingBtn === btn) { stopPlayback(); return; }
     const chips = [...$(seqId).querySelectorAll(".chip[data-play]")];
-    if (chips.length) playChips(chips, btn, seqId === "seq" ? "mel" : "song");
+    if (!chips.length) return;
+    if (seqId === "seq") playChips(chips, btn, "mel"); else playSongChips(chips, btn);
+  }
+  // a song with a tapped rhythm plays in that rhythm, at its playback tempo
+  function playSongChips(chips, btn) {
+    const sg = currentSong(), rmap = rhythmMap(sg);
+    if (!rmap) { playChips(chips, btn, "song"); return; }
+    const r = sg.rhythm;
+    playChips(chips, btn, "song", rhythmTiming(chips, c => sg.items[+c.dataset.i], rmap, r.play || r.bpm, false, !!r.click));
   }
   $("playSong").addEventListener("click", () => playAllIn("songSeq", $("playSong")));
 
@@ -4305,7 +4583,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (st.last) bits.push("last passed " + fmtDay(st.last));
     $("prStepMeta").textContent = bits.join(" · ");
     // a combined step shows each phrase on its own line, labeled, so you can see where each one starts
-    const [pa, pb] = keyRange(key), items = [];
+    const rmap = rhythmMap(sg), [pa, pb] = keyRange(key), items = [];
     for (let k = pa; k <= pb; k++) {
       const ph = d.phrases[k];
       if (pb > pa) items.push("§Phrase " + (k + 1));
@@ -4313,7 +4591,8 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     }
     const flags = d.flags || {};
     if (key[0] === "p" && flags[pa]) $("prStepMeta").innerHTML = esc(bits.join(" · ")) + ' · <span class="pr-flagnote">⚑ You stumbled here in a performance run</span>';
-    $("prNotes").innerHTML = chipsHTML(items);
+    pr.items = items;
+    $("prNotes").innerHTML = chipsHTML(items, rmap);
     const dots = Array.from({ length: PR_PASS }, (_, k) => '<span class="pr-dot' + (k < pr.streak ? " on" : "") + '"></span>').join("");
     const done = st.passed && pr.streak === 0 && !isDue(d, key), nxt = done ? nextStep(d) : null;
     // flagged phrases from a performance run come first once this step is done
@@ -4624,10 +4903,10 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     renderPerf(); window.scrollTo({ top: 0 });
   }
   function renderPerf() {
-    const { sg, d } = pr, P = pr.perf, notes = songNotes(sg), n = d.phrases.length, items = [], ranges = [];
+    const { sg, d } = pr, P = pr.perf, rmap = rhythmMap(sg), notes = songNotes(sg), n = d.phrases.length, items = [], ranges = [];
     d.phrases.forEach((ph, k) => { items.push("§Phrase " + (k + 1)); const s0 = items.length; items.push(...phraseItems(sg, notes, ph.start, ph.end, k < d.phrases.length - 1)); ranges.push([s0, items.length]); });
     const box = $("perfNotes");
-    box.innerHTML = chipsHTML(items);
+    box.innerHTML = chipsHTML(items, rmap);
     box.querySelectorAll(".chip[data-i]").forEach(c => {
       const i = +c.dataset.i, k = ranges.findIndex(([x, y]) => i >= x && i < y);
       c.classList.toggle("perf-cur", k === P.k); c.classList.toggle("perf-flag", P.flags.has(k));
