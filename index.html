@@ -419,8 +419,7 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .ps-bpm { font-size: .78rem; color: var(--muted); }
 .pr-split { margin-bottom: 14px; }
 .breath { align-self: flex-start; font-family: Georgia, "Times New Roman", serif; font-weight: 900; font-size: 1.9rem; line-height: .7; color: var(--brass); margin: 2px -1px 0; user-select: none; }
-.sp-gap.breath-on { width: 22px; }
-.sp-gap.breath-on::before { content: "’"; left: 3px; top: -6px; bottom: auto; width: auto; background: none; font: 900 1.6rem/1 Georgia, serif; color: var(--brass); }
+.goal-in { width: 4.6em; margin-left: auto; font: inherit; font-size: .9rem; padding: 4px 6px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); }
 .pr-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 12px; }
 .pr-modes .btn { padding: 7px 12px; font-size: .9rem; }
 .pr-opts { min-width: 250px; }
@@ -434,7 +433,10 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .perf-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
 .perf-head strong { font-size: 1.15rem; }
 .perf-head .fine { display: block; margin: 4px 0 0; }
-.perf-status { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 800; }
+.perf-status { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; margin-bottom: 8px; font-weight: 800; }
+.perf-tempo { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.perf-tempo .btn { padding: 4px 10px; min-width: 34px; }
+.perf-tempo .goal-in { margin: 0; text-align: center; }
 .perf-notes { max-height: 46vh; overflow-y: auto; position: relative; }
 .perf-notes .sec-title { cursor: pointer; border-radius: 8px; padding: 2px 6px; }
 .perf-notes .sec-title.cur { color: var(--brass); }
@@ -1023,8 +1025,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
           <button id="prPerfBtn" type="button" class="btn" title="Play the whole song through; flag where you stumble">🎭 Performance run</button>
           <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⚙ Options ▾</button>
             <div class="menu list-menu pr-opts" hidden>
-              <label class="menu-field" title="Only the last phrase starts open; each earlier phrase opens once the one after it passes"><input type="checkbox" id="prBackward"> ⏪ Learn from the end</label>
-              <button id="prBreathBtn" type="button" class="menu-item">’ Breath marks</button>
+              <label class="menu-field" title="How fast the song is really played. Performance runs use it, and the tempo ladder climbs toward it">🎯 Song tempo <input type="number" id="prGoal" class="goal-in" min="30" max="240" inputmode="numeric" placeholder="BPM"></label>
               <button id="prEditSplits" type="button" class="menu-item">✂ Adjust phrases</button>
               <label class="menu-field">🪜 Tempo ladder <select id="prLadderStep" aria-label="How much faster each ladder step is"><option value="2">+2 BPM</option><option value="3">+3 BPM</option><option value="5">+5 BPM</option><option value="8">+8 BPM</option><option value="10">+10 BPM</option></select></label>
             </div></span>
@@ -1070,17 +1071,14 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
           </div>
           <p class="fine">Phrases you don't change keep their progress.</p>
         </div>
-        <div id="prBreathEditor" class="pr-split" hidden>
-          <p class="fine" style="margin-top:0">Tap between two notes to add or remove a breath mark <span class="breath">’</span>. They're saved with the song and show in every practice view.</p>
-          <div id="prBreathNotes" class="sp-notes"></div>
-          <div class="toolbar"><button id="prBreathDone" type="button" class="btn primary">Done</button></div>
-        </div>
         <div id="prPerf" class="pr-perf" hidden>
           <div class="perf-head">
-            <div><strong>🎭 Performance run</strong><span class="fine">Play the whole song straight through. Mistakes don't reset anything. Tap <b>Stumbled here</b> and keep going, then <b>Next phrase</b> as you move on.</span></div>
+            <div><strong>🎭 Performance run</strong><span class="fine">Play the whole song straight through at the song's tempo. Mistakes don't reset anything. Tap <b>Stumbled here</b> and keep going, then <b>Next phrase</b> as you move on.</span></div>
             <button id="perfExit" type="button" class="btn">✕ End run</button>
           </div>
-          <div class="perf-status"><span id="perfWhere"></span><button type="button" class="btn" data-metro-toggle>▶ Metronome</button></div>
+          <div class="perf-status"><span id="perfWhere"></span>
+            <span class="perf-tempo"><label for="perfGoal">🎯 Song tempo</label><button type="button" class="btn" data-goal="-1" aria-label="1 BPM slower">−</button><input type="number" id="perfGoal" class="goal-in" min="30" max="240" inputmode="numeric"><button type="button" class="btn" data-goal="1" aria-label="1 BPM faster">+</button><span class="fine" style="margin:0">BPM</span></span>
+            <button type="button" class="btn" data-metro-toggle>▶ Metronome</button></div>
           <div id="perfNotes" class="seq perf-notes"></div>
           <div id="perfActions" class="perf-actions">
             <button id="perfStumble" type="button" class="pr-btn mistake">😬 Stumbled here</button>
@@ -4164,15 +4162,16 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     for (let k = 0; k < n; k++) set.add(rangeKey(k, k));
     for (let k = 0; k + 1 < n; k++) set.add(rangeKey(k, k + 1));
     (function build(a, b) { if (b - a < 2) return; set.add(rangeKey(a, b)); halves(a, b).forEach(([x, y]) => build(x, y)); })(0, n - 1);
-    // learning order: by the last phrase a step reaches, smaller steps first (learning from the end: by the first phrase, from the back)
-    if (d.backward) return [...set].sort((x, y) => { const [a1, b1] = keyRange(x), [a2, b2] = keyRange(y); return a2 - a1 || (b1 - a1) - (b2 - a2); });
-    return [...set].sort((x, y) => { const [a1, b1] = keyRange(x), [a2, b2] = keyRange(y); return b1 - b2 || (b1 - a1) - (b2 - a2); });
+    // learning order: by the last phrase a step reaches, smaller steps first. The final phrase is learned second
+    // (right after phrase 1), so the ending isn't always the least practiced part of the song.
+    const end = k => { const [a, b] = keyRange(k); return a === b && b === n - 1 && n > 2 ? 0.5 : b; };
+    return [...set].sort((x, y) => { const [a1, b1] = keyRange(x), [a2, b2] = keyRange(y); return end(x) - end(y) || (b1 - a1) - (b2 - a2); });
   }
   const stepOf = (d, key) => d.steps[key] || (d.steps[key] = { passed: false, passes: 0, bestBpm: 0, last: 0 });
   const passed = (d, key) => !!(d.steps[key] && d.steps[key].passed);
   function needs(d, key) { // the steps that must pass before this one opens
     const [a, b] = keyRange(key);
-    if (a === b) return d.backward && a < d.phrases.length - 1 ? [rangeKey(a + 1, a + 1)] : []; // from the end: the phrase after must pass first
+    if (a === b) return [];
     if (b === a + 1) return [rangeKey(a, a), rangeKey(b, b)];
     const [[a1, b1], [a2, b2]] = halves(a, b);
     return [rangeKey(a1, b1), rangeKey(a2, b2), rangeKey(b1, a2)]; // both halves, plus the join across the middle
@@ -4189,10 +4188,13 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     return [A.start, B.end];
   }
   // the song items for notes s..e-1 (no part titles), plus a breath mark right after the last note
-  function phraseItems(sg, notes, s, e) {
+  // breathAfter: wind players get a breath mark where one phrase hands off to the next
+  const isWind = () => ["sax", "flute", "clarinet", "trumpet", "recorder", "ocarina"].includes(inst().kind);
+  function phraseItems(sg, notes, s, e, breathAfter) {
     const part = sg.items.slice(notes[s].i, notes[e - 1].i + 1).filter(x => !isSec(x));
     while (part[0] === "|") part.shift();
     for (let i = notes[e - 1].i + 1; i < sg.items.length && !isNote(sg.items[i]); i++) if (sg.items[i] === "~") { part.push("~"); break; }
+    if (breathAfter && isWind() && part[part.length - 1] !== "~") part.push("~");
     return part;
   }
   function resetFrom(d, k) { // phrase k changed: every step that includes it must be passed again
@@ -4200,6 +4202,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   }
   // Earlier versions stored "c:k" = phrases 1..k+1; keep the ones that still exist as steps (1–2 and the whole song)
   function migrateSteps(d) {
+    delete d.backward; // "learn from the end" is now part of the normal order
     const keys = new Set(prSteps(d));
     Object.keys(d.steps).forEach(key => {
       if (key[0] === "t") { delete d.steps[key]; return; } // transition drills were folded into the joins
@@ -4248,7 +4251,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     showTab("practice");
     $("prTitle").textContent = "🎯 " + sg.name;
     $("prBanner").hidden = !msgs.length; $("prBanner").textContent = msgs.join(" ");
-    $("prSplitEditor").hidden = true; $("prBreathEditor").hidden = true; $("prPerf").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false;
+    $("prSplitEditor").hidden = true; $("prPerf").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false;
     renderPractice();
     window.scrollTo({ top: 0 });
   }
@@ -4269,7 +4272,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
         + '<span class="ps-ic" aria-hidden="true">' + icon + '</span><span class="ps-name">' + stepName(d, k) + (lvl === 1 ? ' <span class="ps-kind">join</span>' : lvl === 2 ? ' <span class="ps-kind">section</span>' : '') + '</span>'
         + (flagged ? '<span class="ps-flag" title="You stumbled here in a performance run">⚑ stumbled</span>' : st.bestBpm ? '<span class="ps-bpm">' + st.bestBpm + ' BPM</span>' : '') + '</button></li>';
     }).join("");
-    $("prBackward").checked = !!d.backward; $("prLadderStep").value = String(d.ladder || 5);
+    $("prLadderStep").value = String(d.ladder || 5); $("prGoal").value = d.goal || "";
     renderStep();
     renderHistory();
     $("prBpm").textContent = d.bpm;
@@ -4287,7 +4290,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     for (let k = pa; k <= pb; k++) {
       const ph = d.phrases[k];
       if (pb > pa) items.push("§Phrase " + (k + 1));
-      items.push(...phraseItems(sg, notes, ph.start, ph.end));
+      items.push(...phraseItems(sg, notes, ph.start, ph.end, k < pb));
     }
     const flags = d.flags || {};
     if (key[0] === "p" && flags[pa]) $("prStepMeta").innerHTML = esc(bits.join(" · ")) + ' · <span class="pr-flagnote">⚑ You stumbled here in a performance run</span>';
@@ -4297,11 +4300,12 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     // flagged phrases from a performance run come first once this step is done
     const flagNext = done ? Object.keys(flags).map(Number).sort((x, y) => x - y).map(k => rangeKey(k, k)).find(k => k !== key) : null;
     // tempo ladder: after a pass, try it again a few BPM faster
-    const step = d.ladder || 5, target = Math.min(240, Math.max(d.bpm, st.bestBpm || 0) + step);
+    const step = d.ladder || 5, goal = d.goal || 0, atGoal = goal && (st.bestBpm || 0) >= goal;
+    const target = Math.min(240, goal || 240, Math.max(d.bpm, st.bestBpm || 0) + step);
     const climbing = st.passed && d.bpm > (st.bestBpm || 0); // already trying a faster tempo than its best pass
-    const ladder = done && !climbing && target > d.bpm ? '<button type="button" class="btn" data-ladder-go="' + target + '" title="Change the step in ⚙ Options">🪜 Try ' + target + ' BPM</button>' : '';
+    const ladder = done && !climbing && !atGoal && target > d.bpm ? '<button type="button" class="btn" data-ladder-go="' + target + '" title="Change the step in ⚙ Options">🪜 Try ' + target + ' BPM' + (target === goal ? " (song tempo)" : "") + '</button>' : '';
     $("prStreak").innerHTML = '<span class="pr-dots" aria-hidden="true">' + dots + '</span><span class="pr-streak-text">'
-      + (pr.streak ? pr.streak + " of " + PR_PASS + " clean in a row" : climbing ? "Passed ✓ at " + st.bestBpm + " BPM · now going for " + d.bpm + " BPM: " + PR_PASS + " clean in a row" : st.passed ? "Passed ✓" + (st.bestBpm ? " at " + st.bestBpm + " BPM" : "") : PR_PASS + " clean runs in a row to pass")
+      + (pr.streak ? pr.streak + " of " + PR_PASS + " clean in a row" : climbing ? "Passed ✓ at " + st.bestBpm + " BPM · now going for " + d.bpm + " BPM: " + PR_PASS + " clean in a row" : st.passed ? "Passed ✓" + (st.bestBpm ? " at " + st.bestBpm + " BPM" : "") + (atGoal ? " 🎯 song tempo" : "") : PR_PASS + " clean runs in a row to pass")
       + '</span>' + ladder
       + (flagNext ? '<button type="button" class="btn pr-next" data-step="' + flagNext + '">⚑ Practice ' + stepName(d, flagNext) + '</button>'
         : nxt && nxt !== key ? '<button type="button" class="btn primary pr-next" data-step="' + nxt + '">Next: ' + stepName(d, nxt) + ' →</button>' : '');
@@ -4436,6 +4440,8 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
 
   // ----- Metronome (a steady click to play along with) -----
   var metro = { on: false, timer: null, next: 0, beat: 0 };
+  // a performance run clicks at the song's real tempo; practice steps at your practice tempo
+  function metroBpm() { return !pr ? 80 : pr.perf ? (pr.d.goal || pr.d.bpm) : pr.d.bpm; }
   function metroClick(t, accent) {
     const o = pctx.createOscillator(), g = pctx.createGain();
     o.type = "square"; o.frequency.value = accent ? 1760 : 1320;
@@ -4447,7 +4453,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       const t = metro.next, accent = metro.beat % 4 === 0;
       metroClick(t, accent);
       setTimeout(() => { const el = $("prBeat"); el.classList.remove("tick", "accent"); void el.offsetWidth; el.classList.add("tick"); if (accent) el.classList.add("accent"); }, Math.max(0, (t - pctx.currentTime) * 1000));
-      metro.beat++; metro.next += 60 / (pr ? pr.d.bpm : 80);
+      metro.beat++; metro.next += 60 / metroBpm();
     }
   }
   function startMetro() { ensureP(); metro.on = true; metro.beat = 0; metro.next = pctx.currentTime + 0.08; metro.timer = setInterval(metroSchedule, 25); metroSchedule(); $("prMetroToggle").textContent = "■ Stop"; $("prMetroToggle").classList.add("on"); document.querySelectorAll("[data-metro-toggle]").forEach(b => { b.textContent = "■ Metronome"; }); }
@@ -4564,63 +4570,36 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     pr.d.steps = {}; pr.d.history = []; pr.d.started = Date.now(); pr.streak = 0; pr.undo = null;
     pr.key = prSteps(pr.d)[0]; savePractice(); renderPractice(); toast("Progress reset");
   });
-  // ----- Learn from the end (backward chaining) -----
-  $("prBackward").addEventListener("change", e => {
-    if (!pr) return;
-    pr.d.backward = e.target.checked; savePractice();
-    if (!(unlocked(pr.d, pr.key) || passed(pr.d, pr.key))) { pr.key = nextStep(pr.d) || prSteps(pr.d)[0]; pr.streak = 0; pr.undo = null; }
-    renderPractice();
-    toast(e.target.checked ? "⏪ Learning from the end: start with the last phrase" : "Back to learning from the start");
-  });
   // ----- Tempo ladder -----
   $("prStreak").addEventListener("click", e => {
     const b = e.target.closest("[data-ladder-go]"); if (!b || !pr) return;
     const t = +b.dataset.ladderGo; setBpm(t); renderStep();
     toast("🪜 " + t + " BPM · " + PR_PASS + " clean in a row to pass at this tempo");
   });
-  $("prLadderStep").addEventListener("change", e => { if (!pr) return; pr.d.ladder = +e.target.value; savePractice(); renderStep(); });
-  // ----- Breath marks (saved in the song as "~" between notes) -----
-  function breathAt(sg, notes, k) { for (let i = notes[k - 1].i + 1; i < notes[k].i; i++) if (sg.items[i] === "~") return i; return -1; }
-  function renderBreathEditor() {
-    const { sg, d } = pr, notes = songNotes(sg), starts = new Set(d.phrases.map(p => p.start));
-    let phrase = -1, html = "";
-    notes.forEach((n, k) => {
-      if (starts.has(k)) phrase++;
-      if (k > 0) {
-        const on = breathAt(sg, notes, k) >= 0;
-        html += '<button type="button" class="sp-gap' + (on ? " breath-on" : "") + (breakStrength(sg, notes, k) ? " bar" : "") + '" data-bgap="' + k + '" aria-pressed="' + on + '" aria-label="' + (on ? "Remove breath before note " : "Breath before note ") + (k + 1) + '"></button>';
-      }
-      html += '<span class="sp-note ph' + (Math.max(0, phrase) % 2) + '">' + displayLabel(sg.items[n.i]) + '</span>';
-    });
-    $("prBreathNotes").innerHTML = html;
-  }
-  $("prBreathBtn").addEventListener("click", () => {
+  function setGoal(v) {
     if (!pr) return;
-    $("prMainWrap").hidden = true; $("prModes").hidden = true; $("prBreathEditor").hidden = false;
-    renderBreathEditor();
-  });
-  $("prBreathNotes").addEventListener("click", e => {
-    const g = e.target.closest("[data-bgap]"); if (!g || !pr) return;
-    const { sg } = pr, notes = songNotes(sg), k = +g.dataset.bgap, at = breathAt(sg, notes, k);
-    if (at >= 0) sg.items.splice(at, 1); else sg.items.splice(notes[k - 1].i + 1, 0, "~"); // right after the note, before any bar line
-    storeSongs(); renderBreathEditor();
-  });
-  $("prBreathDone").addEventListener("click", () => {
-    $("prBreathEditor").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false;
-    const n = pr ? pr.sg.items.filter(x => x === "~").length : 0;
-    renderPractice(); if (n) toast(n + " breath mark" + (n === 1 ? "" : "s") + " saved with the song");
-  });
+    v = Math.round(+v);
+    if (!v) { delete pr.d.goal; } else pr.d.goal = Math.max(30, Math.min(240, v));
+    savePractice();
+    $("perfGoal").value = pr.d.goal || pr.d.bpm; $("prGoal").value = pr.d.goal || "";
+    if (!pr.perf) renderStep();
+  }
+  $("prGoal").addEventListener("change", e => setGoal(e.target.value));
+  $("perfGoal").addEventListener("change", e => setGoal(e.target.value));
+  $("prPerf").addEventListener("click", e => { const b = e.target.closest("[data-goal]"); if (b && pr) setGoal((pr.d.goal || pr.d.bpm) + +b.dataset.goal); });
+  $("prLadderStep").addEventListener("change", e => { if (!pr) return; pr.d.ladder = +e.target.value; savePractice(); renderStep(); });
   // ----- Performance run: the whole song, mistakes don't reset anything -----
   function startPerf() {
     if (!pr) return;
     pr.perf = { k: 0, flags: new Set() };
+    $("perfGoal").value = pr.d.goal || pr.d.bpm;
     $("prMainWrap").hidden = true; $("prModes").hidden = true; $("prPerf").hidden = false;
     $("perfActions").hidden = false; $("perfDone").hidden = true; $("perfNotes").hidden = false;
     renderPerf(); window.scrollTo({ top: 0 });
   }
   function renderPerf() {
     const { sg, d } = pr, P = pr.perf, notes = songNotes(sg), n = d.phrases.length, items = [], ranges = [];
-    d.phrases.forEach((ph, k) => { items.push("§Phrase " + (k + 1)); const s0 = items.length; items.push(...phraseItems(sg, notes, ph.start, ph.end)); ranges.push([s0, items.length]); });
+    d.phrases.forEach((ph, k) => { items.push("§Phrase " + (k + 1)); const s0 = items.length; items.push(...phraseItems(sg, notes, ph.start, ph.end, k < d.phrases.length - 1)); ranges.push([s0, items.length]); });
     const box = $("perfNotes");
     box.innerHTML = chipsHTML(items);
     box.querySelectorAll(".chip[data-i]").forEach(c => {
@@ -4640,7 +4619,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   function finishPerf() {
     const { d } = pr, P = pr.perf, now = Date.now(), flags = [...P.flags].sort((x, y) => x - y);
     d.flags = d.flags || {}; flags.forEach(k => { d.flags[k] = now; });
-    d.history.push({ t: now, s: "run", r: "u", b: d.bpm });
+    d.history.push({ t: now, s: "run", r: "u", b: d.goal || d.bpm });
     if (markPracticedToday()) { const c = streakInfo().cur; setTimeout(() => toast(c > 1 ? "🔥 " + c + "-day streak! Keep it up" : "🔥 Streak started: day 1"), 1200); }
     savePractice();
     $("perfActions").hidden = true; $("perfNotes").hidden = true; $("perfDone").hidden = false;
