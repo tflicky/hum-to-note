@@ -418,6 +418,36 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .ps-name { flex: 1; }
 .ps-bpm { font-size: .78rem; color: var(--muted); }
 .pr-split { margin-bottom: 14px; }
+.breath { align-self: flex-start; font-family: Georgia, "Times New Roman", serif; font-weight: 900; font-size: 1.9rem; line-height: .7; color: var(--brass); margin: 2px -1px 0; user-select: none; }
+.sp-gap.breath-on { width: 22px; }
+.sp-gap.breath-on::before { content: "’"; left: 3px; top: -6px; bottom: auto; width: auto; background: none; font: 900 1.6rem/1 Georgia, serif; color: var(--brass); }
+.pr-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 12px; }
+.pr-modes .btn { padding: 7px 12px; font-size: .9rem; }
+.pr-back { font-size: .9rem; }
+.pr-step.lvl4 { margin-left: 18px; width: calc(100% - 18px); padding: 8px 12px; font-size: .9rem; border-style: dotted; }
+.pr-step.lvl4.done { border-style: solid; }
+.pr-step.flagged { border-color: var(--danger); }
+.ps-flag { color: var(--danger); font-size: .78rem; font-weight: 800; margin-left: auto; white-space: nowrap; }
+.pr-flagnote { color: var(--danger); font-weight: 700; }
+.pr-ladder { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pr-ladder select { font: inherit; font-size: .85rem; padding: 4px 6px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); }
+.pr-perf { margin-bottom: 14px; }
+.perf-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.perf-head strong { font-size: 1.15rem; }
+.perf-head .fine { display: block; margin: 4px 0 0; }
+.perf-status { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 800; }
+.perf-notes { max-height: 46vh; overflow-y: auto; position: relative; }
+.perf-notes .sec-title { cursor: pointer; border-radius: 8px; padding: 2px 6px; }
+.perf-notes .sec-title.cur { color: var(--brass); }
+.perf-notes .sec-title.flag { color: var(--danger); }
+.chip.perf-cur { box-shadow: 0 0 0 3px var(--brass); }
+.chip.perf-flag { background: color-mix(in srgb, var(--danger) 16%, var(--panel)); }
+.perf-notes .chip:not(.perf-cur) { opacity: .62; }
+.perf-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.pr-btn.next { background: var(--brass); }
+.perf-done { margin-top: 12px; padding: 16px; border-radius: 16px; background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
+.perf-done strong { font-size: 1.1rem; }
+.perf-done .toolbar { margin: 0; }
 .sp-notes { display: flex; flex-wrap: wrap; align-items: stretch; row-gap: 10px; padding: 12px; background: var(--bg); border-radius: 12px; }
 .sp-note { display: inline-flex; align-items: center; gap: 4px; padding: 8px 6px; font-weight: 700; font-size: .95rem; border-radius: 8px; }
 .sp-note.ph0 { background: var(--brass-soft); }
@@ -899,7 +929,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
             <ul>
               <li>Write the notes as they appear in music for your instrument, separated by spaces: <code>G A Bb C#</code></li>
               <li>Add an octave number for an exact note: <code>C5</code>. Add <code>|</code> for a bar line.</li>
-              <li>Start a line with <code>#</code> to name a part, like <code># Chorus</code>.</li>
+              <li>Start a line with <code>#</code> to name a part, like <code># Chorus</code>. Add <code>~</code> between notes for a breath mark.</li>
               <li>Pasting from a website? Lines of lyrics are skipped, <code>^C</code> means one octave up, and dashed notes like <code>D-C-Bb</code> stay together.</li>
             </ul>
           </details>
@@ -990,6 +1020,11 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
           <div class="pr-overall"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍<span class="wide-only"> View</span> ▾</button></span><span id="prStreakBadge" class="pr-streak-badge" title="Days practiced in a row"></span><span id="prOverallText"></span><span class="pr-bar" aria-hidden="true"><i id="prBarFill"></i></span></div>
         </div>
         <p id="prBanner" class="pr-banner" role="status" hidden></p>
+        <div id="prModes" class="pr-modes">
+          <button id="prPerfBtn" type="button" class="btn">🎭 Performance run</button>
+          <button id="prBreathBtn" type="button" class="btn">’ Breath marks</button>
+          <label class="check pr-back" title="Only the last phrase starts open; each earlier phrase opens once the one after it passes"><input type="checkbox" id="prBackward"> ⏪ Learn from the end</label>
+        </div>
         <div id="prMainWrap" class="pr-layout">
           <section class="pr-main" aria-label="Current step">
             <div class="pr-step-head"><h3 id="prStepName"></h3><span id="prStepMeta" class="fine"></span></div>
@@ -1030,6 +1065,24 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
             <button id="prSplitCancel" type="button" class="btn">Cancel</button>
           </div>
           <p class="fine">Phrases you don't change keep their progress.</p>
+        </div>
+        <div id="prBreathEditor" class="pr-split" hidden>
+          <p class="fine" style="margin-top:0">Tap between two notes to add or remove a breath mark <span class="breath">’</span>. They're saved with the song and show in every practice view.</p>
+          <div id="prBreathNotes" class="sp-notes"></div>
+          <div class="toolbar"><button id="prBreathDone" type="button" class="btn primary">Done</button></div>
+        </div>
+        <div id="prPerf" class="pr-perf" hidden>
+          <div class="perf-head">
+            <div><strong>🎭 Performance run</strong><span class="fine">Play the whole song straight through. Mistakes don't reset anything. Tap <b>Stumbled here</b> and keep going, then <b>Next phrase</b> as you move on.</span></div>
+            <button id="perfExit" type="button" class="btn">✕ End run</button>
+          </div>
+          <div class="perf-status"><span id="perfWhere"></span><button type="button" class="btn" data-metro-toggle>▶ Metronome</button></div>
+          <div id="perfNotes" class="seq perf-notes"></div>
+          <div id="perfActions" class="perf-actions">
+            <button id="perfStumble" type="button" class="pr-btn mistake">😬 Stumbled here</button>
+            <button id="perfNext" type="button" class="pr-btn next">Next phrase →</button>
+          </div>
+          <div id="perfDone" class="perf-done" hidden></div>
         </div>
         <details class="pr-history">
           <summary>📈 Progress over time</summary>
@@ -1623,6 +1676,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (!list.some(isNote)) return "";
     return list.map((m, i) => {
       if (m === "|") return '<span class="bar" aria-hidden="true"></span>';
+      if (m === "~") return '<span class="breath" title="Breathe here" role="img" aria-label="Breath">’</span>';
       if (isSec(m)) return '<div class="sec-title">' + esc(m.slice(1)) + '</div>';
       const slot = "";
       const snd = soundingMidi(m);
@@ -1898,6 +1952,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     toks.forEach(t => {
       if (/^§\d+$/.test(t)) { items.push("§" + titles[+t.slice(1)]); prev = null; return; }
       if (t === "|") { if (items.length && items[items.length - 1] !== "|") items.push("|"); return; }
+      if (t === "~") { if (items.length && items[items.length - 1] !== "~") items.push("~"); return; } // breath mark
       const lone = t.match(/^¤(\d+)$/);
       if (lone) { // a chord typed with a space before it ("E4 {C}") belongs to the previous note
         const ch = parseChord(chordsTxt[+lone[1]]);
@@ -2339,7 +2394,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   function setPicking(on) { picking = on; picked = []; showSongHome(); }
   function itemsToText(items) {
     const chTxt = m => { const ch = chordOf(m); if (!ch) return ""; return "{" + (ch.on ? "*" + (CHORDS[ch.type] || CHORDS.maj).sym : chordSymbol(m)) + "}"; };
-    return items.map(m => m === "|" ? "|" : isSec(m) ? "\n# " + m.slice(1) + "\n" : displayLabel(m) + chTxt(m)).join(" ").replace(/ *\n */g, "\n").trim();
+    return items.map(m => m === "|" ? "|" : m === "~" ? "~" : isSec(m) ? "\n# " + m.slice(1) + "\n" : displayLabel(m) + chTxt(m)).join(" ").replace(/ *\n */g, "\n").trim();
   }
   function readNotes(text, ss) { // concert items from typed notes, or from a song pasted off a website
     const sheet = looksLikeSheet(text), r = sheet ? parseSheet(text) : parseNotes(text, 67);
@@ -3685,7 +3740,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     const ins = e.target.closest("[data-ins]");
     if (ins && ins.closest(".seq")) { if (listLocked(ins.closest(".seq").dataset.list)) return; insertAt(ins.closest(".seq").dataset.list, +ins.dataset.ins); return; }
     const c = e.target.closest(".chip[data-i]");
-    if (c && c.closest("#prNotes")) { playChips([c], null); return; }
+    if (c && c.closest("#prNotes, #perfNotes")) { playChips([c], null); return; }
     if (c) {
       const which = c.closest(".seq").dataset.list, i = +c.dataset.i;
       if (listLocked(which)) { playChips([c], null); return; }
@@ -4098,33 +4153,56 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   }
   // Step keys: "p:k" = phrase k alone; "r:a-b" = phrases a..b played together (0-based, inclusive)
   const rangeKey = (a, b) => a === b ? "p:" + a : "r:" + a + "-" + b;
-  function keyRange(key) { const [t, v] = key.split(":"); if (t === "p") return [+v, +v]; const [a, b] = v.split("-").map(Number); return [a, b]; }
+  // "t:k" = transition drill: the end of phrase k into the start of phrase k+1 (optional, not counted in the step total)
+  const isDrill = key => key[0] === "t";
+  function keyRange(key) { const [t, v] = key.split(":"); if (t === "p") return [+v, +v]; if (t === "t") return [+v, +v + 1]; const [a, b] = v.split("-").map(Number); return [a, b]; }
   const halves = (a, b) => { const mid = a + Math.ceil((b - a + 1) / 2) - 1; return [[a, mid], [mid + 1, b]]; };
   function prSteps(d) {
     const n = d.phrases.length, set = new Set();
     for (let k = 0; k < n; k++) set.add(rangeKey(k, k));
     for (let k = 0; k + 1 < n; k++) set.add(rangeKey(k, k + 1));
     (function build(a, b) { if (b - a < 2) return; set.add(rangeKey(a, b)); halves(a, b).forEach(([x, y]) => build(x, y)); })(0, n - 1);
-    // learning order: by the last phrase a step reaches, smaller steps first
+    // learning order: by the last phrase a step reaches, smaller steps first (learning from the end: by the first phrase, from the back)
+    if (d.backward) return [...set].sort((x, y) => { const [a1, b1] = keyRange(x), [a2, b2] = keyRange(y); return a2 - a1 || (b1 - a1) - (b2 - a2); });
     return [...set].sort((x, y) => { const [a1, b1] = keyRange(x), [a2, b2] = keyRange(y); return b1 - b2 || (b1 - a1) - (b2 - a2); });
   }
+  // every step in suggested order, with each transition drill just before the join it leads into
+  function allSteps(d) {
+    const out = [];
+    prSteps(d).forEach(k => { const [a, b] = keyRange(k); if (k[0] === "r" && b === a + 1) out.push("t:" + a); out.push(k); });
+    return out;
+  }
+  const DRILL_LEN = ph => ph.end - ph.start >= 6 ? 3 : 2; // notes from each side
   const stepOf = (d, key) => d.steps[key] || (d.steps[key] = { passed: false, passes: 0, bestBpm: 0, last: 0 });
   const passed = (d, key) => !!(d.steps[key] && d.steps[key].passed);
-  function needs(key) { // the steps that must pass before this one opens
+  function needs(d, key) { // the steps that must pass before this one opens
     const [a, b] = keyRange(key);
-    if (a === b) return [];
+    if (isDrill(key)) return [rangeKey(a, a), rangeKey(b, b)];
+    if (a === b) return d.backward && a < d.phrases.length - 1 ? [rangeKey(a + 1, a + 1)] : []; // from the end: the phrase after must pass first
     if (b === a + 1) return [rangeKey(a, a), rangeKey(b, b)];
     const [[a1, b1], [a2, b2]] = halves(a, b);
     return [rangeKey(a1, b1), rangeKey(a2, b2), rangeKey(b1, a2)]; // both halves, plus the join across the middle
   }
-  function unlocked(d, key) { return needs(key).every(k => passed(d, k)); }
+  function unlocked(d, key) { return needs(d, key).every(k => passed(d, k)); }
   function stepName(d, key) {
     const [a, b] = keyRange(key), n = d.phrases.length;
+    if (isDrill(key)) return "Transition " + (a + 1) + " → " + (b + 1);
     if (a === 0 && b === n - 1) return n === 1 ? "Whole song" : "Whole song (1–" + n + ")";
     return a === b ? "Phrase " + (a + 1) : "Phrases " + (a + 1) + "–" + (b + 1);
   }
-  const stepLevel = (d, key) => { const [a, b] = keyRange(key); return a === 0 && b === d.phrases.length - 1 && b > 0 ? 3 : b === a ? 0 : b === a + 1 ? 1 : 2; };
-  function stepRange(d, key) { const [a, b] = keyRange(key); return [d.phrases[a].start, d.phrases[b].end]; }
+  const stepLevel = (d, key) => { if (isDrill(key)) return 4; const [a, b] = keyRange(key); return a === 0 && b === d.phrases.length - 1 && b > 0 ? 3 : b === a ? 0 : b === a + 1 ? 1 : 2; };
+  function stepRange(d, key) {
+    const [a, b] = keyRange(key), A = d.phrases[a], B = d.phrases[b];
+    if (isDrill(key)) return [Math.max(A.start, A.end - DRILL_LEN(A)), Math.min(B.end, B.start + DRILL_LEN(B))];
+    return [A.start, B.end];
+  }
+  // the song items for notes s..e-1 (no part titles), plus a breath mark right after the last note
+  function phraseItems(sg, notes, s, e) {
+    const part = sg.items.slice(notes[s].i, notes[e - 1].i + 1).filter(x => !isSec(x));
+    while (part[0] === "|") part.shift();
+    for (let i = notes[e - 1].i + 1; i < sg.items.length && !isNote(sg.items[i]); i++) if (sg.items[i] === "~") { part.push("~"); break; }
+    return part;
+  }
   function resetFrom(d, k) { // phrase k changed: every step that includes it must be passed again
     Object.keys(d.steps).forEach(key => { if (key[0] === "c") return; const [a, b] = keyRange(key); if (a <= k && k <= b) d.steps[key].passed = false; });
   }
@@ -4142,6 +4220,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   function reconcile(sg, d) {
     const notes = songNotes(sg), N = notes.length, msgs = [], changed = [];
     while (d.phrases.length && d.phrases[d.phrases.length - 1].start >= N) d.phrases.pop();
+    if (d.flags) Object.keys(d.flags).forEach(k => { if (+k >= d.phrases.length) delete d.flags[k]; });
     if (!d.phrases.length) { d.phrases = autoSplit(sg); d.steps = {}; return msgs; }
     const last = d.phrases[d.phrases.length - 1];
     if (last.end > N) last.end = N;
@@ -4176,11 +4255,11 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     showTab("practice");
     $("prTitle").textContent = "🎯 " + sg.name;
     $("prBanner").hidden = !msgs.length; $("prBanner").textContent = msgs.join(" ");
-    $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false;
+    $("prSplitEditor").hidden = true; $("prBreathEditor").hidden = true; $("prPerf").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false;
     renderPractice();
     window.scrollTo({ top: 0 });
   }
-  function nextStep(d) { return prSteps(d).find(k => unlocked(d, k) && !passed(d, k)) || null; }
+  function nextStep(d) { return allSteps(d).find(k => unlocked(d, k) && !passed(d, k)) || null; }
   const fmtDay = t => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   function renderPractice() {
     if (!pr) return;
@@ -4188,13 +4267,17 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     $("prOverallText").textContent = done + " of " + keys.length + " steps passed";
     const sk = streakInfo(); $("prStreakBadge").textContent = "🔥 " + sk.cur; $("prStreakBadge").classList.toggle("lit", sk.today);
     $("prBarFill").style.width = Math.round(done / keys.length * 100) + "%";
-    $("prStepList").innerHTML = keys.map(k => {
+    const flags = d.flags || {};
+    $("prStepList").innerHTML = allSteps(d).map(k => {
       const st = d.steps[k] || {}, open = unlocked(d, k) || !!st.passed, lvl = stepLevel(d, k);
+      if (lvl === 4 && !open) return ""; // a transition drill shows up once both phrases pass
+      const [a] = keyRange(k), flagged = k[0] === "p" && flags[a];
       const icon = !open ? "🔒" : st.passed ? "✓" : "○";
-      return '<li><button type="button" class="pr-step lvl' + lvl + (k === pr.key ? " current" : "") + (st.passed ? " done" : "") + '" data-step="' + k + '"' + (open ? "" : " disabled") + '>'
-        + '<span class="ps-ic" aria-hidden="true">' + icon + '</span><span class="ps-name">' + stepName(d, k) + (lvl === 1 ? ' <span class="ps-kind">join</span>' : lvl === 2 ? ' <span class="ps-kind">section</span>' : '') + '</span>'
-        + (st.bestBpm ? '<span class="ps-bpm">' + st.bestBpm + ' BPM</span>' : '') + '</button></li>';
+      return '<li><button type="button" class="pr-step lvl' + lvl + (k === pr.key ? " current" : "") + (st.passed ? " done" : "") + (flagged ? " flagged" : "") + '" data-step="' + k + '"' + (open ? "" : " disabled") + '>'
+        + '<span class="ps-ic" aria-hidden="true">' + icon + '</span><span class="ps-name">' + stepName(d, k) + (lvl === 1 ? ' <span class="ps-kind">join</span>' : lvl === 2 ? ' <span class="ps-kind">section</span>' : lvl === 4 ? ' <span class="ps-kind">drill</span>' : '') + '</span>'
+        + (flagged ? '<span class="ps-flag" title="You stumbled here in a performance run">⚑ stumbled</span>' : st.bestBpm ? '<span class="ps-bpm">' + st.bestBpm + ' BPM</span>' : '') + '</button></li>';
     }).join("");
+    $("prBackward").checked = !!d.backward;
     renderStep();
     renderHistory();
     $("prBpm").textContent = d.bpm;
@@ -4209,18 +4292,30 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     $("prStepMeta").textContent = bits.join(" · ");
     // a combined step shows each phrase on its own line, labeled, so you can see where each one starts
     const [pa, pb] = keyRange(key), items = [];
-    for (let k = pa; k <= pb; k++) {
-      const ph = d.phrases[k], part = sg.items.slice(notes[ph.start].i, notes[ph.end - 1].i + 1).filter(x => !isSec(x));
-      while (part[0] === "|") part.shift();
+    if (isDrill(key)) { // the end of one phrase into the start of the next
+      items.push("§End of phrase " + (pa + 1), ...phraseItems(sg, notes, a, d.phrases[pa].end), "§Start of phrase " + (pb + 1), ...phraseItems(sg, notes, d.phrases[pb].start, b));
+    } else for (let k = pa; k <= pb; k++) {
+      const ph = d.phrases[k];
       if (pb > pa) items.push("§Phrase " + (k + 1));
-      items.push(...part);
+      items.push(...phraseItems(sg, notes, ph.start, ph.end));
     }
+    const flags = d.flags || {};
+    if (key[0] === "p" && flags[pa]) $("prStepMeta").innerHTML = esc(bits.join(" · ")) + ' · <span class="pr-flagnote">⚑ You stumbled here in a performance run</span>';
     $("prNotes").innerHTML = chipsHTML(items);
     const dots = Array.from({ length: PR_PASS }, (_, k) => '<span class="pr-dot' + (k < pr.streak ? " on" : "") + '"></span>').join("");
-    const nxt = st.passed && pr.streak === 0 ? nextStep(d) : null;
+    const done = st.passed && pr.streak === 0, nxt = done ? nextStep(d) : null;
+    // flagged phrases from a performance run come first once this step is done
+    const flagNext = done ? Object.keys(flags).map(Number).sort((x, y) => x - y).map(k => rangeKey(k, k)).find(k => k !== key) : null;
+    // tempo ladder: after a pass, try it again a few BPM faster
+    const step = d.ladder || 5, target = Math.min(240, Math.max(d.bpm, st.bestBpm || 0) + step);
+    const climbing = st.passed && d.bpm > (st.bestBpm || 0); // already trying a faster tempo than its best pass
+    const ladder = done && !climbing && target > d.bpm ? '<span class="pr-ladder"><button type="button" class="btn" data-ladder-go="' + target + '">🪜 Try it at ' + target + ' BPM</button><label class="fine" style="margin:0">step <select data-ladder-step aria-label="Tempo ladder step">'
+      + [2, 3, 5, 8, 10].map(v => '<option value="' + v + '"' + (v === step ? " selected" : "") + '>+' + v + '</option>').join("") + '</select></label></span>' : '';
     $("prStreak").innerHTML = '<span class="pr-dots" aria-hidden="true">' + dots + '</span><span class="pr-streak-text">'
-      + (pr.streak ? pr.streak + " of " + PR_PASS + " clean in a row" : st.passed ? "Passed ✓ Play it again at a faster tempo, or move on." : PR_PASS + " clean runs in a row to pass")
-      + '</span>' + (nxt && nxt !== key ? '<button type="button" class="btn primary pr-next" data-step="' + nxt + '">Next: ' + stepName(d, nxt) + ' →</button>' : '');
+      + (pr.streak ? pr.streak + " of " + PR_PASS + " clean in a row" : climbing ? "Passed ✓ at " + st.bestBpm + " BPM · now going for " + d.bpm + " BPM: " + PR_PASS + " clean in a row" : st.passed ? "Passed ✓" + (st.bestBpm ? " at " + st.bestBpm + " BPM" : "") : PR_PASS + " clean runs in a row to pass")
+      + '</span>' + ladder
+      + (flagNext ? '<button type="button" class="btn pr-next" data-step="' + flagNext + '">⚑ Practice ' + stepName(d, flagNext) + '</button>'
+        : nxt && nxt !== key ? '<button type="button" class="btn primary pr-next" data-step="' + nxt + '">Next: ' + stepName(d, nxt) + ' →</button>' : '');
     $("prUndo").hidden = !pr.undo;
     fitPracticeNotes(); // last, once the streak line and buttons have their final size
   }
@@ -4260,17 +4355,17 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     const { d } = pr, days = {};
     d.history.forEach(h => {
       const day = new Date(h.t); day.setHours(0, 0, 0, 0);
-      const k = day.getTime(), x = days[k] || (days[k] = { c: 0, m: 0, p: 0, b: 0 });
+      const k = day.getTime(), x = days[k] || (days[k] = { c: 0, m: 0, p: 0, b: 0, u: 0 });
       x[h.r]++; if (h.r === "p") x.b = Math.max(x.b, h.b);
     });
     const rows = Object.keys(days).map(Number).sort((x, y) => y - x).slice(0, 14);
     $("prHistory").innerHTML = rows.length
       ? '<p class="fine" style="margin:0 0 8px">Started ' + fmtDay(d.started || Date.now()) + ' · practiced on ' + Object.keys(days).length + ' day' + (Object.keys(days).length === 1 ? "" : "s") + '</p>'
-        + '<table class="pr-table"><thead><tr><th>Day</th><th>Clean runs</th><th>Mistakes</th><th>Steps passed</th><th>Fastest pass</th></tr></thead><tbody>'
-        + rows.map(k => { const x = days[k]; return '<tr><td>' + fmtDay(k) + '</td><td>' + x.c + '</td><td>' + x.m + '</td><td>' + x.p + '</td><td>' + (x.b ? x.b + " BPM" : "–") + '</td></tr>'; }).join("") + '</tbody></table>'
+        + '<table class="pr-table"><thead><tr><th>Day</th><th>Clean runs</th><th>Mistakes</th><th>Steps passed</th><th>Runs</th><th>Fastest pass</th></tr></thead><tbody>'
+        + rows.map(k => { const x = days[k]; return '<tr><td>' + fmtDay(k) + '</td><td>' + x.c + '</td><td>' + x.m + '</td><td>' + x.p + '</td><td>' + (x.u || "–") + '</td><td>' + (x.b ? x.b + " BPM" : "–") + '</td></tr>'; }).join("") + '</tbody></table>'
       : '<p class="fine" style="margin:0">Nothing yet. Your practice days will show up here.</p>';
   }
-  function snapshot() { const { d, key } = pr; return { key, streak: pr.streak, streakBpm: pr.streakBpm, step: d.steps[key] ? Object.assign({}, d.steps[key]) : null, hist: d.history.length }; }
+  function snapshot() { const { d, key } = pr; return { key, streak: pr.streak, streakBpm: pr.streakBpm, step: d.steps[key] ? Object.assign({}, d.steps[key]) : null, hist: d.history.length, flags: d.flags ? Object.assign({}, d.flags) : null }; }
   // Days practiced (any song), kept apart from song progress so resetting a song keeps your streak
   const DAYS_KEY = "htn-days";
   const dayStr = t => { const x = new Date(t); return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0") + "-" + String(x.getDate()).padStart(2, "0"); };
@@ -4315,11 +4410,12 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       pr.streak++; pr.streakBpm = d.bpm;
       d.history.push({ t: now, s: key, r: "c", b: d.bpm });
       if (pr.streak >= PR_PASS) {
-        const st = stepOf(d, key), wasOpen = prSteps(d).filter(k => unlocked(d, k));
+        const st = stepOf(d, key), wasOpen = allSteps(d).filter(k => unlocked(d, k));
         st.passed = true; st.passes++; st.bestBpm = Math.max(st.bestBpm || 0, d.bpm); st.last = now;
         d.history.push({ t: now, s: key, r: "p", b: d.bpm });
         pr.streak = 0;
-        const opened = prSteps(d).filter(k => unlocked(d, k) && !wasOpen.includes(k));
+        const opened = allSteps(d).filter(k => unlocked(d, k) && !wasOpen.includes(k));
+        if (key[0] === "p" && d.flags && d.flags[keyRange(key)[0]]) delete d.flags[keyRange(key)[0]];
         toast("🎉 " + stepName(d, key) + " passed at " + d.bpm + " BPM!" + (opened.length ? " Unlocked: " + opened.map(k => stepName(d, k)).join(", ") : ""));
       }
     }
@@ -4331,6 +4427,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     const u = pr.undo, { d } = pr;
     pr.key = u.key; pr.streak = u.streak; pr.streakBpm = u.streakBpm;
     if (u.step) d.steps[u.key] = u.step; else delete d.steps[u.key];
+    if (u.flags) d.flags = u.flags;
     d.history.length = u.hist; pr.undo = null;
     savePractice(); renderPractice(); toast("Undone");
   }
@@ -4363,15 +4460,15 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       metro.beat++; metro.next += 60 / (pr ? pr.d.bpm : 80);
     }
   }
-  function startMetro() { ensureP(); metro.on = true; metro.beat = 0; metro.next = pctx.currentTime + 0.08; metro.timer = setInterval(metroSchedule, 25); metroSchedule(); $("prMetroToggle").textContent = "■ Stop"; $("prMetroToggle").classList.add("on"); }
-  function stopMetro() { metro.on = false; clearInterval(metro.timer); metro.timer = null; $("prMetroToggle").textContent = "▶ Metronome"; $("prMetroToggle").classList.remove("on"); }
+  function startMetro() { ensureP(); metro.on = true; metro.beat = 0; metro.next = pctx.currentTime + 0.08; metro.timer = setInterval(metroSchedule, 25); metroSchedule(); $("prMetroToggle").textContent = "■ Stop"; $("prMetroToggle").classList.add("on"); document.querySelectorAll("[data-metro-toggle]").forEach(b => { b.textContent = "■ Metronome"; }); }
+  function stopMetro() { metro.on = false; clearInterval(metro.timer); metro.timer = null; $("prMetroToggle").textContent = "▶ Metronome"; $("prMetroToggle").classList.remove("on"); document.querySelectorAll("[data-metro-toggle]").forEach(b => { b.textContent = "▶ Metronome"; }); }
 
   // ----- Adjusting the phrases -----
   let splitDraft = null; // set of note positions where a new phrase starts
   function openSplitEditor() {
     if (!pr) return;
     splitDraft = new Set(pr.d.phrases.slice(1).map(p => p.start));
-    $("prMainWrap").hidden = true; $("prSplitEditor").hidden = false;
+    $("prMainWrap").hidden = true; $("prModes").hidden = true; $("prSplitEditor").hidden = false;
     renderSplitEditor();
   }
   function renderSplitEditor() {
@@ -4402,12 +4499,14 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       const [a, b] = keyRange(key), na = same.indexOf(a), nb = same.indexOf(b);
       if (na < 0 || nb < 0 || nb - na !== b - a) return;
       for (let j = na; j <= nb; j++) if (same[j] !== a + (j - na)) return;
-      steps[rangeKey(na, nb)] = d.steps[key];
+      steps[isDrill(key) ? "t:" + na : rangeKey(na, nb)] = d.steps[key];
     });
-    d.phrases = fresh; d.steps = steps; d.notes = notes.length;
+    const flags = {};
+    Object.keys(d.flags || {}).forEach(k => { const nk = same.indexOf(+k); if (nk >= 0) flags[nk] = d.flags[k]; });
+    d.phrases = fresh; d.steps = steps; d.notes = notes.length; d.flags = flags;
     savePractice();
     pr.key = nextStep(d) || prSteps(d)[0]; pr.streak = 0; pr.undo = null;
-    $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false; $("prBanner").hidden = true;
+    $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false; $("prBanner").hidden = true;
     renderPractice(); toast("Phrases saved");
   }
 
@@ -4469,11 +4568,116 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   $("prSplitNotes").addEventListener("click", e => { const g = e.target.closest("[data-gap]"); if (!g) return; const k = +g.dataset.gap; if (splitDraft.has(k)) splitDraft.delete(k); else splitDraft.add(k); renderSplitEditor(); });
   $("prAutoSplit").addEventListener("click", () => { splitDraft = new Set(autoSplit(pr.sg).slice(1).map(p => p.start)); renderSplitEditor(); });
   $("prSplitSave").addEventListener("click", saveSplits);
-  $("prSplitCancel").addEventListener("click", () => { $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false; });
+  $("prSplitCancel").addEventListener("click", () => { $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false; });
   $("prReset").addEventListener("click", () => {
     if (!pr || !confirm("Reset all practice progress for “" + pr.sg.name + "”? Your phrase splits stay.")) return;
     pr.d.steps = {}; pr.d.history = []; pr.d.started = Date.now(); pr.streak = 0; pr.undo = null;
     pr.key = prSteps(pr.d)[0]; savePractice(); renderPractice(); toast("Progress reset");
+  });
+  // ----- Learn from the end (backward chaining) -----
+  $("prBackward").addEventListener("change", e => {
+    if (!pr) return;
+    pr.d.backward = e.target.checked; savePractice();
+    if (!(unlocked(pr.d, pr.key) || passed(pr.d, pr.key))) { pr.key = nextStep(pr.d) || prSteps(pr.d)[0]; pr.streak = 0; pr.undo = null; }
+    renderPractice();
+    toast(e.target.checked ? "⏪ Learning from the end: start with the last phrase" : "Back to learning from the start");
+  });
+  // ----- Tempo ladder -----
+  $("prStreak").addEventListener("click", e => {
+    const b = e.target.closest("[data-ladder-go]"); if (!b || !pr) return;
+    const t = +b.dataset.ladderGo; setBpm(t); renderStep();
+    toast("🪜 " + t + " BPM · " + PR_PASS + " clean in a row to pass at this tempo");
+  });
+  $("prStreak").addEventListener("change", e => {
+    if (!e.target.matches("[data-ladder-step]") || !pr) return;
+    pr.d.ladder = +e.target.value; savePractice(); renderStep();
+  });
+  // ----- Breath marks (saved in the song as "~" between notes) -----
+  function breathAt(sg, notes, k) { for (let i = notes[k - 1].i + 1; i < notes[k].i; i++) if (sg.items[i] === "~") return i; return -1; }
+  function renderBreathEditor() {
+    const { sg, d } = pr, notes = songNotes(sg), starts = new Set(d.phrases.map(p => p.start));
+    let phrase = -1, html = "";
+    notes.forEach((n, k) => {
+      if (starts.has(k)) phrase++;
+      if (k > 0) {
+        const on = breathAt(sg, notes, k) >= 0;
+        html += '<button type="button" class="sp-gap' + (on ? " breath-on" : "") + (breakStrength(sg, notes, k) ? " bar" : "") + '" data-bgap="' + k + '" aria-pressed="' + on + '" aria-label="' + (on ? "Remove breath before note " : "Breath before note ") + (k + 1) + '"></button>';
+      }
+      html += '<span class="sp-note ph' + (Math.max(0, phrase) % 2) + '">' + displayLabel(sg.items[n.i]) + '</span>';
+    });
+    $("prBreathNotes").innerHTML = html;
+  }
+  $("prBreathBtn").addEventListener("click", () => {
+    if (!pr) return;
+    $("prMainWrap").hidden = true; $("prModes").hidden = true; $("prBreathEditor").hidden = false;
+    renderBreathEditor();
+  });
+  $("prBreathNotes").addEventListener("click", e => {
+    const g = e.target.closest("[data-bgap]"); if (!g || !pr) return;
+    const { sg } = pr, notes = songNotes(sg), k = +g.dataset.bgap, at = breathAt(sg, notes, k);
+    if (at >= 0) sg.items.splice(at, 1); else sg.items.splice(notes[k - 1].i + 1, 0, "~"); // right after the note, before any bar line
+    storeSongs(); renderBreathEditor();
+  });
+  $("prBreathDone").addEventListener("click", () => {
+    $("prBreathEditor").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false;
+    const n = pr ? pr.sg.items.filter(x => x === "~").length : 0;
+    renderPractice(); if (n) toast(n + " breath mark" + (n === 1 ? "" : "s") + " saved with the song");
+  });
+  // ----- Performance run: the whole song, mistakes don't reset anything -----
+  function startPerf() {
+    if (!pr) return;
+    pr.perf = { k: 0, flags: new Set() };
+    $("prMainWrap").hidden = true; $("prModes").hidden = true; $("prPerf").hidden = false;
+    $("perfActions").hidden = false; $("perfDone").hidden = true; $("perfNotes").hidden = false;
+    renderPerf(); window.scrollTo({ top: 0 });
+  }
+  function renderPerf() {
+    const { sg, d } = pr, P = pr.perf, notes = songNotes(sg), n = d.phrases.length, items = [], ranges = [];
+    d.phrases.forEach((ph, k) => { items.push("§Phrase " + (k + 1)); const s0 = items.length; items.push(...phraseItems(sg, notes, ph.start, ph.end)); ranges.push([s0, items.length]); });
+    const box = $("perfNotes");
+    box.innerHTML = chipsHTML(items);
+    box.querySelectorAll(".chip[data-i]").forEach(c => {
+      const i = +c.dataset.i, k = ranges.findIndex(([x, y]) => i >= x && i < y);
+      c.classList.toggle("perf-cur", k === P.k); c.classList.toggle("perf-flag", P.flags.has(k));
+    });
+    box.querySelectorAll(".sec-title").forEach((t, k) => {
+      t.dataset.phrase = k; t.classList.toggle("cur", k === P.k); t.classList.toggle("flag", P.flags.has(k));
+      if (P.flags.has(k)) t.textContent = "⚑ Phrase " + (k + 1);
+    });
+    $("perfWhere").textContent = "Phrase " + (P.k + 1) + " of " + n + (P.flags.size ? " · " + P.flags.size + " flagged" : "");
+    $("perfNext").textContent = P.k >= n - 1 ? "🏁 Finish" : "Next phrase →";
+    $("perfStumble").textContent = P.flags.has(P.k) ? "⚑ Flagged · tap to undo" : "😬 Stumbled here";
+    const cur = box.querySelector('.sec-title[data-phrase="' + P.k + '"]');
+    if (cur) box.scrollTo({ top: Math.max(0, cur.offsetTop - 8), behavior: "smooth" });
+  }
+  function finishPerf() {
+    const { d } = pr, P = pr.perf, now = Date.now(), flags = [...P.flags].sort((x, y) => x - y);
+    d.flags = d.flags || {}; flags.forEach(k => { d.flags[k] = now; });
+    d.history.push({ t: now, s: "run", r: "u", b: d.bpm });
+    if (markPracticedToday()) { const c = streakInfo().cur; setTimeout(() => toast(c > 1 ? "🔥 " + c + "-day streak! Keep it up" : "🔥 Streak started: day 1"), 1200); }
+    savePractice();
+    $("perfActions").hidden = true; $("perfNotes").hidden = true; $("perfDone").hidden = false;
+    $("perfDone").innerHTML = (flags.length
+      ? '<strong>Run complete · ' + flags.length + ' stumble' + (flags.length === 1 ? "" : "s") + '</strong><span>Flagged ⚑ for extra practice: ' + flags.map(k => "Phrase " + (k + 1)).join(", ") + '. Passing a phrase again (' + PR_PASS + ' clean in a row) clears its flag.</span>'
+        + '<div class="toolbar">' + flags.map(k => '<button type="button" class="btn primary" data-perf-go="' + k + '">⚑ Practice Phrase ' + (k + 1) + '</button>').join("") + '</div>'
+      : '<strong>🎉 Clean run, no stumbles!</strong><span>Try the ladder: run it again a few BPM faster.</span>')
+      + '<div class="toolbar"><button type="button" class="btn" data-perf-again>🎭 Run it again</button><button type="button" class="btn" data-perf-close>Back to practice</button></div>';
+    pr.perf = null;
+  }
+  function closePerf() {
+    if (metro.on) stopMetro();
+    $("prPerf").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false; pr.perf = null; renderPractice();
+  }
+  $("prPerfBtn").addEventListener("click", startPerf);
+  $("perfNext").addEventListener("click", () => { const P = pr && pr.perf; if (!P) return; if (P.k >= pr.d.phrases.length - 1) finishPerf(); else { P.k++; renderPerf(); } });
+  $("perfStumble").addEventListener("click", () => { const P = pr && pr.perf; if (!P) return; if (P.flags.has(P.k)) P.flags.delete(P.k); else P.flags.add(P.k); renderPerf(); });
+  $("perfExit").addEventListener("click", () => { if (pr && pr.perf && pr.perf.flags.size) finishPerf(); else closePerf(); });
+  $("prPerf").addEventListener("click", e => {
+    const t = e.target.closest(".perf-notes .sec-title[data-phrase]"); if (t && pr.perf) { pr.perf.k = +t.dataset.phrase; renderPerf(); return; }
+    if (e.target.closest("[data-metro-toggle]")) { metro.on ? stopMetro() : startMetro(); return; }
+    const g = e.target.closest("[data-perf-go]"); if (g) { closePerf(); pickStep(rangeKey(+g.dataset.perfGo, +g.dataset.perfGo)); return; }
+    if (e.target.closest("[data-perf-again]")) { startPerf(); return; }
+    if (e.target.closest("[data-perf-close]")) closePerf();
   });
   loadSongs(); updateLabels(); renderSeq(); renderStage(null); applyView();
 })();
