@@ -383,6 +383,17 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .pr-dot { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--good); }
 .pr-dot.on { background: var(--good); }
 .pr-next { margin-left: auto; }
+.pr-fullbtn { margin-left: auto; padding: 6px 12px; font-size: .9rem; }
+.pr-full { position: fixed; inset: 0; z-index: 200; background: var(--bg); display: flex; flex-direction: column; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px calc(env(safe-area-inset-bottom, 0px) + 12px); }
+.pr-full[hidden] { display: none; }
+.pf-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pf-top strong { font-size: 1.15rem; }
+.pf-top .pr-dot { width: 16px; height: 16px; border-width: 2.5px; }
+.pf-top #pfExit { margin-left: auto; }
+.pf-notes { flex: 1 1 auto; min-height: 0; overflow-y: auto; align-content: flex-start; background: var(--panel); }
+.pf-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pf-bar .pr-btn { min-height: 70px; font-size: 1.3rem; }
+body.pf-open { overflow: hidden; }
 .pr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .pr-key { display: block; margin: 6px auto 0; width: max-content; font: 700 .72rem/1 inherit; font-family: inherit; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,.18); color: #fff; }
 @media (hover: none) { .pr-key { display: none; } } /* touch screens have no keyboard */
@@ -1037,15 +1048,15 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
         </div>
         <div id="prMainWrap" class="pr-layout">
           <section class="pr-main" aria-label="Current step">
-            <div class="pr-step-head"><h3 id="prStepName"></h3><span id="prStepMeta" class="fine"></span></div>
+            <div class="pr-step-head"><h3 id="prStepName"></h3><span id="prStepMeta" class="fine"></span><button type="button" id="prFullBtn" class="btn pr-fullbtn" title="Show the notes as big as possible">⛶ Full screen</button></div>
             <div id="prNotes" class="seq pr-notes"></div>
             <p id="prNotesHint" class="fine pr-notes-hint" hidden></p>
           </section>
           <section class="pr-controls" aria-label="How did it go?">
             <div id="prStreak" class="pr-streak" aria-live="polite"></div>
             <div class="pr-actions">
-              <button id="prClean" type="button" class="pr-btn clean" title="Space bar">✓ Clean<kbd class="pr-key">Space</kbd></button>
               <button id="prMistake" type="button" class="pr-btn mistake" title="B or Backspace">✗ Mistake<kbd class="pr-key">B</kbd></button>
+              <button id="prClean" type="button" class="pr-btn clean" title="Space bar">✓ Clean<kbd class="pr-key">Space</kbd></button>
             </div>
             <div class="pr-under"><button id="prUndo" type="button" class="link" hidden>↩ Undo last tap</button></div>
             <div class="pr-metro" role="group" aria-label="Metronome">
@@ -1079,15 +1090,15 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
         <div id="prPerf" class="pr-perf" hidden>
           <div class="perf-head">
             <div><strong>🎭 Performance run</strong><span class="fine">Play the whole song straight through at the song's tempo. Mistakes don't reset anything. Tap <b>Stumbled here</b> and keep going, then <b>Next phrase</b> as you move on.</span></div>
-            <button id="perfExit" type="button" class="btn">✕ End run</button>
+            <button id="perfExit" type="button" class="btn">← Back to practice</button>
           </div>
           <div class="perf-status"><span id="perfWhere"></span>
             <span class="perf-tempo"><label for="perfGoal">🎯 Song tempo</label><button type="button" class="btn" data-goal="-1" aria-label="1 BPM slower">−</button><input type="number" id="perfGoal" class="goal-in" min="30" max="240" inputmode="numeric"><button type="button" class="btn" data-goal="1" aria-label="1 BPM faster">+</button><span class="fine" style="margin:0">BPM</span></span>
             <button type="button" class="btn" data-metro-toggle>▶ Metronome</button></div>
           <div id="perfNotes" class="seq perf-notes"></div>
           <div id="perfActions" class="perf-actions">
-            <button id="perfStumble" type="button" class="pr-btn mistake">😬 Stumbled here</button>
-            <button id="perfNext" type="button" class="pr-btn next">Next phrase →</button>
+            <button id="perfStumble" type="button" class="pr-btn mistake" title="B or Backspace"><span id="perfStumbleTxt">😬 Stumbled here</span><kbd class="pr-key">B</kbd></button>
+            <button id="perfNext" type="button" class="pr-btn next" title="Space or Enter"><span id="perfNextTxt">Next phrase →</span><kbd class="pr-key">Space</kbd></button>
           </div>
           <div id="perfDone" class="perf-done" hidden></div>
         </div>
@@ -1113,6 +1124,14 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   <p class="fine vp-song vp-desk" style="margin:2px 0 0">With this off, the panel floats and pops up when you tap a note. You can also drag it anywhere by its top bar.</p>
   <p class="fine vp-pr" style="margin:2px 0 0">Turn it off to see every note at full size and scroll the page instead.</p>
   <button type="button" id="vReset" class="link">Reset view</button>
+</div>
+<div id="prFull" class="pr-full" role="dialog" aria-label="Notes, full screen" hidden>
+  <div class="pf-top"><strong id="pfName"></strong><span id="pfDots" class="pr-dots" aria-hidden="true"></span><span id="pfText" class="fine"></span><button type="button" id="pfExit" class="btn">✕ Exit full screen</button></div>
+  <div id="prFullNotes" class="seq pr-notes pf-notes"></div>
+  <div class="pf-bar">
+    <button type="button" id="pfMistake" class="pr-btn mistake" title="B or Backspace">✗ Mistake<kbd class="pr-key">B</kbd></button>
+    <button type="button" id="pfClean" class="pr-btn clean" title="Space bar">✓ Clean<kbd class="pr-key">Space</kbd></button>
+  </div>
 </div>
 <dialog id="mergeDlg" class="dlg" aria-labelledby="mergeTitle">
   <form method="dialog">
@@ -3788,7 +3807,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     const ins = e.target.closest("[data-ins]");
     if (ins && ins.closest(".seq")) { if (listLocked(ins.closest(".seq").dataset.list)) return; insertAt(ins.closest(".seq").dataset.list, +ins.dataset.ins); return; }
     const c = e.target.closest(".chip[data-i]");
-    if (c && c.closest("#prNotes, #perfNotes")) { playChips([c], null); return; }
+    if (c && c.closest("#prNotes, #perfNotes, #prFullNotes")) { playChips([c], null); return; }
     if (c) {
       const which = c.closest(".seq").dataset.list, i = +c.dataset.i;
       if (listLocked(which)) { playChips([c], null); return; }
@@ -4358,6 +4377,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     }
     const flags = d.flags || {};
     if (key[0] === "p" && flags[pa]) $("prStepMeta").innerHTML = esc(bits.join(" · ")) + ' · <span class="pr-flagnote">⚑ You stumbled here in a performance run</span>';
+    pr.items = items;
     $("prNotes").innerHTML = chipsHTML(items);
     const dots = Array.from({ length: PR_PASS }, (_, k) => '<span class="pr-dot' + (k < pr.streak ? " on" : "") + '"></span>').join("");
     const done = st.passed && pr.streak === 0 && !isDue(d, key), nxt = done ? nextStep(d) : null;
@@ -4375,6 +4395,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
         : nxt && nxt !== key ? '<button type="button" class="btn primary pr-next" data-step="' + nxt + '" title="Enter">Next: ' + stepLabel(d, nxt) + ' →</button>' : '');
     $("prUndo").hidden = !pr.undo;
     fitPracticeNotes(); // last, once the streak line and buttons have their final size
+    renderFull();
   }
   // Shrink the notes until every one of them fits in the space above the buttons
   function fitPracticeNotes() {
@@ -4702,8 +4723,8 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       if (P.flags.has(k)) t.textContent = "⚑ Phrase " + (k + 1);
     });
     $("perfWhere").textContent = "Phrase " + (P.k + 1) + " of " + n + (P.flags.size ? " · " + P.flags.size + " flagged" : "");
-    $("perfNext").textContent = P.k >= n - 1 ? "🏁 Finish" : "Next phrase →";
-    $("perfStumble").textContent = P.flags.has(P.k) ? "⚑ Flagged · tap to undo" : "😬 Stumbled here";
+    $("perfNextTxt").textContent = P.k >= n - 1 ? "🏁 Finish" : "Next phrase →";
+    $("perfStumbleTxt").textContent = P.flags.has(P.k) ? "⚑ Flagged · tap to undo" : "😬 Stumbled here";
     const cur = box.querySelector('.sec-title[data-phrase="' + P.k + '"]');
     if (cur) box.scrollTo({ top: Math.max(0, cur.offsetTop - 8), behavior: "smooth" });
   }
@@ -4726,13 +4747,65 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     $("prPerf").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false; pr.perf = null; renderPractice();
   }
   $("prPerfBtn").addEventListener("click", startPerf);
+  // Performance run keys: Space or Enter = next phrase, B or Backspace = stumbled here
   document.addEventListener("keydown", e => {
-    if (e.key !== "Enter" || !pr || !pr.perf || $("prPerf").hidden || isTyping(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
-    e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) $("perfNext").click();
+    if (!pr || !pr.perf || $("prPerf").hidden || $("perfActions").hidden || isTyping(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
+    const next = e.key === "Enter" || e.key === " " || e.code === "Space", stumble = e.key === "Backspace" || e.key === "b" || e.key === "B";
+    if (!next && !stumble) return;
+    e.preventDefault(); e.stopImmediatePropagation(); if (e.repeat) return;
+    const b = $(next ? "perfNext" : "perfStumble"); b.classList.add("pressed"); setTimeout(() => b.classList.remove("pressed"), 120);
+    b.click();
   }, true);
+  document.addEventListener("keyup", e => { if (pr && pr.perf && !$("prPerf").hidden && (e.key === " " || e.code === "Space") && !isTyping(e.target)) e.preventDefault(); }, true);
+  // ----- Full screen: just the notes, as big as they can be, with Mistake / Clean -----
+  function renderFull() {
+    if ($("prFull").hidden || !pr || !pr.items) return;
+    const { d, key } = pr, st = d.steps[key] || {};
+    $("pfName").textContent = "🎯 " + stepName(d, key);
+    $("pfDots").innerHTML = Array.from({ length: PR_PASS }, (_, k) => '<span class="pr-dot' + (k < pr.streak ? " on" : "") + '"></span>').join("");
+    $("pfText").textContent = pr.streak ? pr.streak + " of " + PR_PASS + " clean" : st.passed ? "Passed ✓ · Enter for the next step" : PR_PASS + " clean in a row to pass";
+    const el = $("prFullNotes");
+    el.innerHTML = chipsHTML(pr.items);
+    fitFull();
+  }
+  function fitFull() { // the biggest size where every note fits; note names only if the pictures would get too small
+    const el = $("prFullNotes"); if ($("prFull").hidden) return;
+    const fits = z => { el.style.setProperty("--chip-zoom", z); return el.scrollHeight <= el.clientHeight + 1; };
+    const search = (lo, hi) => { if (!fits(lo)) return false; for (let k = 0; k < 9; k++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; } fits(lo); return true; };
+    el.classList.remove("names-only");
+    if (search(0.55, 3)) return;
+    el.classList.add("names-only");
+    if (!search(0.45, 3)) fits(0.45);
+  }
+  function openFull() {
+    if (!pr) return;
+    $("prFull").hidden = false; document.body.classList.add("pf-open");
+    try { if (document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); } catch (e) {}
+    renderFull(); setTimeout(fitFull, 250); // again once the browser has gone full screen
+  }
+  function closeFull() {
+    if ($("prFull").hidden) return;
+    $("prFull").hidden = true; document.body.classList.remove("pf-open");
+    try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
+  }
+  $("prFullBtn").addEventListener("click", openFull);
+  $("pfExit").addEventListener("click", closeFull);
+  $("pfClean").addEventListener("click", () => tapResult(true));
+  $("pfMistake").addEventListener("click", () => tapResult(false));
+  document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) closeFull(); else fitFull(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("prFull").hidden) { e.preventDefault(); closeFull(); } });
+  window.addEventListener("resize", () => { clearTimeout(window.__pfFit); window.__pfFit = setTimeout(fitFull, 80); });
   $("perfNext").addEventListener("click", () => { const P = pr && pr.perf; if (!P) return; if (P.k >= pr.d.phrases.length - 1) finishPerf(); else { P.k++; renderPerf(); } });
   $("perfStumble").addEventListener("click", () => { const P = pr && pr.perf; if (!P) return; if (P.flags.has(P.k)) P.flags.delete(P.k); else P.flags.add(P.k); renderPerf(); });
-  $("perfExit").addEventListener("click", () => { if (pr && pr.perf && pr.perf.flags.size) finishPerf(); else closePerf(); });
+  // ← Back to practice: leave the run; any stumbles you flagged so far are kept
+  $("perfExit").addEventListener("click", () => {
+    if (pr && pr.perf && pr.perf.flags.size) {
+      const { d } = pr, now = Date.now(), n = pr.perf.flags.size;
+      d.flags = d.flags || {}; pr.perf.flags.forEach(k => { d.flags[k] = now; });
+      savePractice(); toast("Kept " + n + " stumble" + (n === 1 ? "" : "s") + " ⚑ for extra practice");
+    }
+    closePerf();
+  });
   $("prPerf").addEventListener("click", e => {
     const t = e.target.closest(".perf-notes .sec-title[data-phrase]"); if (t && pr.perf) { pr.perf.k = +t.dataset.phrase; renderPerf(); return; }
     if (e.target.closest("[data-metro-toggle]")) { metro.on ? stopMetro() : startMetro(); return; }
