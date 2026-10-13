@@ -4372,7 +4372,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       + (pr.streak ? pr.streak + " of " + PR_PASS + " clean in a row" : climbing ? "Passed ✓ at " + st.bestBpm + " BPM · now going for " + d.bpm + " BPM: " + PR_PASS + " clean in a row" : isDue(d, key) ? "↻ Review: " + PR_PASS + " clean in a row keeps it fresh" : st.passed ? "Passed ✓" + (st.bestBpm ? " at " + st.bestBpm + " BPM" : "") + (atGoal ? " 🎯 song tempo" : "") + (st.last ? " · review in " + Math.max(1, nextReviewDays(st) - daysSince(st.last)) + "d" : "") : PR_PASS + " clean runs in a row to pass")
       + '</span>' + ladder
       + (flagNext ? '<button type="button" class="btn pr-next" data-step="' + flagNext + '">⚑ Practice ' + stepName(d, flagNext) + '</button>'
-        : nxt && nxt !== key ? '<button type="button" class="btn primary pr-next" data-step="' + nxt + '">Next: ' + stepLabel(d, nxt) + ' →</button>' : '');
+        : nxt && nxt !== key ? '<button type="button" class="btn primary pr-next" data-step="' + nxt + '" title="Enter">Next: ' + stepLabel(d, nxt) + ' →</button>' : '');
     $("prUndo").hidden = !pr.undo;
     fitPracticeNotes(); // last, once the streak line and buttons have their final size
   }
@@ -4628,10 +4628,17 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   $("prStepList").addEventListener("click", e => { const b = e.target.closest("[data-step]"); if (b) pickStep(b.dataset.step); });
   $("prStreak").addEventListener("click", e => { const b = e.target.closest("[data-step]"); if (b) pickStep(b.dataset.step); });
   $("prClean").addEventListener("click", () => tapResult(true));
-  // Keyboard: Space = clean run, B or Backspace = mistake (while a practice step is on screen)
+  // Keyboard: Space = clean run, B or Backspace = mistake, Enter = next step (while a practice step is on screen)
   function practiceKeysOn() { return !$("view-practice").hidden && !$("songPractice").hidden && !$("prMainWrap").hidden && !!pr; }
   document.addEventListener("keydown", e => {
     if (!practiceKeysOn() || e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target)) return;
+    if (e.key === "Enter") { // the suggested Next button if it's showing, otherwise the next open step in the list
+      e.preventDefault(); e.stopImmediatePropagation(); if (e.repeat) return;
+      const nb = document.querySelector("#prStreak .pr-next"); if (nb) { nb.click(); return; }
+      const keys = prSteps(pr.d), at = keys.indexOf(pr.key), nk = keys.slice(at + 1).find(k => unlocked(pr.d, k) || passed(pr.d, k));
+      if (nk) pickStep(nk); else toast("No next step yet: pass this one to unlock more");
+      return;
+    }
     const clean = e.key === " " || e.code === "Space", mistake = e.key === "Backspace" || e.key === "b" || e.key === "B";
     if (!clean && !mistake) return;
     e.preventDefault(); e.stopImmediatePropagation(); // and don't also "press" whichever button has focus
@@ -4719,6 +4726,10 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     $("prPerf").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false; pr.perf = null; renderPractice();
   }
   $("prPerfBtn").addEventListener("click", startPerf);
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Enter" || !pr || !pr.perf || $("prPerf").hidden || isTyping(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
+    e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) $("perfNext").click();
+  }, true);
   $("perfNext").addEventListener("click", () => { const P = pr && pr.perf; if (!P) return; if (P.k >= pr.d.phrases.length - 1) finishPerf(); else { P.k++; renderPerf(); } });
   $("perfStumble").addEventListener("click", () => { const P = pr && pr.perf; if (!P) return; if (P.flags.has(P.k)) P.flags.delete(P.k); else P.flags.add(P.k); renderPerf(); });
   $("perfExit").addEventListener("click", () => { if (pr && pr.perf && pr.perf.flags.size) finishPerf(); else closePerf(); });
