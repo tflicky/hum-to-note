@@ -390,6 +390,14 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .pf-top strong { font-size: 1.15rem; }
 .pf-top .pr-dot { width: 16px; height: 16px; border-width: 2.5px; }
 .pf-top #pfExit { margin-left: auto; }
+.pf-upnext { display: inline-flex; align-items: center; gap: 8px; }
+.pf-upnext .fine { margin: 0; font-weight: 700; }
+.pf-key { font: 700 .7rem/1 inherit; font-family: inherit; padding: 3px 6px; margin-left: 6px; border-radius: 6px; background: rgba(0,0,0,.18); }
+.pr-full.perf .pf-bar .clean { background: var(--brass); }
+.pf-notes { position: relative; }
+.pf-notes .sec-title.cur { color: var(--brass); }
+.pf-notes .sec-title.flag { color: var(--danger); }
+.pf-notes .sec-title[data-phrase] { cursor: pointer; }
 .pf-notes { flex: 1 1 auto; min-height: 0; overflow-y: auto; align-content: flex-start; background: var(--panel); }
 .pf-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .pf-bar .pr-btn { min-height: 70px; font-size: 1.3rem; }
@@ -1094,7 +1102,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
           </div>
           <div class="perf-status"><span id="perfWhere"></span>
             <span class="perf-tempo"><label for="perfGoal">🎯 Song tempo</label><button type="button" class="btn" data-goal="-1" aria-label="1 BPM slower">−</button><input type="number" id="perfGoal" class="goal-in" min="30" max="240" inputmode="numeric"><button type="button" class="btn" data-goal="1" aria-label="1 BPM faster">+</button><span class="fine" style="margin:0">BPM</span></span>
-            <button type="button" class="btn" data-metro-toggle>▶ Metronome</button></div>
+            <button type="button" class="btn" data-metro-toggle>▶ Metronome</button><button type="button" id="perfFullBtn" class="btn" title="Show the song as big as possible">⛶ Full screen</button></div>
           <div id="perfNotes" class="seq perf-notes"></div>
           <div id="perfActions" class="perf-actions">
             <button id="perfStumble" type="button" class="pr-btn mistake" title="B or Backspace"><span id="perfStumbleTxt">😬 Stumbled here</span><kbd class="pr-key">B</kbd></button>
@@ -1126,11 +1134,11 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   <button type="button" id="vReset" class="link">Reset view</button>
 </div>
 <div id="prFull" class="pr-full" role="dialog" aria-label="Notes, full screen" hidden>
-  <div class="pf-top"><strong id="pfName"></strong><span id="pfDots" class="pr-dots" aria-hidden="true"></span><span id="pfText" class="fine"></span><button type="button" id="pfExit" class="btn">✕ Exit full screen</button></div>
+  <div class="pf-top"><strong id="pfName"></strong><span id="pfDots" class="pr-dots" aria-hidden="true"></span><span id="pfText" class="fine"></span><span id="pfUpNext" class="pf-upnext"></span><button type="button" id="pfExit" class="btn">✕ Exit full screen</button></div>
   <div id="prFullNotes" class="seq pr-notes pf-notes"></div>
   <div class="pf-bar">
-    <button type="button" id="pfMistake" class="pr-btn mistake" title="B or Backspace">✗ Mistake<kbd class="pr-key">B</kbd></button>
-    <button type="button" id="pfClean" class="pr-btn clean" title="Space bar">✓ Clean<kbd class="pr-key">Space</kbd></button>
+    <button type="button" id="pfMistake" class="pr-btn mistake" title="B or Backspace"><span id="pfMistakeTxt">✗ Mistake</span><kbd class="pr-key">B</kbd></button>
+    <button type="button" id="pfClean" class="pr-btn clean" title="Space bar"><span id="pfCleanTxt">✓ Clean</span><kbd class="pr-key">Space</kbd></button>
   </div>
 </div>
 <dialog id="mergeDlg" class="dlg" aria-labelledby="mergeTitle">
@@ -4727,6 +4735,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     $("perfStumbleTxt").textContent = P.flags.has(P.k) ? "⚑ Flagged · tap to undo" : "😬 Stumbled here";
     const cur = box.querySelector('.sec-title[data-phrase="' + P.k + '"]');
     if (cur) box.scrollTo({ top: Math.max(0, cur.offsetTop - 8), behavior: "smooth" });
+    renderFull();
   }
   function finishPerf() {
     const { d } = pr, P = pr.perf, now = Date.now(), flags = [...P.flags].sort((x, y) => x - y);
@@ -4734,6 +4743,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     d.history.push({ t: now, s: "run", r: "u", b: d.goal || d.bpm });
     if (markPracticedToday()) { const c = streakInfo().cur; setTimeout(() => toast(c > 1 ? "🔥 " + c + "-day streak! Keep it up" : "🔥 Streak started: day 1"), 1200); }
     savePractice();
+    closeFull(); // show the summary
     $("perfActions").hidden = true; $("perfNotes").hidden = true; $("perfDone").hidden = false;
     $("perfDone").innerHTML = (flags.length
       ? '<strong>Run complete · ' + flags.length + ' stumble' + (flags.length === 1 ? "" : "s") + '</strong><span>Flagged ⚑ for extra practice: ' + flags.map(k => "Phrase " + (k + 1)).join(", ") + '. Passing a phrase again (' + PR_PASS + ' clean in a row) clears its flag.</span>'
@@ -4744,6 +4754,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   }
   function closePerf() {
     if (metro.on) stopMetro();
+    closeFull();
     $("prPerf").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false; pr.perf = null; renderPractice();
   }
   $("prPerfBtn").addEventListener("click", startPerf);
@@ -4759,12 +4770,29 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   document.addEventListener("keyup", e => { if (pr && pr.perf && !$("prPerf").hidden && (e.key === " " || e.code === "Space") && !isTyping(e.target)) e.preventDefault(); }, true);
   // ----- Full screen: just the notes, as big as they can be, with Mistake / Clean -----
   function renderFull() {
-    if ($("prFull").hidden || !pr || !pr.items) return;
+    if ($("prFull").hidden || !pr) return;
+    const el = $("prFullNotes"), perfMode = !!(pr.perf && !$("prPerf").hidden);
+    $("prFull").classList.toggle("perf", perfMode);
+    if (perfMode) { // the whole song, the phrase you're on highlighted; Stumbled / Next phrase at the bottom
+      $("pfName").textContent = "🎭 Performance run"; $("pfDots").innerHTML = "";
+      $("pfText").textContent = $("perfWhere").textContent; $("pfUpNext").innerHTML = "";
+      $("pfMistakeTxt").textContent = $("perfStumbleTxt").textContent; $("pfCleanTxt").textContent = $("perfNextTxt").textContent;
+      el.innerHTML = $("perfNotes").innerHTML;
+      fitFull();
+      const cur = el.querySelector('.sec-title[data-phrase="' + pr.perf.k + '"]');
+      if (cur && el.scrollHeight > el.clientHeight + 1) el.scrollTo({ top: Math.max(0, cur.offsetTop - 8), behavior: "smooth" });
+      return;
+    }
+    if (!pr.items) return;
     const { d, key } = pr, st = d.steps[key] || {};
+    $("pfMistakeTxt").textContent = "✗ Mistake"; $("pfCleanTxt").textContent = "✓ Clean";
+    // what's next: a button once this step is passed, otherwise a heads-up
+    const nb = document.querySelector("#prStreak .pr-next"), up = nextStep(d);
+    $("pfUpNext").innerHTML = nb ? '<button type="button" class="btn primary" data-pfnext>' + esc(nb.textContent) + '<kbd class="pf-key">Enter</kbd></button>'
+      : up && up !== key ? '<span class="fine">Up next: ' + esc(stepLabel(d, up)) + '</span>' : '';
     $("pfName").textContent = "🎯 " + stepName(d, key);
     $("pfDots").innerHTML = Array.from({ length: PR_PASS }, (_, k) => '<span class="pr-dot' + (k < pr.streak ? " on" : "") + '"></span>').join("");
     $("pfText").textContent = pr.streak ? pr.streak + " of " + PR_PASS + " clean" : st.passed ? "Passed ✓ · Enter for the next step" : PR_PASS + " clean in a row to pass";
-    const el = $("prFullNotes");
     el.innerHTML = chipsHTML(pr.items);
     fitFull();
   }
@@ -4790,8 +4818,12 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   }
   $("prFullBtn").addEventListener("click", openFull);
   $("pfExit").addEventListener("click", closeFull);
-  $("pfClean").addEventListener("click", () => tapResult(true));
-  $("pfMistake").addEventListener("click", () => tapResult(false));
+  const perfFull = () => !!(pr && pr.perf && !$("prPerf").hidden);
+  $("pfClean").addEventListener("click", () => { if (perfFull()) $("perfNext").click(); else tapResult(true); });
+  $("pfMistake").addEventListener("click", () => { if (perfFull()) $("perfStumble").click(); else tapResult(false); });
+  $("pfUpNext").addEventListener("click", e => { if (e.target.closest("[data-pfnext]")) { const nb = document.querySelector("#prStreak .pr-next"); if (nb) nb.click(); } });
+  $("prFullNotes").addEventListener("click", e => { const t = e.target.closest(".sec-title[data-phrase]"); if (t && perfFull()) { pr.perf.k = +t.dataset.phrase; renderPerf(); } });
+  $("perfFullBtn").addEventListener("click", openFull);
   document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) closeFull(); else fitFull(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("prFull").hidden) { e.preventDefault(); closeFull(); } });
   window.addEventListener("resize", () => { clearTimeout(window.__pfFit); window.__pfFit = setTimeout(fitFull, 80); });
