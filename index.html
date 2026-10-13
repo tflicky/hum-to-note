@@ -2194,6 +2194,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     return { k: best, items: best ? items.map(x => isNote(x) ? withPitch(x, pitchOf(x) + 12 * best) : x) : items.slice() };
   }
   function showLibPreview() {
+    markLoc();
     $("remixBanner").hidden = true;
     const fit = fitOctave(libPreview.base);
     libPreview.items = fit.items;
@@ -2320,7 +2321,34 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   }
 
   $("brandHome").addEventListener("click", e => { e.preventDefault(); showTab("hum"); window.scrollTo(0, 0); });
+  // ---------- Where you are, kept in the address (#songs/song/…) so a refresh brings you back ----------
+  let locTimer = null, restoringLoc = false;
+  function markLoc() { if (!restoringLoc) { clearTimeout(locTimer); locTimer = setTimeout(saveLoc, 0); } }
+  function saveLoc() {
+    let h = "";
+    if (!$("view-songs").hidden) {
+      if (!$("songView").hidden && openId) h = isPreview() && libPreview ? "songs/lib/" + libPreview.libId : "songs/song/" + openId;
+      else h = curFolder ? "songs/folder/" + curFolder : "songs";
+    } else if (!$("view-practice").hidden) h = !$("songPractice").hidden && pr ? "practice/" + pr.sg.id : "practice";
+    const url = location.pathname + location.search + (h ? "#" + h : "");
+    if (url !== location.pathname + location.search + location.hash) history.replaceState(null, "", url);
+  }
+  function restoreLoc() {
+    const [tab, a, b] = decodeURIComponent(location.hash.slice(1)).split("/");
+    restoringLoc = true;
+    try {
+      if (tab === "songs") {
+        if (a === "song" && songs.some(x => x.id === b)) { showTab("songs"); openSong(b); }
+        else if (a === "lib" && LIBRARY.some(x => x.id === b)) { showTab("songs"); previewLibrary(b); }
+        else { if (a === "folder" && folders.some(f => f.id === b)) curFolder = b; showTab("songs"); }
+      } else if (tab === "practice") {
+        if (a && songs.some(x => x.id === a && x.items.some(isNote))) openPractice(a); else showTab("practice");
+      }
+    } catch (e) { showTab("hum"); }
+    restoringLoc = false; saveLoc();
+  }
   function showTab(which) {
+    markLoc();
     if (playingBtn || playTimers.length) stopPlayback(); // nothing keeps playing on another screen
     if (which !== "songs" && running && recTarget === "song") stop();
     if (which !== "hum" && running && recTarget === "mel") { stop(); finishHum(false); } // leaving mid-hum keeps the notes as a song
@@ -2357,6 +2385,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     return '<button type="button" class="song-card folder-card" data-folder="' + f.id + '"' + (hex ? ' style="--fc:' + hex + '"' : '') + '><span class="emo" aria-hidden="true">' + folderIcon(hex) + '</span><span><span class="nm">' + esc(f.name) + '</span><span class="ct">' + n + (n === 1 ? ' song' : ' songs') + '</span></span></button>';
   }
   function showSongHome() {
+    markLoc();
     dropUntouchedDraft();
     openId = null; libPreview = null; setPreviewMode(false); showPanel("home");
     if (curFolder && !folders.some(f => f.id === curFolder)) curFolder = null;
@@ -2492,6 +2521,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     return null; // other instruments: keep whatever is selected
   }
   function openSong(id, keepInstrument) {
+    markLoc();
     if (draft && draft.id !== id) dropUntouchedDraft();
     if (libPreview && id === libPreview.id) { showLibPreview(); return; }
     libPreview = null; setPreviewMode(false);
@@ -4254,6 +4284,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   // ----- Practice screen -----
   let pr = null; // { sg, d, key, streak, streakBpm, undo }
   function openPractice(id) {
+    markLoc();
     const sg = songs.find(x => x.id === id); if (!sg) return;
     if (!sg.items.some(isNote)) { toast("Add some notes to this song first"); return; }
     stopPlayback();
@@ -4575,6 +4606,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       + '<span class="ph-go">▶ Continue practicing</span></button>';
   }
   function showPracticeHome() {
+    markLoc();
     if (typeof metro !== "undefined" && metro.on) stopMetro();
     $("songPractice").hidden = true; $("practiceHome").hidden = false;
     const withNotes = songs.filter(sg => sg.items.some(isNote));
@@ -4698,6 +4730,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (e.target.closest("[data-perf-close]")) closePerf();
   });
   loadSongs(); updateLabels(); renderSeq(); renderStage(null); applyView();
+  restoreLoc();
 })();
 </script>
 </body>
