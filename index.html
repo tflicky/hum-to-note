@@ -2060,6 +2060,16 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   function loadSongs() {
     try { songs = JSON.parse(localStorage.getItem(SKEY) || "[]"); if (!Array.isArray(songs)) songs = []; } catch (e) { songs = []; }
     try { folders = JSON.parse(localStorage.getItem(FKEY) || "[]"); if (!Array.isArray(folders)) folders = []; } catch (e) { folders = []; }
+    // tap rhythm was removed: drop any timing it saved, keeping the notes and chords exactly as they were
+    let cleaned = false;
+    songs.forEach(sg => {
+      if (sg.rhythm) { delete sg.rhythm; cleaned = true; }
+      if (Array.isArray(sg.items)) sg.items = sg.items.map(x => {
+        if (!x || typeof x !== "object" || typeof x.m !== "number" || !("r" in x || Object.keys(x).length === 1)) return x;
+        cleaned = true; return x.ch ? { m: x.m, ch: x.ch } : x.m;
+      });
+    });
+    if (cleaned) storeSongs();
   }
   function storeSongs() {
     try { localStorage.setItem(SKEY, JSON.stringify(songs)); localStorage.setItem(FKEY, JSON.stringify(folders)); return true; } catch (e) { return false; }
@@ -2308,6 +2318,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
 
   $("brandHome").addEventListener("click", e => { e.preventDefault(); showTab("hum"); window.scrollTo(0, 0); });
   function showTab(which) {
+    if (playingBtn || playTimers.length) stopPlayback(); // nothing keeps playing on another screen
     if (which !== "songs" && running && recTarget === "song") stop();
     if (which !== "hum" && running && recTarget === "mel") { stop(); finishHum(false); } // leaving mid-hum keeps the notes as a song
     if (which !== "practice" && typeof metro !== "undefined" && metro.on) stopMetro();
