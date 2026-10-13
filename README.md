@@ -16,7 +16,7 @@ Hum or sing a melody and see the notes, with fingering charts for your instrumen
 - Paste a song: copy letter notes from any website, lyrics and all. Lyric lines are skipped, `^C` means an octave up, and dash-joined notes like `D-C-Bb` stay together
 - Edit songs in place: click the title to rename, click the icon to change it, type or paste notes right into the song
 - Practice mode: split a song into phrases, mark each run Clean or Mistake (3 clean in a row passes), practice the joins between phrases and build sections up to the whole song, with a metronome, a day streak, and your best tempo and progress saved over time
-- Practice extras: the ending is learned early (right after the first phrase), a performance run at the song's real tempo where you flag the phrases you stumble on, a tempo ladder that climbs toward the song tempo, and automatic breath marks between phrases for wind instruments
+- Practice extras: spaced review (passed steps come back after 1, 3, 7, 14 and 30 days), a performance run at the song's real tempo where you flag the phrases you stumble on, a tempo ladder that climbs toward the song tempo, and automatic breath marks between phrases for wind instruments
 - Save songs in colored folders, give them your own icons, search them, drag one song onto another to merge, duplicate them, and export or import backups
 
 Everything runs in your browser as a single `index.html` with no build step. Songs are saved in your browser's local storage.

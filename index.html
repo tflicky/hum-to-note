@@ -425,6 +425,8 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .pr-opts { min-width: 250px; }
 .pr-opts .menu-field select { margin-left: auto; font: inherit; font-size: .88rem; padding: 4px 6px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); }
 .pr-step.flagged { border-color: var(--danger); }
+.pr-step.due { border-color: #3E7BD6; }
+.ps-due { color: #3E7BD6; font-size: .78rem; font-weight: 800; margin-left: auto; white-space: nowrap; }
 .ps-flag { color: var(--danger); font-size: .78rem; font-weight: 800; margin-left: auto; white-space: nowrap; }
 .pr-flagnote { color: var(--danger); font-weight: 700; }
 .pr-ladder { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -1057,7 +1059,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
           <aside class="pr-steps" aria-label="Steps">
             <div class="pr-steps-head"><span class="ep-t" style="margin:0">Steps</span><button id="prStepsToggle" type="button" class="link pr-steps-toggle" aria-expanded="false">Show steps ▾</button></div>
             <ol id="prStepList"></ol>
-            <p class="fine">Learn each phrase, practice the joins between neighbors, then put sections together. The whole song comes last.</p>
+            <p class="fine">Learn each phrase, practice the joins between neighbors, then put sections together. The whole song comes last. Passed steps come back for a quick ↻ review after 1, 3, 7, 14 and 30 days so they stick.</p>
           </aside>
         </div>
         <div id="prSplitEditor" class="pr-split" hidden>
@@ -4162,10 +4164,8 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     for (let k = 0; k < n; k++) set.add(rangeKey(k, k));
     for (let k = 0; k + 1 < n; k++) set.add(rangeKey(k, k + 1));
     (function build(a, b) { if (b - a < 2) return; set.add(rangeKey(a, b)); halves(a, b).forEach(([x, y]) => build(x, y)); })(0, n - 1);
-    // learning order: by the last phrase a step reaches, smaller steps first. The final phrase is learned second
-    // (right after phrase 1), so the ending isn't always the least practiced part of the song.
-    const end = k => { const [a, b] = keyRange(k); return a === b && b === n - 1 && n > 2 ? 0.5 : b; };
-    return [...set].sort((x, y) => { const [a1, b1] = keyRange(x), [a2, b2] = keyRange(y); return end(x) - end(y) || (b1 - a1) - (b2 - a2); });
+    // learning order: by the last phrase a step reaches, smaller steps first
+    return [...set].sort((x, y) => { const [a1, b1] = keyRange(x), [a2, b2] = keyRange(y); return b1 - b2 || (b1 - a1) - (b2 - a2); });
   }
   const stepOf = (d, key) => d.steps[key] || (d.steps[key] = { passed: false, passes: 0, bestBpm: 0, last: 0 });
   const passed = (d, key) => !!(d.steps[key] && d.steps[key].passed);
@@ -4255,7 +4255,26 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     renderPractice();
     window.scrollTo({ top: 0 });
   }
-  function nextStep(d) { return prSteps(d).find(k => unlocked(d, k) && !passed(d, k)) || null; }
+  // Spaced review: a passed step comes back for a quick check after 1, 3, 7, 14, then 30 days (spacing and mixing
+  // review into new material both make learning stick). Reviewing a bigger step refreshes every step inside it,
+  // so the biggest due step is suggested, and at most two reviews a day come before new material.
+  const REVIEW_DAYS = [1, 3, 7, 14, 30], REVIEWS_PER_DAY = 2;
+  function daysSince(t) { const a = new Date(t), b = new Date(); a.setHours(0, 0, 0, 0); b.setHours(0, 0, 0, 0); return Math.round((b - a) / 864e5); }
+  function isDue(d, key) {
+    const st = d.steps[key]; if (!st || !st.passed || !st.last) return false;
+    return daysSince(st.last) >= REVIEW_DAYS[Math.min(Math.max(st.passes || 1, 1) - 1, REVIEW_DAYS.length - 1)];
+  }
+  const nextReviewDays = st => REVIEW_DAYS[Math.min(Math.max(st.passes || 1, 1) - 1, REVIEW_DAYS.length - 1)];
+  const within = (key, outer) => { const [a, b] = keyRange(key), [c, e] = keyRange(outer); return c <= a && b <= e; };
+  const reviewsToday = d => d.rv && d.rv.day === dayStr(Date.now()) ? d.rv.n : 0;
+  function dueReview(d) {
+    if (reviewsToday(d) >= REVIEWS_PER_DAY) return null;
+    const due = prSteps(d).filter(k => isDue(d, k));
+    if (!due.length) return null;
+    return due.sort((x, y) => { const [a1, b1] = keyRange(x), [a2, b2] = keyRange(y); return (b2 - a2) - (b1 - a1) || a1 - a2; })[0];
+  }
+  function nextStep(d) { return dueReview(d) || prSteps(d).find(k => unlocked(d, k) && !passed(d, k)) || null; }
+  const stepLabel = (d, k) => (isDue(d, k) ? "↻ Review " : "") + stepName(d, k);
   const fmtDay = t => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   function renderPractice() {
     if (!pr) return;
@@ -4266,11 +4285,11 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     const flags = d.flags || {};
     $("prStepList").innerHTML = prSteps(d).map(k => {
       const st = d.steps[k] || {}, open = unlocked(d, k) || !!st.passed, lvl = stepLevel(d, k);
-      const [a] = keyRange(k), flagged = k[0] === "p" && flags[a];
+      const [a] = keyRange(k), flagged = k[0] === "p" && flags[a], due = isDue(d, k);
       const icon = !open ? "🔒" : st.passed ? "✓" : "○";
-      return '<li><button type="button" class="pr-step lvl' + lvl + (k === pr.key ? " current" : "") + (st.passed ? " done" : "") + (flagged ? " flagged" : "") + '" data-step="' + k + '"' + (open ? "" : " disabled") + '>'
+      return '<li><button type="button" class="pr-step lvl' + lvl + (k === pr.key ? " current" : "") + (st.passed ? " done" : "") + (flagged ? " flagged" : "") + (due ? " due" : "") + '" data-step="' + k + '"' + (open ? "" : " disabled") + '>'
         + '<span class="ps-ic" aria-hidden="true">' + icon + '</span><span class="ps-name">' + stepName(d, k) + (lvl === 1 ? ' <span class="ps-kind">join</span>' : lvl === 2 ? ' <span class="ps-kind">section</span>' : '') + '</span>'
-        + (flagged ? '<span class="ps-flag" title="You stumbled here in a performance run">⚑ stumbled</span>' : st.bestBpm ? '<span class="ps-bpm">' + st.bestBpm + ' BPM</span>' : '') + '</button></li>';
+        + (flagged ? '<span class="ps-flag" title="You stumbled here in a performance run">⚑ stumbled</span>' : due ? '<span class="ps-due" title="Time for a quick review so it sticks">↻ review</span>' : st.bestBpm ? '<span class="ps-bpm">' + st.bestBpm + ' BPM</span>' : '') + '</button></li>';
     }).join("");
     $("prLadderStep").value = String(d.ladder || 5); $("prGoal").value = d.goal || "";
     renderStep();
@@ -4296,7 +4315,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (key[0] === "p" && flags[pa]) $("prStepMeta").innerHTML = esc(bits.join(" · ")) + ' · <span class="pr-flagnote">⚑ You stumbled here in a performance run</span>';
     $("prNotes").innerHTML = chipsHTML(items);
     const dots = Array.from({ length: PR_PASS }, (_, k) => '<span class="pr-dot' + (k < pr.streak ? " on" : "") + '"></span>').join("");
-    const done = st.passed && pr.streak === 0, nxt = done ? nextStep(d) : null;
+    const done = st.passed && pr.streak === 0 && !isDue(d, key), nxt = done ? nextStep(d) : null;
     // flagged phrases from a performance run come first once this step is done
     const flagNext = done ? Object.keys(flags).map(Number).sort((x, y) => x - y).map(k => rangeKey(k, k)).find(k => k !== key) : null;
     // tempo ladder: after a pass, try it again a few BPM faster
@@ -4305,10 +4324,10 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     const climbing = st.passed && d.bpm > (st.bestBpm || 0); // already trying a faster tempo than its best pass
     const ladder = done && !climbing && !atGoal && target > d.bpm ? '<button type="button" class="btn" data-ladder-go="' + target + '" title="Change the step in ⚙ Options">🪜 Try ' + target + ' BPM' + (target === goal ? " (song tempo)" : "") + '</button>' : '';
     $("prStreak").innerHTML = '<span class="pr-dots" aria-hidden="true">' + dots + '</span><span class="pr-streak-text">'
-      + (pr.streak ? pr.streak + " of " + PR_PASS + " clean in a row" : climbing ? "Passed ✓ at " + st.bestBpm + " BPM · now going for " + d.bpm + " BPM: " + PR_PASS + " clean in a row" : st.passed ? "Passed ✓" + (st.bestBpm ? " at " + st.bestBpm + " BPM" : "") + (atGoal ? " 🎯 song tempo" : "") : PR_PASS + " clean runs in a row to pass")
+      + (pr.streak ? pr.streak + " of " + PR_PASS + " clean in a row" : climbing ? "Passed ✓ at " + st.bestBpm + " BPM · now going for " + d.bpm + " BPM: " + PR_PASS + " clean in a row" : isDue(d, key) ? "↻ Review: " + PR_PASS + " clean in a row keeps it fresh" : st.passed ? "Passed ✓" + (st.bestBpm ? " at " + st.bestBpm + " BPM" : "") + (atGoal ? " 🎯 song tempo" : "") + (st.last ? " · review in " + Math.max(1, nextReviewDays(st) - daysSince(st.last)) + "d" : "") : PR_PASS + " clean runs in a row to pass")
       + '</span>' + ladder
       + (flagNext ? '<button type="button" class="btn pr-next" data-step="' + flagNext + '">⚑ Practice ' + stepName(d, flagNext) + '</button>'
-        : nxt && nxt !== key ? '<button type="button" class="btn primary pr-next" data-step="' + nxt + '">Next: ' + stepName(d, nxt) + ' →</button>' : '');
+        : nxt && nxt !== key ? '<button type="button" class="btn primary pr-next" data-step="' + nxt + '">Next: ' + stepLabel(d, nxt) + ' →</button>' : '');
     $("prUndo").hidden = !pr.undo;
     fitPracticeNotes(); // last, once the streak line and buttons have their final size
   }
@@ -4358,7 +4377,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
         + rows.map(k => { const x = days[k]; return '<tr><td>' + fmtDay(k) + '</td><td>' + x.c + '</td><td>' + x.m + '</td><td>' + x.p + '</td><td>' + (x.u || "–") + '</td><td>' + (x.b ? x.b + " BPM" : "–") + '</td></tr>'; }).join("") + '</tbody></table>'
       : '<p class="fine" style="margin:0">Nothing yet. Your practice days will show up here.</p>';
   }
-  function snapshot() { const { d, key } = pr; return { key, streak: pr.streak, streakBpm: pr.streakBpm, step: d.steps[key] ? Object.assign({}, d.steps[key]) : null, hist: d.history.length, flags: d.flags ? Object.assign({}, d.flags) : null }; }
+  function snapshot() { const { d, key } = pr; return { key, streak: pr.streak, streakBpm: pr.streakBpm, step: d.steps[key] ? Object.assign({}, d.steps[key]) : null, hist: d.history.length, flags: d.flags ? Object.assign({}, d.flags) : null, steps: JSON.parse(JSON.stringify(d.steps)), rv: d.rv }; }
   // Days practiced (any song), kept apart from song progress so resetting a song keeps your streak
   const DAYS_KEY = "htn-days";
   const dayStr = t => { const x = new Date(t); return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0") + "-" + String(x.getDate()).padStart(2, "0"); };
@@ -4404,12 +4423,18 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       d.history.push({ t: now, s: key, r: "c", b: d.bpm });
       if (pr.streak >= PR_PASS) {
         const st = stepOf(d, key), wasOpen = prSteps(d).filter(k => unlocked(d, k));
+        const review = isDue(d, key), inside = review ? prSteps(d).filter(k => k !== key && within(k, key) && isDue(d, k)) : [];
         st.passed = true; st.passes++; st.bestBpm = Math.max(st.bestBpm || 0, d.bpm); st.last = now;
         d.history.push({ t: now, s: key, r: "p", b: d.bpm });
         pr.streak = 0;
         const opened = prSteps(d).filter(k => unlocked(d, k) && !wasOpen.includes(k));
+        if (review) {
+          inside.forEach(k => { d.steps[k].last = now; d.steps[k].passes++; });
+          const today = dayStr(now); d.rv = { day: today, n: reviewsToday(d) + 1 };
+        }
         if (key[0] === "p" && d.flags && d.flags[keyRange(key)[0]]) delete d.flags[keyRange(key)[0]];
-        toast("🎉 " + stepName(d, key) + " passed at " + d.bpm + " BPM!" + (opened.length ? " Unlocked: " + opened.map(k => stepName(d, k)).join(", ") : ""));
+        if (review) toast("↻ " + stepName(d, key) + " is still solid" + (inside.length ? " (and " + inside.length + " smaller step" + (inside.length === 1 ? "" : "s") + " inside it)" : "") + ". Next check in " + nextReviewDays(st) + " day" + (nextReviewDays(st) === 1 ? "" : "s"));
+        else toast("🎉 " + stepName(d, key) + " passed at " + d.bpm + " BPM!" + (opened.length ? " Unlocked: " + opened.map(k => stepName(d, k)).join(", ") : ""));
       }
     }
     if (d.history.length > 2000) d.history.splice(0, d.history.length - 2000);
@@ -4421,6 +4446,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     pr.key = u.key; pr.streak = u.streak; pr.streakBpm = u.streakBpm;
     if (u.step) d.steps[u.key] = u.step; else delete d.steps[u.key];
     if (u.flags) d.flags = u.flags;
+    if (u.steps) d.steps = u.steps; if ("rv" in u) d.rv = u.rv;
     d.history.length = u.hist; pr.undo = null;
     savePractice(); renderPractice(); toast("Undone");
   }
@@ -4523,7 +4549,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     return '<button type="button" class="song-card pr-card' + (big ? " big" : "") + '" data-practice="' + sg.id + '"><span class="emo" aria-hidden="true">' + songIcon(sg) + '</span>'
       + '<span class="pc-body">' + (big ? '<span class="pc-kicker">▶ Continue where you left off</span>' : '') + '<span class="nm">' + esc(sg.name) + '</span>'
       + '<span class="pc-bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span><span class="ct">' + meta + '</span>'
-      + (big && nx ? '<span class="pc-next">Next: ' + stepName(d, nx) + '</span>' : big && done === keys.length ? '<span class="pc-next">Every step passed 🎉 Try it faster!</span>' : '') + '</span></button>';
+      + (big && nx ? '<span class="pc-next">Next: ' + stepLabel(d, nx) + '</span>' : big && done === keys.length ? '<span class="pc-next">Every step passed 🎉 Try it faster!</span>' : '') + '</span></button>';
   }
   function practiceHero(sg, d) {
     const keys = prSteps(d), done = keys.filter(k => passed(d, k)).length, nx = nextStep(d);
@@ -4531,7 +4557,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       + '<span class="ph-body"><span class="pc-kicker">Continue where you left off</span><span class="ph-name">' + esc(sg.name) + '</span>'
       + '<span class="pc-bar" aria-hidden="true"><i style="width:' + Math.round(done / keys.length * 100) + '%"></i></span>'
       + '<span class="ph-meta">' + done + ' of ' + keys.length + ' steps passed' + (d.history.length ? ' · last practiced ' + fmtDay(lastPracticed(d)) : '') + '</span>'
-      + '<span class="ph-next">' + (nx ? 'Next up: <b>' + stepName(d, nx) + '</b>' : 'Every step passed 🎉 Try it at a faster tempo') + '</span></span>'
+      + '<span class="ph-next">' + (nx ? 'Next up: <b>' + stepLabel(d, nx) + '</b>' : 'Every step passed 🎉 Try it at a faster tempo') + '</span></span>'
       + '<span class="ph-go">▶ Continue practicing</span></button>';
   }
   function showPracticeHome() {
