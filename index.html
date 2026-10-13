@@ -384,8 +384,11 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .pr-dot.on { background: var(--good); }
 .pr-next { margin-left: auto; }
 .pr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pr-key { display: block; margin: 6px auto 0; width: max-content; font: 700 .72rem/1 inherit; font-family: inherit; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,.18); color: #fff; }
+@media (hover: none) { .pr-key { display: none; } } /* touch screens have no keyboard */
 .pr-btn { font: inherit; font-size: 1.6rem; font-weight: 800; min-height: 96px; border-radius: 20px; border: none; cursor: pointer; color: #fff; touch-action: manipulation; }
 .pr-btn.clean { background: var(--good); }
+.pr-btn.pressed { transform: scale(.97); filter: brightness(1.15); }
 .pr-btn.mistake { background: var(--danger); }
 .pr-btn:active { transform: scale(.98); filter: brightness(.95); }
 .pr-under { min-height: 30px; text-align: center; margin-top: 6px; }
@@ -1041,8 +1044,8 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
           <section class="pr-controls" aria-label="How did it go?">
             <div id="prStreak" class="pr-streak" aria-live="polite"></div>
             <div class="pr-actions">
-              <button id="prClean" type="button" class="pr-btn clean">✓ Clean</button>
-              <button id="prMistake" type="button" class="pr-btn mistake">✗ Mistake</button>
+              <button id="prClean" type="button" class="pr-btn clean" title="Space bar">✓ Clean<kbd class="pr-key">Space</kbd></button>
+              <button id="prMistake" type="button" class="pr-btn mistake" title="B or Backspace">✗ Mistake<kbd class="pr-key">B</kbd></button>
             </div>
             <div class="pr-under"><button id="prUndo" type="button" class="link" hidden>↩ Undo last tap</button></div>
             <div class="pr-metro" role="group" aria-label="Metronome">
@@ -4593,6 +4596,18 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   $("prStepList").addEventListener("click", e => { const b = e.target.closest("[data-step]"); if (b) pickStep(b.dataset.step); });
   $("prStreak").addEventListener("click", e => { const b = e.target.closest("[data-step]"); if (b) pickStep(b.dataset.step); });
   $("prClean").addEventListener("click", () => tapResult(true));
+  // Keyboard: Space = clean run, B or Backspace = mistake (while a practice step is on screen)
+  function practiceKeysOn() { return !$("view-practice").hidden && !$("songPractice").hidden && !$("prMainWrap").hidden && !!pr; }
+  document.addEventListener("keydown", e => {
+    if (!practiceKeysOn() || e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target)) return;
+    const clean = e.key === " " || e.code === "Space", mistake = e.key === "Backspace" || e.key === "b" || e.key === "B";
+    if (!clean && !mistake) return;
+    e.preventDefault(); e.stopImmediatePropagation(); // and don't also "press" whichever button has focus
+    if (e.repeat) return;
+    const b = $(clean ? "prClean" : "prMistake"); b.classList.add("pressed"); setTimeout(() => b.classList.remove("pressed"), 120);
+    tapResult(clean);
+  }, true);
+  document.addEventListener("keyup", e => { if (practiceKeysOn() && (e.key === " " || e.code === "Space") && !isTyping(e.target)) e.preventDefault(); }, true);
   $("prMistake").addEventListener("click", () => tapResult(false));
   $("prUndo").addEventListener("click", undoTap);
   $("prMetroToggle").addEventListener("click", () => metro.on ? stopMetro() : startMetro());
