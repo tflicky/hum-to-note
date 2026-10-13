@@ -423,9 +423,8 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .sp-gap.breath-on::before { content: "’"; left: 3px; top: -6px; bottom: auto; width: auto; background: none; font: 900 1.6rem/1 Georgia, serif; color: var(--brass); }
 .pr-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 12px; }
 .pr-modes .btn { padding: 7px 12px; font-size: .9rem; }
-.pr-back { font-size: .9rem; }
-.pr-step.lvl4 { margin-left: 18px; width: calc(100% - 18px); padding: 8px 12px; font-size: .9rem; border-style: dotted; }
-.pr-step.lvl4.done { border-style: solid; }
+.pr-opts { min-width: 250px; }
+.pr-opts .menu-field select { margin-left: auto; font: inherit; font-size: .88rem; padding: 4px 6px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); }
 .pr-step.flagged { border-color: var(--danger); }
 .ps-flag { color: var(--danger); font-size: .78rem; font-weight: 800; margin-left: auto; white-space: nowrap; }
 .pr-flagnote { color: var(--danger); font-weight: 700; }
@@ -726,7 +725,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   .pr-bpm-btn { min-width: 0; flex: 1; min-height: 52px; font-size: 1rem; }
   .pr-bpm { flex: 1.4; text-align: center; }
   .pr-steps-toggle { display: inline-block; margin-left: auto; }
-  .pr-steps:not(.open) #prStepList, .pr-steps:not(.open) > p.fine, .pr-steps:not(.open) #prEditSplits { display: none; }
+  .pr-steps:not(.open) #prStepList, .pr-steps:not(.open) > p.fine { display: none; }
   .pr-steps:not(.open) .pr-steps-head { margin-bottom: 0; }
 }
 @keyframes songInPhone { from { opacity: 0; } to { opacity: 1; } }
@@ -1021,9 +1020,14 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
         </div>
         <p id="prBanner" class="pr-banner" role="status" hidden></p>
         <div id="prModes" class="pr-modes">
-          <button id="prPerfBtn" type="button" class="btn">🎭 Performance run</button>
-          <button id="prBreathBtn" type="button" class="btn">’ Breath marks</button>
-          <label class="check pr-back" title="Only the last phrase starts open; each earlier phrase opens once the one after it passes"><input type="checkbox" id="prBackward"> ⏪ Learn from the end</label>
+          <button id="prPerfBtn" type="button" class="btn" title="Play the whole song through; flag where you stumble">🎭 Performance run</button>
+          <span class="menu-wrap"><button type="button" class="btn menubtn" aria-haspopup="true" aria-expanded="false">⚙ Options ▾</button>
+            <div class="menu list-menu pr-opts" hidden>
+              <label class="menu-field" title="Only the last phrase starts open; each earlier phrase opens once the one after it passes"><input type="checkbox" id="prBackward"> ⏪ Learn from the end</label>
+              <button id="prBreathBtn" type="button" class="menu-item">’ Breath marks</button>
+              <button id="prEditSplits" type="button" class="menu-item">✂ Adjust phrases</button>
+              <label class="menu-field">🪜 Tempo ladder <select id="prLadderStep" aria-label="How much faster each ladder step is"><option value="2">+2 BPM</option><option value="3">+3 BPM</option><option value="5">+5 BPM</option><option value="8">+8 BPM</option><option value="10">+10 BPM</option></select></label>
+            </div></span>
         </div>
         <div id="prMainWrap" class="pr-layout">
           <section class="pr-main" aria-label="Current step">
@@ -1050,7 +1054,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
             </div>
           </section>
           <aside class="pr-steps" aria-label="Steps">
-            <div class="pr-steps-head"><span class="ep-t" style="margin:0">Steps</span><button id="prStepsToggle" type="button" class="link pr-steps-toggle" aria-expanded="false">Show steps ▾</button><button id="prEditSplits" type="button" class="link">✂ Adjust phrases</button></div>
+            <div class="pr-steps-head"><span class="ep-t" style="margin:0">Steps</span><button id="prStepsToggle" type="button" class="link pr-steps-toggle" aria-expanded="false">Show steps ▾</button></div>
             <ol id="prStepList"></ol>
             <p class="fine">Learn each phrase, practice the joins between neighbors, then put sections together. The whole song comes last.</p>
           </aside>
@@ -4153,9 +4157,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   }
   // Step keys: "p:k" = phrase k alone; "r:a-b" = phrases a..b played together (0-based, inclusive)
   const rangeKey = (a, b) => a === b ? "p:" + a : "r:" + a + "-" + b;
-  // "t:k" = transition drill: the end of phrase k into the start of phrase k+1 (optional, not counted in the step total)
-  const isDrill = key => key[0] === "t";
-  function keyRange(key) { const [t, v] = key.split(":"); if (t === "p") return [+v, +v]; if (t === "t") return [+v, +v + 1]; const [a, b] = v.split("-").map(Number); return [a, b]; }
+  function keyRange(key) { const [t, v] = key.split(":"); if (t === "p") return [+v, +v]; const [a, b] = v.split("-").map(Number); return [a, b]; }
   const halves = (a, b) => { const mid = a + Math.ceil((b - a + 1) / 2) - 1; return [[a, mid], [mid + 1, b]]; };
   function prSteps(d) {
     const n = d.phrases.length, set = new Set();
@@ -4166,18 +4168,10 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (d.backward) return [...set].sort((x, y) => { const [a1, b1] = keyRange(x), [a2, b2] = keyRange(y); return a2 - a1 || (b1 - a1) - (b2 - a2); });
     return [...set].sort((x, y) => { const [a1, b1] = keyRange(x), [a2, b2] = keyRange(y); return b1 - b2 || (b1 - a1) - (b2 - a2); });
   }
-  // every step in suggested order, with each transition drill just before the join it leads into
-  function allSteps(d) {
-    const out = [];
-    prSteps(d).forEach(k => { const [a, b] = keyRange(k); if (k[0] === "r" && b === a + 1) out.push("t:" + a); out.push(k); });
-    return out;
-  }
-  const DRILL_LEN = ph => ph.end - ph.start >= 6 ? 3 : 2; // notes from each side
   const stepOf = (d, key) => d.steps[key] || (d.steps[key] = { passed: false, passes: 0, bestBpm: 0, last: 0 });
   const passed = (d, key) => !!(d.steps[key] && d.steps[key].passed);
   function needs(d, key) { // the steps that must pass before this one opens
     const [a, b] = keyRange(key);
-    if (isDrill(key)) return [rangeKey(a, a), rangeKey(b, b)];
     if (a === b) return d.backward && a < d.phrases.length - 1 ? [rangeKey(a + 1, a + 1)] : []; // from the end: the phrase after must pass first
     if (b === a + 1) return [rangeKey(a, a), rangeKey(b, b)];
     const [[a1, b1], [a2, b2]] = halves(a, b);
@@ -4186,14 +4180,12 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   function unlocked(d, key) { return needs(d, key).every(k => passed(d, k)); }
   function stepName(d, key) {
     const [a, b] = keyRange(key), n = d.phrases.length;
-    if (isDrill(key)) return "Transition " + (a + 1) + " → " + (b + 1);
     if (a === 0 && b === n - 1) return n === 1 ? "Whole song" : "Whole song (1–" + n + ")";
     return a === b ? "Phrase " + (a + 1) : "Phrases " + (a + 1) + "–" + (b + 1);
   }
-  const stepLevel = (d, key) => { if (isDrill(key)) return 4; const [a, b] = keyRange(key); return a === 0 && b === d.phrases.length - 1 && b > 0 ? 3 : b === a ? 0 : b === a + 1 ? 1 : 2; };
+  const stepLevel = (d, key) => { const [a, b] = keyRange(key); return a === 0 && b === d.phrases.length - 1 && b > 0 ? 3 : b === a ? 0 : b === a + 1 ? 1 : 2; };
   function stepRange(d, key) {
     const [a, b] = keyRange(key), A = d.phrases[a], B = d.phrases[b];
-    if (isDrill(key)) return [Math.max(A.start, A.end - DRILL_LEN(A)), Math.min(B.end, B.start + DRILL_LEN(B))];
     return [A.start, B.end];
   }
   // the song items for notes s..e-1 (no part titles), plus a breath mark right after the last note
@@ -4210,6 +4202,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   function migrateSteps(d) {
     const keys = new Set(prSteps(d));
     Object.keys(d.steps).forEach(key => {
+      if (key[0] === "t") { delete d.steps[key]; return; } // transition drills were folded into the joins
       if (key[0] !== "c") return;
       const nk = rangeKey(0, +key.slice(2));
       if (keys.has(nk) && !d.steps[nk]) d.steps[nk] = d.steps[key];
@@ -4259,7 +4252,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     renderPractice();
     window.scrollTo({ top: 0 });
   }
-  function nextStep(d) { return allSteps(d).find(k => unlocked(d, k) && !passed(d, k)) || null; }
+  function nextStep(d) { return prSteps(d).find(k => unlocked(d, k) && !passed(d, k)) || null; }
   const fmtDay = t => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   function renderPractice() {
     if (!pr) return;
@@ -4268,16 +4261,15 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     const sk = streakInfo(); $("prStreakBadge").textContent = "🔥 " + sk.cur; $("prStreakBadge").classList.toggle("lit", sk.today);
     $("prBarFill").style.width = Math.round(done / keys.length * 100) + "%";
     const flags = d.flags || {};
-    $("prStepList").innerHTML = allSteps(d).map(k => {
+    $("prStepList").innerHTML = prSteps(d).map(k => {
       const st = d.steps[k] || {}, open = unlocked(d, k) || !!st.passed, lvl = stepLevel(d, k);
-      if (lvl === 4 && !open) return ""; // a transition drill shows up once both phrases pass
       const [a] = keyRange(k), flagged = k[0] === "p" && flags[a];
       const icon = !open ? "🔒" : st.passed ? "✓" : "○";
       return '<li><button type="button" class="pr-step lvl' + lvl + (k === pr.key ? " current" : "") + (st.passed ? " done" : "") + (flagged ? " flagged" : "") + '" data-step="' + k + '"' + (open ? "" : " disabled") + '>'
-        + '<span class="ps-ic" aria-hidden="true">' + icon + '</span><span class="ps-name">' + stepName(d, k) + (lvl === 1 ? ' <span class="ps-kind">join</span>' : lvl === 2 ? ' <span class="ps-kind">section</span>' : lvl === 4 ? ' <span class="ps-kind">drill</span>' : '') + '</span>'
+        + '<span class="ps-ic" aria-hidden="true">' + icon + '</span><span class="ps-name">' + stepName(d, k) + (lvl === 1 ? ' <span class="ps-kind">join</span>' : lvl === 2 ? ' <span class="ps-kind">section</span>' : '') + '</span>'
         + (flagged ? '<span class="ps-flag" title="You stumbled here in a performance run">⚑ stumbled</span>' : st.bestBpm ? '<span class="ps-bpm">' + st.bestBpm + ' BPM</span>' : '') + '</button></li>';
     }).join("");
-    $("prBackward").checked = !!d.backward;
+    $("prBackward").checked = !!d.backward; $("prLadderStep").value = String(d.ladder || 5);
     renderStep();
     renderHistory();
     $("prBpm").textContent = d.bpm;
@@ -4292,9 +4284,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     $("prStepMeta").textContent = bits.join(" · ");
     // a combined step shows each phrase on its own line, labeled, so you can see where each one starts
     const [pa, pb] = keyRange(key), items = [];
-    if (isDrill(key)) { // the end of one phrase into the start of the next
-      items.push("§End of phrase " + (pa + 1), ...phraseItems(sg, notes, a, d.phrases[pa].end), "§Start of phrase " + (pb + 1), ...phraseItems(sg, notes, d.phrases[pb].start, b));
-    } else for (let k = pa; k <= pb; k++) {
+    for (let k = pa; k <= pb; k++) {
       const ph = d.phrases[k];
       if (pb > pa) items.push("§Phrase " + (k + 1));
       items.push(...phraseItems(sg, notes, ph.start, ph.end));
@@ -4309,8 +4299,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     // tempo ladder: after a pass, try it again a few BPM faster
     const step = d.ladder || 5, target = Math.min(240, Math.max(d.bpm, st.bestBpm || 0) + step);
     const climbing = st.passed && d.bpm > (st.bestBpm || 0); // already trying a faster tempo than its best pass
-    const ladder = done && !climbing && target > d.bpm ? '<span class="pr-ladder"><button type="button" class="btn" data-ladder-go="' + target + '">🪜 Try it at ' + target + ' BPM</button><label class="fine" style="margin:0">step <select data-ladder-step aria-label="Tempo ladder step">'
-      + [2, 3, 5, 8, 10].map(v => '<option value="' + v + '"' + (v === step ? " selected" : "") + '>+' + v + '</option>').join("") + '</select></label></span>' : '';
+    const ladder = done && !climbing && target > d.bpm ? '<button type="button" class="btn" data-ladder-go="' + target + '" title="Change the step in ⚙ Options">🪜 Try ' + target + ' BPM</button>' : '';
     $("prStreak").innerHTML = '<span class="pr-dots" aria-hidden="true">' + dots + '</span><span class="pr-streak-text">'
       + (pr.streak ? pr.streak + " of " + PR_PASS + " clean in a row" : climbing ? "Passed ✓ at " + st.bestBpm + " BPM · now going for " + d.bpm + " BPM: " + PR_PASS + " clean in a row" : st.passed ? "Passed ✓" + (st.bestBpm ? " at " + st.bestBpm + " BPM" : "") : PR_PASS + " clean runs in a row to pass")
       + '</span>' + ladder
@@ -4410,11 +4399,11 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       pr.streak++; pr.streakBpm = d.bpm;
       d.history.push({ t: now, s: key, r: "c", b: d.bpm });
       if (pr.streak >= PR_PASS) {
-        const st = stepOf(d, key), wasOpen = allSteps(d).filter(k => unlocked(d, k));
+        const st = stepOf(d, key), wasOpen = prSteps(d).filter(k => unlocked(d, k));
         st.passed = true; st.passes++; st.bestBpm = Math.max(st.bestBpm || 0, d.bpm); st.last = now;
         d.history.push({ t: now, s: key, r: "p", b: d.bpm });
         pr.streak = 0;
-        const opened = allSteps(d).filter(k => unlocked(d, k) && !wasOpen.includes(k));
+        const opened = prSteps(d).filter(k => unlocked(d, k) && !wasOpen.includes(k));
         if (key[0] === "p" && d.flags && d.flags[keyRange(key)[0]]) delete d.flags[keyRange(key)[0]];
         toast("🎉 " + stepName(d, key) + " passed at " + d.bpm + " BPM!" + (opened.length ? " Unlocked: " + opened.map(k => stepName(d, k)).join(", ") : ""));
       }
@@ -4441,7 +4430,8 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     v = Math.max(30, Math.min(240, Math.round(v)));
     if (v === pr.d.bpm) return;
     pr.d.bpm = v; savePractice(); $("prBpm").textContent = v;
-    if (pr.streak) { pr.streak = 0; renderStep(); toast("New tempo: streak starts over"); }
+    if (pr.streak) { pr.streak = 0; toast("New tempo: streak starts over"); }
+    renderStep(); // the pass / ladder line depends on the tempo
   }
 
   // ----- Metronome (a steady click to play along with) -----
@@ -4499,7 +4489,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       const [a, b] = keyRange(key), na = same.indexOf(a), nb = same.indexOf(b);
       if (na < 0 || nb < 0 || nb - na !== b - a) return;
       for (let j = na; j <= nb; j++) if (same[j] !== a + (j - na)) return;
-      steps[isDrill(key) ? "t:" + na : rangeKey(na, nb)] = d.steps[key];
+      steps[rangeKey(na, nb)] = d.steps[key];
     });
     const flags = {};
     Object.keys(d.flags || {}).forEach(k => { const nk = same.indexOf(+k); if (nk >= 0) flags[nk] = d.flags[k]; });
@@ -4588,10 +4578,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     const t = +b.dataset.ladderGo; setBpm(t); renderStep();
     toast("🪜 " + t + " BPM · " + PR_PASS + " clean in a row to pass at this tempo");
   });
-  $("prStreak").addEventListener("change", e => {
-    if (!e.target.matches("[data-ladder-step]") || !pr) return;
-    pr.d.ladder = +e.target.value; savePractice(); renderStep();
-  });
+  $("prLadderStep").addEventListener("change", e => { if (!pr) return; pr.d.ladder = +e.target.value; savePractice(); renderStep(); });
   // ----- Breath marks (saved in the song as "~" between notes) -----
   function breathAt(sg, notes, k) { for (let i = notes[k - 1].i + 1; i < notes[k].i; i++) if (sg.items[i] === "~") return i; return -1; }
   function renderBreathEditor() {
