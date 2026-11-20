@@ -274,6 +274,7 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 .tp-menu { display: flex; flex-direction: column; gap: 10px; padding: 12px; width: max-content; max-width: calc(100vw - 32px); }
 .tp-warn { margin: 0; max-width: 300px; font-size: .82rem; font-weight: 600; color: var(--danger); }
 .tp-menu .btn:disabled { opacity: .4; cursor: not-allowed; }
+.tp-menu .btn.risky { color: var(--danger); border-color: var(--danger); box-shadow: inset 0 0 0 1px var(--danger); }
 .tp-row { display: flex; align-items: center; gap: 10px; }
 .tp-lab { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); width: 54px; }
 #songView.preview .song-tools .menu-wrap { display: none; }
@@ -358,6 +359,19 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .pc-kicker { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--brass); }
 .pc-next { font-weight: 700; color: var(--ink); }
 .pr-overall { display: flex; align-items: center; gap: 10px; font-size: .9rem; font-weight: 700; color: var(--muted); }
+/* Practice: which instrument you're practicing on, with progress for each */
+.pr-instbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 12px; }
+.pr-instbar .pib-lab { font-size: .85rem; font-weight: 700; color: var(--muted); margin-right: 2px; }
+.pib-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 6px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; }
+.pib-chip svg { width: 22px; height: 22px; }
+.pib-chip .pib-pct { color: var(--muted); font-weight: 600; }
+.pib-chip.on { border-color: var(--brass); background: var(--brass-soft); cursor: default; }
+.pib-chip.on .pib-pct { color: var(--ink); }
+.pib-chip:not(.on):hover { border-color: var(--brass); }
+.pib-chip.add { padding-left: 10px; border-style: dashed; }
+.pc-insts { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 2px; }
+.pc-insts .pib-chip { padding: 2px 8px 2px 4px; font-size: .78rem; }
+.pc-insts .pib-chip svg { width: 18px; height: 18px; }
 .pr-bar { width: 140px; height: 10px; border-radius: 5px; background: var(--bg); overflow: hidden; }
 .pr-bar i { display: block; height: 100%; width: 0; background: var(--good); border-radius: 5px; transition: width .3s; }
 .pr-banner { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); font-weight: 600; font-size: .92rem; }
@@ -1044,6 +1058,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
           <h2 id="prTitle">🎯 Practice</h2>
           <div class="pr-overall"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍<span class="wide-only"> View</span> ▾</button></span><span id="prStreakBadge" class="pr-streak-badge" title="Days practiced in a row"></span><span id="prOverallText"></span><span class="pr-bar" aria-hidden="true"><i id="prBarFill"></i></span></div>
         </div>
+        <div id="prInstBar" class="pr-instbar" role="group" aria-label="Instrument you're practicing on"></div>
         <p id="prBanner" class="pr-banner" role="status" hidden></p>
         <div id="prModes" class="pr-modes">
           <button id="prPerfBtn" type="button" class="btn" title="Play the whole song through; flag where you stumble">🎭 Performance run</button>
@@ -1113,7 +1128,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
         <details class="pr-history">
           <summary>📈 Progress over time</summary>
           <div id="prHistory"></div>
-          <button id="prReset" type="button" class="btn danger" style="margin-top:12px">Reset progress for this song</button>
+          <button id="prReset" type="button" class="btn danger" style="margin-top:12px">Reset progress for this song on this instrument</button>
         </details>
       </div>
     </div>
@@ -4083,6 +4098,9 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     syncInstUI();
     save("htn-inst", instSel.value);
     stopPlayback(); updateLabels(); renderSeq(); updateEditbar("mel"); renderStage(stageMidi);
+    // in Practice, switching instruments switches to that instrument's progress and leaves the song itself alone
+    if (prSwitching) return;
+    if (!$("view-practice").hidden) { if (!$("songPractice").hidden) practiceInstChanged(); else showPracticeHome(); return; }
     const cur = !$("songView").hidden && !isPreview() ? currentSong() : null;
     if (cur) { cur.instr = inst().songInstr; if (isSax()) cur.sax = instSel.value; else delete cur.sax; storeSongs(); }
     if (openId && !$("songView").hidden) openSong(openId, true); // the song now opens on this instrument
@@ -4125,7 +4143,8 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenus(); });
   // Move the whole song (or the Hum melody) by half steps or octaves; chords move with it; Undo puts it back
-  function shiftOctave(which, d) { shiftSong(which, 12 * d); }
+  // Octave moves are allowed even when notes would go out of range (the button turns red as a warning)
+  function shiftOctave(which, d) { shiftSong(which, 12 * d, true); }
   // How many notes a shift would push past the instrument's range (0 = fine)
   function shiftProblem(which, semis) {
     const list = getList(which), lim = pitchLimits();
@@ -4138,18 +4157,20 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (which === "song" && !currentSong()) return;
     const r = inst(), warn = [];
     [["KeyUp", 1, "up a half step"], ["KeyDown", -1, "down a half step"], ["OctUp", 12, "up an octave"], ["OctDown", -12, "down an octave"]].forEach(([id, semis, label]) => {
-      const n = shiftProblem(which, semis), b = $(p + id);
-      b.disabled = n > 0;
-      b.title = n ? "Can't go " + label + ": " + n + " note" + (n === 1 ? "" : "s") + " would be out of range" : "Move every note " + label;
+      const n = shiftProblem(which, semis), b = $(p + id), oct = Math.abs(semis) === 12;
+      b.disabled = n > 0 && !oct;
+      b.classList.toggle("risky", n > 0 && oct);
+      b.title = !n ? "Move every note " + label : oct ? "Move every note " + label + " anyway: " + n + " note" + (n === 1 ? "" : "s") + " would be out of range" : "Can't go " + label + ": " + n + " note" + (n === 1 ? "" : "s") + " would be out of range";
       if (n && (Math.abs(semis) === 12 || !warn.length)) warn.push("Going " + label + " would put " + n + " note" + (n === 1 ? "" : "s") + " " + (semis > 0 ? "above the highest note (" + writtenName(r.hi) + ")" : "below the lowest note (" + writtenName(r.lo) + ")") + " " + (/^[aeiou]/i.test(r.name) ? "an " : "a ") + r.name + " can play.");
     });
     let w = menu.querySelector(".tp-warn");
     if (!w) { w = document.createElement("p"); w.className = "tp-warn"; menu.appendChild(w); }
-    w.hidden = !warn.length; w.textContent = warn.length ? "⚠ " + [...new Set(warn)].slice(0, 2).join(" ") : "";
+    const octWarn = ["OctUp", "OctDown"].some(id => $(p + id).classList.contains("risky"));
+    w.hidden = !warn.length; w.textContent = warn.length ? "⚠ " + [...new Set(warn)].slice(0, 2).join(" ") + (octWarn ? " You can still move the octave; those notes will show in red." : "") : "";
   }
-  function shiftSong(which, semis) {
+  function shiftSong(which, semis, force) {
     const blocked = shiftProblem(which, semis);
-    if (blocked) { toast("⚠ That would put " + blocked + " note" + (blocked === 1 ? "" : "s") + " out of range for " + inst().name); return; }
+    if (blocked && !force) { toast("⚠ That would put " + blocked + " note" + (blocked === 1 ? "" : "s") + " out of range for " + inst().name); return; }
     if (which === "song" && (!currentSong() || isPreview())) return;
     const list = getList(which); if (!list.some(isNote)) return;
     const lim = pitchLimits(), outside = () => list.filter(x => isNote(x) && (pitchOf(x) < lim.lo || pitchOf(x) > lim.hi)).length;
@@ -4301,21 +4322,58 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     d.notes = N;
     return msgs;
   }
-  function prDataFor(sg) {
-    let d = practice[sg.id];
-    if (!d) { d = practice[sg.id] = { phrases: autoSplit(sg), steps: {}, bpm: 80, history: [], notes: songNotes(sg).length, started: Date.now() }; }
+  // Progress is kept per instrument: practice[songId] = { insts: { [instrument]: progress }, last: instrument }.
+  // Older saves held one progress record per song; it's kept as the progress for the song's own instrument.
+  const prInstOf = sg => { const t = instForSong(sg); return t && INSTS[t] ? t : instSel.value; };
+  function prRec(sg) {
+    let r = practice[sg.id]; if (!r) return null;
+    if (!r.insts) { const k = prInstOf(sg); r = practice[sg.id] = { insts: { [k]: r }, last: k }; }
+    if (!INSTS[r.last] || !r.insts[r.last]) r.last = Object.keys(r.insts).find(k => INSTS[k]) || null;
+    return r;
+  }
+  const prAll = r => r ? (r.insts ? Object.values(r.insts) : [r]) : [];
+  // the instruments this song has progress on, most recently practiced first
+  const lastPracticed = d => d.history.length ? d.history[d.history.length - 1].t : (d.started || 0);
+  const prInsts = r => Object.keys(r.insts).filter(k => INSTS[k]).sort((x, y) => lastPracticed(r.insts[y]) - lastPracticed(r.insts[x]));
+  function prDataFor(sg, key) {
+    const r = prRec(sg) || (practice[sg.id] = { insts: {}, last: key });
+    let d = r.insts[key];
+    if (!d) {
+      // a new instrument starts with the same phrase splits as the one you practiced most recently
+      const from = prInsts(r)[0], ph = from ? JSON.parse(JSON.stringify(r.insts[from].phrases)) : autoSplit(sg);
+      const goal = from ? r.insts[from].goal : undefined;
+      d = r.insts[key] = { phrases: ph, steps: {}, bpm: 80, history: [], notes: songNotes(sg).length, started: Date.now() };
+      if (goal) d.goal = goal; // the song's real tempo doesn't depend on the instrument
+    }
+    r.last = key;
     migrateSteps(d);
     return d;
+  }
+  const prPct = d => { const keys = prSteps(d); return keys.length ? Math.round(keys.filter(k => passed(d, k)).length / keys.length * 100) : 0; };
+  function instLabel(key) { const sax = key === "tenor" || key === "alto", L = famLabel(sax ? "sax" : key); return { e: L.e, n: sax ? (key === "tenor" ? "Tenor sax" : "Alto sax") : L.n }; }
+  // one chip per instrument with its completion; tag = "button" (practice screen) or "span" (inside a song card)
+  function instChip(key, d, on, tag, songId) {
+    const L = instLabel(key), pct = d ? prPct(d) : 0;
+    return '<' + tag + (tag === "button" ? ' type="button"' : '') + ' class="pib-chip' + (on ? " on" : "") + '" data-pinst="' + key + '"' + (songId ? ' data-psong="' + songId + '"' : '')
+      + (on && tag === "button" ? ' aria-pressed="true"' : '') + ' title="' + esc(L.n) + ': ' + pct + '% of steps passed' + (on ? "" : " · practice on " + esc(L.n)) + '">'
+      + L.e + '<span>' + esc(L.n) + '</span><span class="pib-pct">' + pct + '%</span></' + tag + '>';
   }
 
   // ----- Practice screen -----
   let pr = null; // { sg, d, key, streak, streakBpm, undo }
-  function openPractice(id) {
+  // instKey: practice on this instrument; otherwise the one you last practiced this song on (or the selected one)
+  let prSwitching = false;
+  function openPractice(id, instKey) {
     markLoc();
     const sg = songs.find(x => x.id === id); if (!sg) return;
     if (!sg.items.some(isNote)) { toast("Add some notes to this song first"); return; }
     stopPlayback();
-    const d = prDataFor(sg), msgs = reconcile(sg, d);
+    const r = prRec(sg), key = instKey && INSTS[instKey] ? instKey : r && r.last ? r.last : instSel.value;
+    if (key !== instSel.value) { // the fingerings on screen follow the instrument you're practicing on
+      prSwitching = true;
+      try { instSel.value = key; instSel.dispatchEvent(new Event("change")); } finally { prSwitching = false; }
+    }
+    const d = prDataFor(sg, key), msgs = reconcile(sg, d);
     savePractice();
     pr = { sg, d, key: null, streak: 0, streakBpm: 0, undo: null };
     pr.key = nextStep(d) || prSteps(d)[0];
@@ -4352,6 +4410,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (!pr) return;
     const { d } = pr, keys = prSteps(d), done = keys.filter(k => passed(d, k)).length;
     $("prOverallText").textContent = done + " of " + keys.length + " steps passed";
+    renderInstBar();
     const sk = streakInfo(); $("prStreakBadge").textContent = "🔥 " + sk.cur; $("prStreakBadge").classList.toggle("lit", sk.today);
     $("prBarFill").style.width = Math.round(done / keys.length * 100) + "%";
     const flags = d.flags || {};
@@ -4459,7 +4518,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   let practiceDays = [];
   try { practiceDays = JSON.parse(localStorage.getItem(DAYS_KEY) || "null"); } catch (e) { practiceDays = null; }
   if (!Array.isArray(practiceDays)) { // first time: start from any practice already saved
-    const set = new Set(); Object.values(practice).forEach(d => (d.history || []).forEach(h => set.add(dayStr(h.t))));
+    const set = new Set(); Object.values(practice).forEach(r => prAll(r).forEach(d => (d.history || []).forEach(h => set.add(dayStr(h.t)))));
     practiceDays = [...set].sort();
     try { localStorage.setItem(DAYS_KEY, JSON.stringify(practiceDays)); } catch (e) {}
   }
@@ -4587,6 +4646,14 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     const { sg, d } = pr, notes = songNotes(sg), cuts = [0, ...[...splitDraft].sort((x, y) => x - y), notes.length];
     const fresh = [];
     for (let k = 1; k < cuts.length; k++) fresh.push({ start: cuts[k - 1], end: cuts[k], sig: sigOf(notes, cuts[k - 1], cuts[k]) });
+    // the same phrases for every instrument you practice this song on, each keeping its own progress
+    prAll(prRec(sg)).forEach(x => applySplits(x, x === d ? fresh : JSON.parse(JSON.stringify(fresh)), notes.length));
+    savePractice();
+    pr.key = nextStep(d) || prSteps(d)[0]; pr.streak = 0; pr.undo = null;
+    $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false; $("prBanner").hidden = true;
+    renderPractice(); toast("Phrases saved");
+  }
+  function applySplits(d, fresh, total) {
     // keep progress for phrases that didn't change, and for combined steps whose phrases are all unchanged
     const same = fresh.map(p => d.phrases.findIndex(o => o.start === p.start && o.end === p.end && o.sig === p.sig));
     const steps = {};
@@ -4599,14 +4666,35 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     });
     const flags = {};
     Object.keys(d.flags || {}).forEach(k => { const nk = same.indexOf(+k); if (nk >= 0) flags[nk] = d.flags[k]; });
-    d.phrases = fresh; d.steps = steps; d.notes = notes.length; d.flags = flags;
-    savePractice();
-    pr.key = nextStep(d) || prSteps(d)[0]; pr.streak = 0; pr.undo = null;
-    $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false; $("prBanner").hidden = true;
-    renderPractice(); toast("Phrases saved");
+    d.phrases = fresh; d.steps = steps; d.notes = total; d.flags = flags;
   }
 
-  $("practiceSong").addEventListener("click", () => { const sg = currentSong(); if (sg && !isPreview()) openPractice(sg.id); });
+  // from a song, practice on the instrument it's showing
+  $("practiceSong").addEventListener("click", () => { const sg = currentSong(); if (sg && !isPreview()) openPractice(sg.id, instSel.value); });
+  // ----- Switching instruments in practice -----
+  // The header instrument picker (or a chip in the bar) switches to that instrument's own progress for this song.
+  function practiceInstChanged() {
+    if (!pr || pr.d === (prRec(pr.sg) || { insts: {} }).insts[instSel.value]) { if (pr) renderInstBar(); return; }
+    if (pr.perf && pr.perf.flags.size) { // keep stumbles flagged so far on the instrument you were playing
+      const now = Date.now(); pr.d.flags = pr.d.flags || {}; pr.perf.flags.forEach(k => { pr.d.flags[k] = now; });
+    }
+    closeFull(); pr.perf = null;
+    const fresh = !(prRec(pr.sg).insts[instSel.value]);
+    openPractice(pr.sg.id, instSel.value);
+    const n = instLabel(instSel.value).n;
+    toast(fresh ? "🎵 Practicing on " + n + " · new progress for this instrument" : "🎵 Practicing on " + n + " · " + prPct(pr.d) + "% done");
+  }
+  function renderInstBar() {
+    const r = prRec(pr.sg), ks = prInsts(r), cur = instSel.value;
+    if (!ks.includes(cur)) ks.unshift(cur);
+    $("prInstBar").innerHTML = '<span class="pib-lab">Practicing on</span>' + ks.map(k => instChip(k, r.insts[k], k === cur, "button")).join("")
+      + '<button type="button" class="pib-chip add" data-pinst-other title="Practice this song on a different instrument">＋ Other instrument</button>';
+  }
+  $("prInstBar").addEventListener("click", e => {
+    if (e.target.closest("[data-pinst-other]")) { e.stopPropagation(); window.scrollTo({ top: 0, behavior: "smooth" }); openGrid(true); return; }
+    const c = e.target.closest("[data-pinst]"); if (!c || c.dataset.pinst === instSel.value) return;
+    instSel.value = c.dataset.pinst; instSel.dispatchEvent(new Event("change"));
+  });
   $("practiceBack").addEventListener("click", () => { const id = pr && pr.sg.id; showTab("songs"); if (id) openSong(id, true); });
   $("practiceHomeBtn").addEventListener("click", showPracticeHome);
   // Practice tab: tapping it again (or "All practice") shows the list; coming from another tab resumes where you were
@@ -4616,21 +4704,23 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (already || !pr || !songs.some(x => x.id === pr.sg.id)) showPracticeHome();
     else { renderPractice(); }
   });
-  const lastPracticed = d => d.history.length ? d.history[d.history.length - 1].t : (d.started || 0);
-  function practiceCard(sg, d, big) {
+  // per-instrument chips on a song card: the card opens your last instrument, a chip opens that one
+  const cardInsts = (sg, r) => { const ks = prInsts(r); return ks.length > 1 || ks[0] !== instSel.value ? '<span class="pc-insts">' + ks.map(k => instChip(k, r.insts[k], k === r.last, "span", sg.id)).join("") + '</span>' : ''; };
+  function practiceCard(sg, d, big, r) {
     const keys = prSteps(d), done = keys.filter(k => passed(d, k)).length, pct = Math.round(done / keys.length * 100), nx = nextStep(d);
     const meta = done + " of " + keys.length + " steps" + (d.history.length ? " · last practiced " + fmtDay(lastPracticed(d)) : "");
     return '<button type="button" class="song-card pr-card' + (big ? " big" : "") + '" data-practice="' + sg.id + '"><span class="emo" aria-hidden="true">' + songIcon(sg) + '</span>'
       + '<span class="pc-body">' + (big ? '<span class="pc-kicker">▶ Continue where you left off</span>' : '') + '<span class="nm">' + esc(sg.name) + '</span>'
-      + '<span class="pc-bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span><span class="ct">' + meta + '</span>'
+      + '<span class="pc-bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span><span class="ct">' + meta + '</span>' + (r ? cardInsts(sg, r) : '')
       + (big && nx ? '<span class="pc-next">Next: ' + stepLabel(d, nx) + '</span>' : big && done === keys.length ? '<span class="pc-next">Every step passed 🎉 Try it faster!</span>' : '') + '</span></button>';
   }
-  function practiceHero(sg, d) {
+  function practiceHero(sg, d, r) {
     const keys = prSteps(d), done = keys.filter(k => passed(d, k)).length, nx = nextStep(d);
     return '<button type="button" class="pr-hero" data-practice="' + sg.id + '"><span class="ph-ic" aria-hidden="true">' + songIcon(sg) + '</span>'
       + '<span class="ph-body"><span class="pc-kicker">Continue where you left off</span><span class="ph-name">' + esc(sg.name) + '</span>'
       + '<span class="pc-bar" aria-hidden="true"><i style="width:' + Math.round(done / keys.length * 100) + '%"></i></span>'
-      + '<span class="ph-meta">' + done + ' of ' + keys.length + ' steps passed' + (d.history.length ? ' · last practiced ' + fmtDay(lastPracticed(d)) : '') + '</span>'
+      + '<span class="ph-meta">' + done + ' of ' + keys.length + ' steps passed' + (r && r.last ? ' on ' + esc(instLabel(r.last).n) : '') + (d.history.length ? ' · last practiced ' + fmtDay(lastPracticed(d)) : '') + '</span>'
+      + (r ? cardInsts(sg, r) : '')
       + '<span class="ph-next">' + (nx ? 'Next up: <b>' + stepLabel(d, nx) + '</b>' : 'Every step passed 🎉 Try it at a faster tempo') + '</span></span>'
       + '<span class="ph-go">▶ Continue practicing</span></button>';
   }
@@ -4639,18 +4729,20 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (typeof metro !== "undefined" && metro.on) stopMetro();
     $("songPractice").hidden = true; $("practiceHome").hidden = false;
     const withNotes = songs.filter(sg => sg.items.some(isNote));
-    const started = withNotes.filter(sg => practice[sg.id]).map(sg => ({ sg, d: practice[sg.id] })).sort((x, y) => lastPracticed(y.d) - lastPracticed(x.d));
-    const fresh = withNotes.filter(sg => !practice[sg.id]);
-    $("prContinue").innerHTML = started.length ? practiceHero(started[0].sg, started[0].d)
+    const started = withNotes.map(sg => ({ sg, r: prRec(sg) })).filter(e => e.r && e.r.last).map(e => Object.assign(e, { d: prDataFor(e.sg, e.r.last) }))
+      .sort((x, y) => lastPracticed(y.d) - lastPracticed(x.d));
+    const fresh = withNotes.filter(sg => !started.some(e => e.sg === sg));
+    $("prContinue").innerHTML = started.length ? practiceHero(started[0].sg, started[0].d, started[0].r)
       : withNotes.length ? '<div class="pr-hero empty"><span class="ph-ic" aria-hidden="true">🎯</span><div><strong>Practice a song step by step</strong><span>Pick a song below to start.</span></div></div>' : "";
     $("prStreakBox").innerHTML = withNotes.length ? streakHTML() : "";
-    $("prPracticed").innerHTML = started.length > 1 ? '<h2 class="pr-home-h">Continue practice</h2><div class="song-grid">' + started.slice(1).map(e => practiceCard(e.sg, e.d)).join("") + '</div>' : "";
+    $("prPracticed").innerHTML = started.length > 1 ? '<h2 class="pr-home-h">Continue practice</h2><div class="song-grid">' + started.slice(1).map(e => practiceCard(e.sg, e.d, false, e.r)).join("") + '</div>' : "";
     $("prOthers").innerHTML = !withNotes.length
       ? '<div class="empty-songs">No songs to practice yet. Make one in <button type="button" class="link" data-gosongs>Songs</button>, or remix one from the song library.</div>'
       : fresh.length ? '<h2 class="pr-home-h">' + (started.length ? "Start practicing another song" : "Pick a song to practice") + '</h2><div class="song-grid">'
         + fresh.map(sg => '<button type="button" class="song-card" data-practice="' + sg.id + '"><span class="emo" aria-hidden="true">' + songIcon(sg) + '</span><span><span class="nm">' + esc(sg.name) + '</span><span class="ct">' + noteCount(sg.items) + ' notes</span></span></button>').join("") + '</div>' : "";
   }
   $("practiceHome").addEventListener("click", e => {
+    const c = e.target.closest("[data-pinst][data-psong]"); if (c) { openPractice(c.dataset.psong, c.dataset.pinst); return; }
     const b = e.target.closest("[data-practice]"); if (b) { openPractice(b.dataset.practice); return; }
     if (e.target.closest("[data-gosongs]")) { showTab("songs"); showSongHome(); }
   });
@@ -4686,7 +4778,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   $("prSplitSave").addEventListener("click", saveSplits);
   $("prSplitCancel").addEventListener("click", () => { $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false; });
   $("prReset").addEventListener("click", () => {
-    if (!pr || !confirm("Reset all practice progress for “" + pr.sg.name + "”? Your phrase splits stay.")) return;
+    if (!pr || !confirm("Reset your " + instLabel(instSel.value).n + " practice progress for “" + pr.sg.name + "”? Your phrase splits and your progress on other instruments stay.")) return;
     pr.d.steps = {}; pr.d.history = []; pr.d.started = Date.now(); pr.streak = 0; pr.undo = null;
     pr.key = prSteps(pr.d)[0]; savePractice(); renderPractice(); toast("Progress reset");
   });
