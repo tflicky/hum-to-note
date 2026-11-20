@@ -285,6 +285,8 @@ body.v-floatpanel .editpanel.active { display: block; position: fixed; right: 16
 #songView:not(.editing) .song-tools .menu-wrap:not(.song-more), #songView:not(.editing) #typeNotes { display: none !important; }
 #songView:not(.editing) .mel-layout { grid-template-columns: minmax(0, 1fr); }
 #songView.editing .seq { box-shadow: 0 0 0 2px var(--brass) inset; }
+#songView:not(.editing) .edit-only { display: none; }
+.pr-split kbd { font: inherit; font-size: .8em; padding: 1px 5px; border: 1px solid var(--line); border-radius: 4px; }
 @media (max-width: 600px) {
   .toolbar .btn { padding: 8px 11px; font-size: .9rem; }
   .wide-only { display: none; }
@@ -359,19 +361,6 @@ details.ep-chord[open] > summary { margin-bottom: 8px; border-color: var(--brass
 .pc-kicker { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--brass); }
 .pc-next { font-weight: 700; color: var(--ink); }
 .pr-overall { display: flex; align-items: center; gap: 10px; font-size: .9rem; font-weight: 700; color: var(--muted); }
-/* Practice: which instrument you're practicing on, with progress for each */
-.pr-instbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 12px; }
-.pr-instbar .pib-lab { font-size: .85rem; font-weight: 700; color: var(--muted); margin-right: 2px; }
-.pib-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 6px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; }
-.pib-chip svg { width: 22px; height: 22px; }
-.pib-chip .pib-pct { color: var(--muted); font-weight: 600; }
-.pib-chip.on { border-color: var(--brass); background: var(--brass-soft); cursor: default; }
-.pib-chip.on .pib-pct { color: var(--ink); }
-.pib-chip:not(.on):hover { border-color: var(--brass); }
-.pib-chip.add { padding-left: 10px; border-style: dashed; }
-.pc-insts { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 2px; }
-.pc-insts .pib-chip { padding: 2px 8px 2px 4px; font-size: .78rem; }
-.pc-insts .pib-chip svg { width: 18px; height: 18px; }
 .pr-bar { width: 140px; height: 10px; border-radius: 5px; background: var(--bg); overflow: hidden; }
 .pr-bar i { display: block; height: 100%; width: 0; background: var(--good); border-radius: 5px; transition: width .3s; }
 .pr-banner { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--brass-soft); font-weight: 600; font-size: .92rem; }
@@ -601,6 +590,8 @@ body.touch-dragging { -webkit-user-select: none; user-select: none; }
 .fing .obody { fill: none; stroke: var(--line); stroke-width: 1.5; }
 .instpick select[hidden] { display: none; }
 .instpick { position: relative; }
+.instpick[hidden] { display: none; }
+.inst-slot { position: relative; }
 .instlab { color: var(--muted); font-size: .9rem; }
 .instbtn { font: inherit; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; background: var(--panel); color: var(--ink); border: 1.5px solid var(--line); border-radius: 12px; padding: 7px 12px; cursor: pointer; }
 .instbtn:hover, .instbtn[aria-expanded="true"] { border-color: var(--brass); }
@@ -780,7 +771,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
       <button class="tab" id="tab-songs" role="tab" aria-selected="false" type="button">Songs</button>
       <button class="tab" id="tab-practice" role="tab" aria-selected="false" type="button">Practice</button>
     </nav>
-    <div class="instpick">
+    <div class="instpick" id="instPick">
       <span class="instlab">Instrument</span>
       <button type="button" id="instBtn" class="instbtn" aria-haspopup="true" aria-expanded="false"><span id="instBtnEmo"></span><span id="instBtnName"></span><span class="caret">▾</span></button>
       <div id="instGrid" class="instgrid" role="dialog" aria-label="Choose an instrument" hidden></div>
@@ -924,11 +915,12 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
               <div id="iconPop" class="icon-pop" role="dialog" aria-label="Choose an icon" hidden><div id="iconPick" class="icon-pick"></div></div></span>
             <input id="songTitleInput" class="title-input" type="text" aria-label="Song name (click to rename)" title="Click to rename" maxlength="80" autocomplete="off">
           </div>
-          <span class="head-right"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍<span class="wide-only"> View</span> ▾</button></span></span>
+          <span class="head-right"><span id="songInstSlot" class="inst-slot"></span><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍<span class="wide-only"> View</span> ▾</button></span></span>
         </div>
         <div class="toolbar song-tools">
           <button id="playSong" type="button" class="btn primary">▶ Play</button>
           <button id="editModeBtn" type="button" class="btn" aria-pressed="false">✏️ Edit</button>
+          <button id="songPhrasesBtn" type="button" class="btn edit-only" title="Adjust practice phrases (P)" aria-keyshortcuts="P">✂ Phrases</button>
           <button id="practiceSong" type="button" class="btn">🎯 Practice</button>
           <button id="dupSong" type="button" class="btn" title="Make your own copy to change, named “… Remix”">🎛 Remix</button>
           <button id="singSong" type="button" class="btn" title="Hum more notes into this song">🎤 Hum</button>
@@ -949,6 +941,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
               <button id="deleteSong" type="button" class="menu-item danger">🗑 Delete song</button>
             </div></span>
         </div>
+        <div id="songSplitSlot"></div>
         <div id="remixBanner" class="remix-banner" role="status" hidden>
           <span class="rb-ic" aria-hidden="true">🎛</span>
           <div class="rb-text"><strong>New song: <span id="rbName"></span></strong><span>This is your own copy to change. <span id="rbOrigName"></span> stays just as it was.</span></div>
@@ -1058,7 +1051,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
           <h2 id="prTitle">🎯 Practice</h2>
           <div class="pr-overall"><span class="viewpick"><button type="button" class="btn viewbtn" aria-haspopup="true" aria-expanded="false">🔍<span class="wide-only"> View</span> ▾</button></span><span id="prStreakBadge" class="pr-streak-badge" title="Days practiced in a row"></span><span id="prOverallText"></span><span class="pr-bar" aria-hidden="true"><i id="prBarFill"></i></span></div>
         </div>
-        <div id="prInstBar" class="pr-instbar" role="group" aria-label="Instrument you're practicing on"></div>
+
         <p id="prBanner" class="pr-banner" role="status" hidden></p>
         <div id="prModes" class="pr-modes">
           <button id="prPerfBtn" type="button" class="btn" title="Play the whole song through; flag where you stumble">🎭 Performance run</button>
@@ -1100,7 +1093,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
           </aside>
         </div>
         <div id="prSplitEditor" class="pr-split" hidden>
-          <p class="fine" style="margin-top:0">Tap between two notes to split or join phrases. Taller marks are your bar lines and part breaks, which make good places to split.</p>
+          <p class="fine" style="margin-top:0">Tap between two notes to split or join phrases. Taller marks are your bar lines and part breaks, which make good places to split. Press <kbd>P</kbd> to open or close this.</p>
           <div id="prSplitNotes" class="sp-notes"></div>
           <p id="prSplitInfo" class="fine"></p>
           <div class="toolbar">
@@ -1128,7 +1121,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
         <details class="pr-history">
           <summary>📈 Progress over time</summary>
           <div id="prHistory"></div>
-          <button id="prReset" type="button" class="btn danger" style="margin-top:12px">Reset progress for this song on this instrument</button>
+          <button id="prReset" type="button" class="btn danger" style="margin-top:12px">Reset progress for this song</button>
         </details>
       </div>
     </div>
@@ -2567,12 +2560,11 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (draft && draft.id !== id) dropUntouchedDraft();
     if (libPreview && id === libPreview.id) { showLibPreview(); return; }
     libPreview = null; setPreviewMode(false);
-    if (openId !== id) { $("remixBanner").hidden = true; $("typePanel").hidden = true; }
+    if (openId !== id) { $("remixBanner").hidden = true; $("typePanel").hidden = true; if (songSplitOpen()) closeSplitEditor(); }
     const sg = songs.find(x => x.id === id); if (!sg) { showSongHome(); return; }
     const target = keepInstrument ? null : instForSong(sg);
     if (target && target !== instSel.value && INSTS[target]) {
       instSel.value = target; syncInstUI();
-      save("htn-inst", target);
       stopPlayback(); updateLabels(); renderSeq(); renderStage(stageMidi);
       toast("Switched to " + INSTS[target].name.charAt(0).toUpperCase() + INSTS[target].name.slice(1));
     }
@@ -2797,6 +2789,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     $("editModeBtn").classList.toggle("on", songEditing); $("editModeBtn").setAttribute("aria-pressed", songEditing);
     $("editModeBtn").textContent = songEditing ? "✓ Done" : "✏️ Edit";
     if (!songEditing && selState && selState.list === "song") deselect();
+    if (!songEditing && songSplitOpen()) closeSplitEditor();
     syncSheet();
     refit();
   }
@@ -4096,15 +4089,31 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   $("saxType").addEventListener("change", pickInstrument);
   instSel.addEventListener("change", () => {
     syncInstUI();
-    save("htn-inst", instSel.value);
+    // the header picker is the Hum instrument; an open song and practice have their own
+    if (!$("view-hum").hidden) { humInst = instSel.value; save("htn-inst", instSel.value); }
     stopPlayback(); updateLabels(); renderSeq(); updateEditbar("mel"); renderStage(stageMidi);
-    // in Practice, switching instruments switches to that instrument's progress and leaves the song itself alone
     if (prSwitching) return;
-    if (!$("view-practice").hidden) { if (!$("songPractice").hidden) practiceInstChanged(); else showPracticeHome(); return; }
-    const cur = !$("songView").hidden && !isPreview() ? currentSong() : null;
-    if (cur) { cur.instr = inst().songInstr; if (isSax()) cur.sax = instSel.value; else delete cur.sax; storeSongs(); }
-    if (openId && !$("songView").hidden) openSong(openId, true); // the song now opens on this instrument
+    if (!$("view-practice").hidden) { if ($("songPractice").hidden) showPracticeHome(); return; }
+    if ($("view-songs").hidden || $("songView").hidden || !openId) return;
+    const cur = !isPreview() ? currentSong() : null;
+    if (cur) setSongInst(cur); // picking an instrument on a song sets the song's instrument
+    openSong(openId, true);
   });
+  // Set a song's own instrument to the one showing now
+  function setSongInst(sg) { sg.instr = inst().songInstr; if (isSax()) sg.sax = instSel.value; else delete sg.sax; storeSongs(); }
+  // The header picker shows only on Hum; on an open song it moves next to the title
+  let humInst = instSel.value;
+  function placeInstPick() {
+    const ip = $("instPick"), hum = !$("view-hum").hidden;
+    const sv = !$("view-songs").hidden && !$("songView").hidden;
+    const slot = sv ? $("songInstSlot") : document.querySelector("header.top");
+    if (ip.parentNode !== slot) { openGrid(false); slot.appendChild(ip); }
+    ip.hidden = !(hum || sv);
+    // back on Hum, the Hum instrument comes back
+    if (hum && instSel.value !== humInst && INSTS[humInst]) { instSel.value = humInst; instSel.dispatchEvent(new Event("change")); }
+  }
+  const pickObs = new MutationObserver(placeInstPick);
+  ["view-hum", "view-songs", "view-practice", "songView", "songHome", "songPractice", "practiceHome"].forEach(id => pickObs.observe($(id), { attributes: true, attributeFilter: ["hidden"] }));
   // Hum records; ■ Stop turns what you hummed into a new song and opens it, ready to name and edit
   function finishHum(open) {
     if (!melody.some(isNote)) { melody.length = 0; renderSeq(); return null; }
@@ -4208,6 +4217,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   } catch (e) {}
   applySens(+$("sens").value);
   syncInstUI();
+  humInst = instSel.value; placeInstPick();
   // ---------- Practice mode ----------
   // A saved song is split into phrases (~10–12 notes). Each step needs 3 clean runs in a row to pass.
   // Steps build up in layers instead of always replaying from the start: each phrase alone, every join between
@@ -4351,24 +4361,17 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   }
   const prPct = d => { const keys = prSteps(d); return keys.length ? Math.round(keys.filter(k => passed(d, k)).length / keys.length * 100) : 0; };
   function instLabel(key) { const sax = key === "tenor" || key === "alto", L = famLabel(sax ? "sax" : key); return { e: L.e, n: sax ? (key === "tenor" ? "Tenor sax" : "Alto sax") : L.n }; }
-  // one chip per instrument with its completion; tag = "button" (practice screen) or "span" (inside a song card)
-  function instChip(key, d, on, tag, songId) {
-    const L = instLabel(key), pct = d ? prPct(d) : 0;
-    return '<' + tag + (tag === "button" ? ' type="button"' : '') + ' class="pib-chip' + (on ? " on" : "") + '" data-pinst="' + key + '"' + (songId ? ' data-psong="' + songId + '"' : '')
-      + (on && tag === "button" ? ' aria-pressed="true"' : '') + ' title="' + esc(L.n) + ': ' + pct + '% of steps passed' + (on ? "" : " · practice on " + esc(L.n)) + '">'
-      + L.e + '<span>' + esc(L.n) + '</span><span class="pib-pct">' + pct + '%</span></' + tag + '>';
-  }
 
   // ----- Practice screen -----
   let pr = null; // { sg, d, key, streak, streakBpm, undo }
-  // instKey: practice on this instrument; otherwise the one you last practiced this song on (or the selected one)
+  // You always practice on the song's own instrument
   let prSwitching = false;
-  function openPractice(id, instKey) {
+  function openPractice(id) {
     markLoc();
     const sg = songs.find(x => x.id === id); if (!sg) return;
     if (!sg.items.some(isNote)) { toast("Add some notes to this song first"); return; }
     stopPlayback();
-    const r = prRec(sg), key = instKey && INSTS[instKey] ? instKey : r && r.last ? r.last : instSel.value;
+    const key = prInstOf(sg);
     if (key !== instSel.value) { // the fingerings on screen follow the instrument you're practicing on
       prSwitching = true;
       try { instSel.value = key; instSel.dispatchEvent(new Event("change")); } finally { prSwitching = false; }
@@ -4410,7 +4413,6 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (!pr) return;
     const { d } = pr, keys = prSteps(d), done = keys.filter(k => passed(d, k)).length;
     $("prOverallText").textContent = done + " of " + keys.length + " steps passed";
-    renderInstBar();
     const sk = streakInfo(); $("prStreakBadge").textContent = "🔥 " + sk.cur; $("prStreakBadge").classList.toggle("lit", sk.today);
     $("prBarFill").style.width = Math.round(done / keys.length * 100) + "%";
     const flags = d.flags || {};
@@ -4619,15 +4621,33 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   function stopMetro() { metro.on = false; clearInterval(metro.timer); metro.timer = null; $("prMetroToggle").textContent = "▶ Metronome"; $("prMetroToggle").classList.remove("on"); document.querySelectorAll("[data-metro-toggle]").forEach(b => { b.textContent = "▶ Metronome"; }); }
 
   // ----- Adjusting the phrases -----
-  let splitDraft = null; // set of note positions where a new phrase starts
-  function openSplitEditor() {
-    if (!pr) return;
-    splitDraft = new Set(pr.d.phrases.slice(1).map(p => p.start));
-    $("prMainWrap").hidden = true; $("prModes").hidden = true; $("prSplitEditor").hidden = false;
+  // Opens from Practice (✂ Adjust phrases) or from the song editor (✂ Phrases or the P key)
+  let splitDraft = null, spSg = null, spFrom = null; // splitDraft = note positions where a new phrase starts
+  const splitHome = document.createComment("phrase editor");
+  $("prSplitEditor").before(splitHome);
+  function openSplitEditor(from) {
+    from = from === "song" ? "song" : "pr";
+    const sg = from === "pr" ? pr && pr.sg : !isPreview() && currentSong(); if (!sg) return;
+    if (songNotes(sg).length < 2) { toast("Add a few notes first"); return; }
+    const r = prRec(sg), d = from === "pr" ? pr.d : r && r.insts[prInstOf(sg)];
+    if (d && from === "song") reconcile(sg, d);
+    spSg = sg; spFrom = from;
+    splitDraft = new Set((d ? d.phrases : autoSplit(sg)).slice(1).map(p => p.start));
+    const ed = $("prSplitEditor");
+    if (from === "pr") { splitHome.after(ed); $("prMainWrap").hidden = true; $("prModes").hidden = true; }
+    else $("songSplitSlot").appendChild(ed);
+    ed.hidden = false;
     renderSplitEditor();
   }
+  function closeSplitEditor() {
+    const ed = $("prSplitEditor"); if (ed.hidden) return;
+    ed.hidden = true;
+    if (spFrom === "pr") { $("prMainWrap").hidden = false; $("prModes").hidden = false; }
+    else $("songPhrasesBtn").focus();
+  }
+  function songSplitOpen() { const ed = $("prSplitEditor"); return !ed.hidden && ed.parentNode === $("songSplitSlot"); }
   function renderSplitEditor() {
-    const { sg } = pr, notes = songNotes(sg);
+    const sg = spSg, notes = songNotes(sg);
     let phrase = 0, html = "";
     notes.forEach((n, k) => {
       if (k > 0) {
@@ -4643,15 +4663,16 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     $("prSplitInfo").textContent = sizes.length + " phrase" + (sizes.length === 1 ? "" : "s") + " · " + sizes.join(", ") + " notes";
   }
   function saveSplits() {
-    const { sg, d } = pr, notes = songNotes(sg), cuts = [0, ...[...splitDraft].sort((x, y) => x - y), notes.length];
+    const sg = spSg, notes = songNotes(sg), cuts = [0, ...[...splitDraft].sort((x, y) => x - y), notes.length];
+    const d = spFrom === "pr" && pr ? pr.d : prDataFor(sg, prInstOf(sg));
     const fresh = [];
     for (let k = 1; k < cuts.length; k++) fresh.push({ start: cuts[k - 1], end: cuts[k], sig: sigOf(notes, cuts[k - 1], cuts[k]) });
     // the same phrases for every instrument you practice this song on, each keeping its own progress
     prAll(prRec(sg)).forEach(x => applySplits(x, x === d ? fresh : JSON.parse(JSON.stringify(fresh)), notes.length));
     savePractice();
-    pr.key = nextStep(d) || prSteps(d)[0]; pr.streak = 0; pr.undo = null;
-    $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false; $("prBanner").hidden = true;
-    renderPractice(); toast("Phrases saved");
+    const from = spFrom; closeSplitEditor();
+    if (from === "pr" && pr) { pr.key = nextStep(d) || prSteps(d)[0]; pr.streak = 0; pr.undo = null; $("prBanner").hidden = true; renderPractice(); }
+    toast("Phrases saved");
   }
   function applySplits(d, fresh, total) {
     // keep progress for phrases that didn't change, and for combined steps whose phrases are all unchanged
@@ -4669,32 +4690,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     d.phrases = fresh; d.steps = steps; d.notes = total; d.flags = flags;
   }
 
-  // from a song, practice on the instrument it's showing
-  $("practiceSong").addEventListener("click", () => { const sg = currentSong(); if (sg && !isPreview()) openPractice(sg.id, instSel.value); });
-  // ----- Switching instruments in practice -----
-  // The header instrument picker (or a chip in the bar) switches to that instrument's own progress for this song.
-  function practiceInstChanged() {
-    if (!pr || pr.d === (prRec(pr.sg) || { insts: {} }).insts[instSel.value]) { if (pr) renderInstBar(); return; }
-    if (pr.perf && pr.perf.flags.size) { // keep stumbles flagged so far on the instrument you were playing
-      const now = Date.now(); pr.d.flags = pr.d.flags || {}; pr.perf.flags.forEach(k => { pr.d.flags[k] = now; });
-    }
-    closeFull(); pr.perf = null;
-    const fresh = !(prRec(pr.sg).insts[instSel.value]);
-    openPractice(pr.sg.id, instSel.value);
-    const n = instLabel(instSel.value).n;
-    toast(fresh ? "🎵 Practicing on " + n + " · new progress for this instrument" : "🎵 Practicing on " + n + " · " + prPct(pr.d) + "% done");
-  }
-  function renderInstBar() {
-    const r = prRec(pr.sg), ks = prInsts(r), cur = instSel.value;
-    if (!ks.includes(cur)) ks.unshift(cur);
-    $("prInstBar").innerHTML = '<span class="pib-lab">Practicing on</span>' + ks.map(k => instChip(k, r.insts[k], k === cur, "button")).join("")
-      + '<button type="button" class="pib-chip add" data-pinst-other title="Practice this song on a different instrument">＋ Other instrument</button>';
-  }
-  $("prInstBar").addEventListener("click", e => {
-    if (e.target.closest("[data-pinst-other]")) { e.stopPropagation(); window.scrollTo({ top: 0, behavior: "smooth" }); openGrid(true); return; }
-    const c = e.target.closest("[data-pinst]"); if (!c || c.dataset.pinst === instSel.value) return;
-    instSel.value = c.dataset.pinst; instSel.dispatchEvent(new Event("change"));
-  });
+  $("practiceSong").addEventListener("click", () => { const sg = currentSong(); if (sg && !isPreview()) openPractice(sg.id); });
   $("practiceBack").addEventListener("click", () => { const id = pr && pr.sg.id; showTab("songs"); if (id) openSong(id, true); });
   $("practiceHomeBtn").addEventListener("click", showPracticeHome);
   // Practice tab: tapping it again (or "All practice") shows the list; coming from another tab resumes where you were
@@ -4704,14 +4700,12 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (already || !pr || !songs.some(x => x.id === pr.sg.id)) showPracticeHome();
     else { renderPractice(); }
   });
-  // per-instrument chips on a song card: the card opens your last instrument, a chip opens that one
-  const cardInsts = (sg, r) => { const ks = prInsts(r); return ks.length > 1 || ks[0] !== instSel.value ? '<span class="pc-insts">' + ks.map(k => instChip(k, r.insts[k], k === r.last, "span", sg.id)).join("") + '</span>' : ''; };
   function practiceCard(sg, d, big, r) {
     const keys = prSteps(d), done = keys.filter(k => passed(d, k)).length, pct = Math.round(done / keys.length * 100), nx = nextStep(d);
     const meta = done + " of " + keys.length + " steps" + (d.history.length ? " · last practiced " + fmtDay(lastPracticed(d)) : "");
     return '<button type="button" class="song-card pr-card' + (big ? " big" : "") + '" data-practice="' + sg.id + '"><span class="emo" aria-hidden="true">' + songIcon(sg) + '</span>'
       + '<span class="pc-body">' + (big ? '<span class="pc-kicker">▶ Continue where you left off</span>' : '') + '<span class="nm">' + esc(sg.name) + '</span>'
-      + '<span class="pc-bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span><span class="ct">' + meta + '</span>' + (r ? cardInsts(sg, r) : '')
+      + '<span class="pc-bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span><span class="ct">' + meta + '</span>'
       + (big && nx ? '<span class="pc-next">Next: ' + stepLabel(d, nx) + '</span>' : big && done === keys.length ? '<span class="pc-next">Every step passed 🎉 Try it faster!</span>' : '') + '</span></button>';
   }
   function practiceHero(sg, d, r) {
@@ -4719,8 +4713,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     return '<button type="button" class="pr-hero" data-practice="' + sg.id + '"><span class="ph-ic" aria-hidden="true">' + songIcon(sg) + '</span>'
       + '<span class="ph-body"><span class="pc-kicker">Continue where you left off</span><span class="ph-name">' + esc(sg.name) + '</span>'
       + '<span class="pc-bar" aria-hidden="true"><i style="width:' + Math.round(done / keys.length * 100) + '%"></i></span>'
-      + '<span class="ph-meta">' + done + ' of ' + keys.length + ' steps passed' + (r && r.last ? ' on ' + esc(instLabel(r.last).n) : '') + (d.history.length ? ' · last practiced ' + fmtDay(lastPracticed(d)) : '') + '</span>'
-      + (r ? cardInsts(sg, r) : '')
+      + '<span class="ph-meta">' + done + ' of ' + keys.length + ' steps passed' + (d.history.length ? ' · last practiced ' + fmtDay(lastPracticed(d)) : '') + '</span>'
       + '<span class="ph-next">' + (nx ? 'Next up: <b>' + stepLabel(d, nx) + '</b>' : 'Every step passed 🎉 Try it at a faster tempo') + '</span></span>'
       + '<span class="ph-go">▶ Continue practicing</span></button>';
   }
@@ -4729,7 +4722,7 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
     if (typeof metro !== "undefined" && metro.on) stopMetro();
     $("songPractice").hidden = true; $("practiceHome").hidden = false;
     const withNotes = songs.filter(sg => sg.items.some(isNote));
-    const started = withNotes.map(sg => ({ sg, r: prRec(sg) })).filter(e => e.r && e.r.last).map(e => Object.assign(e, { d: prDataFor(e.sg, e.r.last) }))
+    const started = withNotes.map(sg => ({ sg, r: prRec(sg), k: prInstOf(sg) })).filter(e => e.r && e.r.insts[e.k]).map(e => Object.assign(e, { d: prDataFor(e.sg, e.k) }))
       .sort((x, y) => lastPracticed(y.d) - lastPracticed(x.d));
     const fresh = withNotes.filter(sg => !started.some(e => e.sg === sg));
     $("prContinue").innerHTML = started.length ? practiceHero(started[0].sg, started[0].d, started[0].r)
@@ -4742,7 +4735,6 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
         + fresh.map(sg => '<button type="button" class="song-card" data-practice="' + sg.id + '"><span class="emo" aria-hidden="true">' + songIcon(sg) + '</span><span><span class="nm">' + esc(sg.name) + '</span><span class="ct">' + noteCount(sg.items) + ' notes</span></span></button>').join("") + '</div>' : "";
   }
   $("practiceHome").addEventListener("click", e => {
-    const c = e.target.closest("[data-pinst][data-psong]"); if (c) { openPractice(c.dataset.psong, c.dataset.pinst); return; }
     const b = e.target.closest("[data-practice]"); if (b) { openPractice(b.dataset.practice); return; }
     if (e.target.closest("[data-gosongs]")) { showTab("songs"); showSongHome(); }
   });
@@ -4772,13 +4764,22 @@ html, button, a, input, label, summary, .chip, .seq { touch-action: manipulation
   $("prUndo").addEventListener("click", undoTap);
   $("prMetroToggle").addEventListener("click", () => metro.on ? stopMetro() : startMetro());
   document.querySelectorAll("[data-bpm]").forEach(b => b.addEventListener("click", () => pr && setBpm(pr.d.bpm + +b.dataset.bpm)));
-  $("prEditSplits").addEventListener("click", openSplitEditor);
+  $("prEditSplits").addEventListener("click", () => openSplitEditor("pr"));
+  $("songPhrasesBtn").addEventListener("click", () => { if (songSplitOpen()) closeSplitEditor(); else openSplitEditor("song"); });
+  // P opens or closes the phrase editor while you're editing a song
+  document.addEventListener("keydown", e => {
+    if (e.key !== "p" && e.key !== "P" || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+    if ($("view-songs").hidden || $("songView").hidden || !songEditing || isPreview()) return;
+    e.preventDefault();
+    if (songSplitOpen()) closeSplitEditor(); else openSplitEditor("song");
+  });
   $("prSplitNotes").addEventListener("click", e => { const g = e.target.closest("[data-gap]"); if (!g) return; const k = +g.dataset.gap; if (splitDraft.has(k)) splitDraft.delete(k); else splitDraft.add(k); renderSplitEditor(); });
-  $("prAutoSplit").addEventListener("click", () => { splitDraft = new Set(autoSplit(pr.sg).slice(1).map(p => p.start)); renderSplitEditor(); });
+  $("prAutoSplit").addEventListener("click", () => { splitDraft = new Set(autoSplit(spSg).slice(1).map(p => p.start)); renderSplitEditor(); });
   $("prSplitSave").addEventListener("click", saveSplits);
-  $("prSplitCancel").addEventListener("click", () => { $("prSplitEditor").hidden = true; $("prMainWrap").hidden = false; $("prModes").hidden = false; });
+  $("prSplitCancel").addEventListener("click", closeSplitEditor);
   $("prReset").addEventListener("click", () => {
-    if (!pr || !confirm("Reset your " + instLabel(instSel.value).n + " practice progress for “" + pr.sg.name + "”? Your phrase splits and your progress on other instruments stay.")) return;
+    if (!pr || !confirm("Reset your practice progress for “" + pr.sg.name + "”? Your phrase splits stay.")) return;
     pr.d.steps = {}; pr.d.history = []; pr.d.started = Date.now(); pr.streak = 0; pr.undo = null;
     pr.key = prSteps(pr.d)[0]; savePractice(); renderPractice(); toast("Progress reset");
   });
